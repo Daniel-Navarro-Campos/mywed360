@@ -1,11 +1,9 @@
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
-node_modules
+# Dependencies / build
+node_modules/
+dist/
+
+# Environment variables
+.env
+
+# macOS metadata
+.DS_Store

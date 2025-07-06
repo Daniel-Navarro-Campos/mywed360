@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import SeatingCanvas from '../features/seating/SeatingCanvas';
 import GuestPanel from '../features/seating/GuestPanel';
 import Modal from '../components/Modal';
@@ -6,6 +6,10 @@ import TableConfigModal from '../components/TableConfigModal';
 import SeatItem from '../components/SeatItem';
 import TemplatesModal from '../components/TemplatesModal';
 import BanquetConfigModal from '../components/BanquetConfigModal';
+// Drag & Drop context
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
 
 
 
@@ -34,6 +38,8 @@ export default function SeatingPlan() {
 
   // history for undo/redo
   const historyRef = useRef({ ceremony: [], banquet: [] });
+
+
   const pointerRef = useRef({ ceremony: -1, banquet: -1 });
 
   const pushHistory = (snapshot) => {
@@ -80,18 +86,48 @@ export default function SeatingPlan() {
   // Guests from backend
   const [guests, setGuests] = useState([]);
   const [online, setOnline] = useState(1);
+  // Seleccionar backend según dispositivo
+  const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+
+  // Número real de mesas (únicas) considerando tanto las dibujadas como las referenciadas por invitados
+  const tableCount = useMemo(() => {
+    // IDs de mesas existentes en el plano actual (como string para unir correctamente)
+    const idsFromTables = tables.map(t => String(t.id));
+    // IDs de mesas asignadas a invitados (admite formatos antiguos "table")
+    const idsFromGuests = guests
+      .map(g => g.tableId ?? g.table) // usar tableId o fallback table
+      .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
+      .map(v => String(v).trim());
+
+    // Unión de ambos conjuntos para contar IDs distintos
+    const unionSet = new Set([...idsFromTables, ...idsFromGuests]);
+
+    return Math.max(unionSet.size, 1);
+  }, [tables, guests]);
   useEffect(()=>{
-    const loadGuests = async ()=>{
-      try{
-        const res = await fetch('/api/guests');
-        const data = await res.json(); // expected [{id,name,tableId}]
-        setGuests(data);
-      }catch(e){
-        console.error('Error fetching guests',e);
-      }
-    };
-    loadGuests();
-  },[]);
+     const loadGuests = async ()=>{
+       let got = [];
+       try{
+         const res = await fetch('/api/guests');
+         if(res.ok){
+           got = await res.json();
+         }
+       }catch(e){
+         console.warn('Sin backend /api/guests, usando localStorage');
+       }
+       if(!Array.isArray(got) || got.length===0){
+         try{ got = JSON.parse(localStorage.getItem('lovendaGuests')||'[]'); }catch{ got=[]; }
+       }
+       setGuests(got);
+     };
+     loadGuests();
+     // suscribirse a cambios en localStorage (ChatWidget u otros)
+     const handleLS = ()=>{
+       try{ const g = JSON.parse(localStorage.getItem('lovendaGuests')||'[]'); setGuests(g);}catch{}
+     };
+     window.addEventListener('lovenda-guests', handleLS);
+     return ()=> window.removeEventListener('lovenda-guests', handleLS);
+   },[]);
 
   // Real-time sync via WebSocket with fallback polling
   useEffect(()=>{
@@ -369,11 +405,33 @@ export default function SeatingPlan() {
   };
 
   return (
+    <DndProvider backend={isTouch ? TouchBackend : HTML5Backend}>
     <div className="p-4 select-none">
       {/* Tabs */}
       <div className="flex space-x-2 mb-4">
         <button aria-label onClick={() => setTab('ceremony')} className={`px-4 py-2 rounded ${tab==='ceremony' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Ceremonia</button>
         <button aria-label onClick={() => setTab('banquet')}  className={`px-4 py-2 rounded ${tab==='banquet'  ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Banquete</button>
+      </div>
+
+      {/* Toolbar top */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+        <h2 className="text-xl font-semibold">Plano de mesas</h2>
+        <SeatingToolbar
+          tab={tab}
+          addTable={addTable}
+          setScale={setScale}
+          undo={undo}
+          redo={redo}
+          exportPNG={exportPNG}
+          exportPDF={exportPDF}
+          generateSeatGrid={generateSeatGrid}
+          setTemplateOpen={setTemplateOpen}
+          setBanquetConfigOpen={setBanquetConfigOpen}
+          handleLocalAssign={handleLocalAssign}
+          handleServerAssign={handleServerAssign}
+          loadingAI={loadingAI}
+          setOffset={setOffset}
+        />
       </div>
 
       {/* Layout */}
@@ -396,17 +454,7 @@ export default function SeatingPlan() {
             handlePointerDown={handlePointerDown}
             ref={containerRef}
           />
-        {/* Banquet guide lines */}
-            {tab==='banquet' && (()=>{
-              const xs=[...new Set(tables.map(t=>t.x))];
-              const ys=[...new Set(tables.map(t=>t.y))];
-              return (
-                <>
-                  {xs.map((x,i)=>(<div key={`v${i}`} style={{position:'absolute', left:x*scale+offset.x, top:0, height:'100%', width:1, background:'#cbd5e1', pointerEvents:'none'}} />))}
-                  {ys.map((y,i)=>(<div key={`h${i}`} style={{position:'absolute', top:y*scale+offset.y, left:0, width:'100%', height:1, background:'#cbd5e1', pointerEvents:'none'}} />))}
-                </>
-              );
-            })()}
+
 
             <div className="absolute top-2 left-2 bg-white bg-opacity-80 px-2 py-1 text-sm rounded shadow">
           Áreas: {areas.length} | Mesas: {tables.length} | Zoom: {scale.toFixed(2)} | Online: {online}
@@ -434,23 +482,7 @@ export default function SeatingPlan() {
         </div>
       )}
 
-      {/* Toolbar */}
-      <SeatingToolbar
-        tab={tab}
-        addTable={addTable}
-        setScale={setScale}
-        undo={undo}
-        redo={redo}
-        exportPNG={exportPNG}
-        exportPDF={exportPDF}
-        generateSeatGrid={generateSeatGrid}
-        setTemplateOpen={setTemplateOpen}
-        setBanquetConfigOpen={setBanquetConfigOpen}
-        handleLocalAssign={handleLocalAssign}
-        handleServerAssign={handleServerAssign}
-        loadingAI={loadingAI}
-        setOffset={setOffset}
-      />
+
 
       {/* Preview Modal */}
       <Modal open={!!preview} title="Propuesta de asignación IA" onClose={() => setPreview(null)}>
@@ -475,7 +507,8 @@ export default function SeatingPlan() {
 
       <TableConfigModal open={!!configTable} table={configTable||{}} onSave={saveTableConfig} onClose={()=>setConfigTable(null)} />
 
-      <TemplatesModal open={templateOpen} onApply={applyTemplate} onClose={()=>setTemplateOpen(false)} />
+      <TemplatesModal open={templateOpen} onApply={applyTemplate} onClose={()=>setTemplateOpen(false)} tableCount={tableCount} />
     </div>
+    </DndProvider>
   );
 }

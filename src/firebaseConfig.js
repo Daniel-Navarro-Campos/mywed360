@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, connectFirestoreEmulator, doc, setDoc } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
@@ -126,7 +126,7 @@ const configurarListenerConexion = () => {
 const inicializarFirebase = async () => {
   try {
     // Inicializar la app de Firebase
-    app = initializeApp(firebaseConfig);
+    app = getApps().length ? getApp() : initializeApp(firebaseConfig);
     console.log('Firebase inicializado');
 
     // Inicializar autenticación

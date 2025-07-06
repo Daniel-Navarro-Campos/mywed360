@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
 import Toast from '../components/Toast';
@@ -19,16 +20,31 @@ function Finance() {
 
   const [configOpen, setConfigOpen] = React.useState(false);
   // Estado para aportaciones y regalos
-  const [personA, setPersonA] = React.useState(0);
-  const [personB, setPersonB] = React.useState(0);
+  const [initA, setInitA] = React.useState(0);
+  const [initB, setInitB] = React.useState(0);
+  const [monthlyA, setMonthlyA] = React.useState(0);
+  const [monthlyB, setMonthlyB] = React.useState(0);
+  const [extras, setExtras] = React.useState(0);
   const [giftPerGuest, setGiftPerGuest] = React.useState(0);
   const [guestCount, setGuestCount] = React.useState(0);
-  const [monthlyContrib, setMonthlyContrib] = React.useState(0); // suma de A+B
-  const [expectedIncome, setExpectedIncome] = React.useState(0);
+  const monthlyContrib = monthlyA + monthlyB;
 
-  // Datos simulados (reemplazar por API/estado real)
-  const balance = 12000;
+  const expectedIncome = giftPerGuest * guestCount + extras + initA + initB + monthlyContrib;
+
+  // Balance se calcula dinámicamente a partir de todas las transacciones (movimientos manuales + IA + banco)
   const [manualOpen, setManualOpen] = useState(false);
+
+  // Al abrir/mostrar configuracion intentar cargar número de invitados desde perfil
+  React.useEffect(() => {
+    if (configOpen) {
+      try {
+        const profile = JSON.parse(localStorage.getItem('lovendaProfile') || '{}');
+        if (profile?.weddingInfo?.numGuests) {
+          setGuestCount(Number(profile.weddingInfo.numGuests));
+        }
+      } catch (e) { console.error('Error leyendo perfil', e); }
+    }
+  }, [configOpen]);
 
   // Abrir modal de nuevo movimiento si la URL contiene #nuevo
   React.useEffect(() => {
@@ -60,23 +76,85 @@ function Finance() {
     setCategories(next);
   };
 
-  const upcomingExpenses = [
-    { id: 1, name: 'Fotógrafo', amount: 800, date: '2025-07-10' },
-    { id: 2, name: 'Florería', amount: 600, date: '2025-07-15' },
-  ];
-  const upcomingIncomes = [
-    { id: 1, name: 'Regalo padres', amount: 2000, date: '2025-07-20' },
-  ];
-  const pendingExpenses = upcomingExpenses;
-  const history = [
+  // --- Cargar movimientos IA/externos desde localStorage ---
+const loadStoredMovements = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('lovendaMovements') || '[]');
+    return stored;
+  } catch(_) { return []; }
+};
+
+/* upcomingExpenses, upcomingIncomes y pendingExpenses se calculan dinámicamente más abajo */
+  const initialHistory = [
     { id: 1, name: 'Reserva finca', amount: 3000, date: '2025-06-01', type: 'expense' },
     { id: 2, name: 'Aportación Persona A', amount: 5000, date: '2025-05-30', type: 'income' },
   ];
 
+  const { data: historyState, addItem: addMovement, updateItem: updateMovement, deleteItem: deleteMovement } = useFirestoreCollection('movements', initialHistory);
+
+  // Compatibilidad con flujo IA antiguo (evento 'lovenda-movements')
+  useEffect(() => {
+    const handler = async () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('lovendaMovements') || '[]');
+        for (const m of stored) {
+          if (!historyState.some(e => e.id === m.id)) {
+            await addMovement(m);
+          }
+        }
+      } catch(_){}
+    };
+    window.addEventListener('lovenda-movements', handler);
+    return () => window.removeEventListener('lovenda-movements', handler);
+  }, [historyState, addMovement]);
+
+  // --- Transacciones de banco (si están configuradas las credenciales) ---
+  const [bankTransactions, setBankTransactions] = useState([]);
+  const [loadingBank, setLoadingBank] = useState(false);
+
+  useEffect(() => {
+    async function fetchTx () {
+      try {
+        setLoadingBank(true);
+        const data = await getTransactions({});
+        setBankTransactions(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error fetching bank transactions', err);
+      } finally {
+        setLoadingBank(false);
+      }
+    }
+    fetchTx();
+  }, []);
+
+  // Unificar transacciones locales (historial + IA) y del banco
+  const transactions = useMemo(() => {
+    const merged = [...historyState, ...bankTransactions];
+    return merged.map(t => ({
+      ...t,
+      realCost: t.realCost ?? t.amount,
+      category: t.category || 'General',
+    }));
+  }, [historyState, bankTransactions]);
+
+  // Balance disponible = ingresos - gastos
+  const balance = useMemo(() => {
+    return transactions.reduce((acc, t) => {
+      const amount = Number(t.amount ?? t.realCost ?? 0);
+      return acc + (t.type === 'income' ? amount : -amount);
+    }, 0);
+  }, [transactions]);
+
+  // Cálculos de próximos y pendientes
+  const today = new Date();
+  const upcomingExpenses = useMemo(() => transactions.filter(t => t.type==='expense' && t.date && new Date(t.date) > today).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5), [transactions]);
+  const upcomingIncomes = useMemo(() => transactions.filter(t => t.type==='income' && t.date && new Date(t.date) > today).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5), [transactions]);
+  const pendingExpenses = useMemo(() => transactions.filter(t => t.type==='expense' && t.date && new Date(t.date) >= today).sort((a,b)=>new Date(a.date)-new Date(b.date)), [transactions]);
+
   const fmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6 p-4 pb-24">
       <h1 className="text-2xl font-semibold">Finanzas</h1>
       <div className="flex flex-wrap gap-2 my-4">
         <Button leftIcon={<Link2 size={18} />} onClick={() => alert('Función de vincular banco próximamente')}>Vincular banco</Button>
@@ -85,13 +163,14 @@ function Finance() {
         
         
       </div>
-      <Card className="flex-1 min-w-[260px] text-center">
+      <div className="flex flex-wrap md:flex-nowrap gap-4 w-full">
+        <Card className="flex-1 md:basis-1/2 min-w-[260px] text-center">
         <h2 className="text-lg font-medium mb-2">Saldo disponible</h2>
         <p className="text-4xl font-bold text-green-600">{fmt.format(balance)}</p>
       </Card>
 
         
-          <Card className="flex-1 min-w-[220px]">
+          <Card className="flex-1 md:basis-1/4 min-w-[220px]">
             <h3 className="font-medium mb-2">Próximos gastos</h3>
             <ul className="text-sm space-y-1">
               {upcomingExpenses.map(e => (
@@ -102,7 +181,7 @@ function Finance() {
               ))}
             </ul>
           </Card>
-          <Card className="flex-1 min-w-[220px]">
+          <Card className="flex-1 md:basis-1/4 min-w-[220px]">
             <h3 className="font-medium mb-2">Próximos ingresos</h3>
             <ul className="text-sm space-y-1">
               {upcomingIncomes.map(i => (
@@ -120,10 +199,12 @@ function Finance() {
         
       
 
+      </div>
+
       {/* Tabla gastos pendientes */}
       <Card>
         <h3 className="font-medium mb-2">Gastos pendientes</h3>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm divide-y">
           <thead>
             <tr className="text-left">
               <th>Concepto</th>
@@ -131,7 +212,7 @@ function Finance() {
               <th>Importe</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y">
             {pendingExpenses.map(e => (
               <tr key={e.id} className="border-t">
                 <td>{e.name}</td>
@@ -156,14 +237,14 @@ function Finance() {
           />
         </div>
         
-        <table className="w-full text-sm">
+        <table className="w-full text-sm divide-y">
           <thead>
             <tr className="text-left">
               <th>Categoría</th>
               <th>Importe</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y">
             {categories.map((cat, idx) => (
               <tr key={cat.name} className="border-t">
                 <td className="py-1">{cat.name}</td>
@@ -186,10 +267,20 @@ function Finance() {
         <Button variant="secondary" onClick={addCategory}>+ Añadir categoría</Button>
       </Card>
 
-      {/* Historial */}
-      <Card>
+       {/* Panel de análisis y alertas */}
+       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+         <CategoryBreakdown transactions={transactions} type="expense" />
+         <CategoryBreakdown transactions={transactions} type="income" />
+         <BudgetAlerts transactions={transactions} budgetLimits={categories.reduce((acc,c)=>{acc[c.name]=c.amount;return acc;},{})} />
+       </div>
+
+       {/* Seguimiento de pagos a proveedores */}
+       <VendorPayments transactions={transactions} />
+
+       {/* Historial */}
+      <Card className="overflow-x-auto">
         <h3 className="font-medium mb-2">Histórico de gastos e ingresos</h3>
-        <table className="w-full text-sm">
+        <table className="w-full text-sm divide-y">
           <thead>
             <tr className="text-left">
               <th>Concepto</th>
@@ -198,8 +289,8 @@ function Finance() {
               <th>Tipo</th>
             </tr>
           </thead>
-          <tbody>
-            {history.map(r => (
+          <tbody className="divide-y">
+            {historyState.map(r => (
               <tr key={r.id} className="border-t">
                 <td>{r.name}</td>
                 <td>{r.date}</td>
@@ -213,24 +304,44 @@ function Finance() {
 
       {/* Modal configuración */}
       <Modal open={configOpen} onClose={() => setConfigOpen(false)} title="Configuración finanzas">
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+          <h4 className="font-medium">Aportaciones iniciales</h4>
           <label className="block">
-            Aportación Persona A
-            <input type="number" className="border rounded px-2 py-1 w-full" value={personA} onChange={e=>setPersonA(+e.target.value||0)} placeholder="€" />
+            Persona A (€)
+            <input type="number" className="border rounded px-2 py-1 w-full" value={initA} onChange={e=>setInitA(+e.target.value||0)} />
           </label>
           <label className="block">
-            Aportación Persona B
-            <input type="number" className="border rounded px-2 py-1 w-full" value={personB} onChange={e=>setPersonB(+e.target.value||0)} placeholder="€" />
+            Persona B (€)
+            <input type="number" className="border rounded px-2 py-1 w-full" value={initB} onChange={e=>setInitB(+e.target.value||0)} />
+          </label>
+
+          <h4 className="font-medium mt-3">Aportaciones mensuales</h4>
+          <label className="block">
+            Persona A (€ / mes)
+            <input type="number" className="border rounded px-2 py-1 w-full" value={monthlyA} onChange={e=>setMonthlyA(+e.target.value||0)} />
           </label>
           <label className="block">
-            Regalo estimado por invitado
-            <input type="number" className="border rounded px-2 py-1 w-full" value={giftPerGuest} onChange={e=>setGiftPerGuest(+e.target.value||0)} placeholder="€" />
+            Persona B (€ / mes)
+            <input type="number" className="border rounded px-2 py-1 w-full" value={monthlyB} onChange={e=>setMonthlyB(+e.target.value||0)} />
+          </label>
+
+          <h4 className="font-medium mt-3">Aportaciones extras (familia u otros ingresos)</h4>
+          <label className="block">
+            Total extras (€)
+            <input type="number" className="border rounded px-2 py-1 w-full" value={extras} onChange={e=>setExtras(+e.target.value||0)} />
+          </label>
+
+          <h4 className="font-medium mt-3">Regalos estimados</h4>
+          <label className="block">
+            Regalo estimado por invitado (€)
+            <input type="number" className="border rounded px-2 py-1 w-full" value={giftPerGuest} onChange={e=>setGiftPerGuest(+e.target.value||0)} />
           </label>
           <label className="block">
             Número de invitados
-            <input type="number" className="border rounded px-2 py-1 w-full" value={guestCount} onChange={e=>setGuestCount(+e.target.value||0)} placeholder="€" />
+            <input type="number" className="border rounded px-2 py-1 w-full" value={guestCount} onChange={e=>setGuestCount(+e.target.value||0)} />
           </label>
-          <div className="text-right">
+
+          <div className="text-right mt-4">
             <Button onClick={() => setConfigOpen(false)}>Guardar</Button>
           </div>
         </div>
@@ -260,7 +371,14 @@ function Finance() {
           </label>
           <div className="text-right space-x-2">
             <Button variant="outline" onClick={()=>setManualOpen(false)}>Cancelar</Button>
-            <Button onClick={()=>{console.log('Movimiento guardado', newMovement); setManualOpen(false);}}>Guardar</Button>
+            <Button onClick={()=>{const id = `mov-${Date.now()}`;
+                const movObj = { ...newMovement, id };
+                // Actualizar estados y localStorage
+                setHistoryState(prev => [...prev, movObj]);
+                const stored = loadStoredMovements();
+                localStorage.setItem('lovendaMovements', JSON.stringify([...stored, movObj]));
+                window.dispatchEvent(new Event('lovenda-movements'));
+                setManualOpen(false);}}>Guardar</Button>
           </div>
         </div>
       </Modal>

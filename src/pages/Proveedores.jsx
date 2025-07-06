@@ -28,6 +28,39 @@ export default function Proveedores() {
   const [resDate, setResDate] = useState('');
   const [resTime, setResTime] = useState('');
   const initialProvider = { name: '', service: '', contact: '', email: '', phone: '', status: '', date: '' };
+
+  // Cargar proveedores encontrados por la IA (almacenados en localStorage) y escuchar cambios
+  useEffect(() => {
+    const loadSuppliers = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('lovendaSuppliers') || '[]');
+        if (!Array.isArray(stored) || !stored.length) return;
+        setProviders(prev => {
+          const existingLinks = new Set(prev.map(p => p.link));
+          const mapped = stored
+            .filter(s => !existingLinks.has(s.link))
+            .map((s, idx) => ({
+              id: `web-${Date.now()}-${idx}`,
+              name: s.title,
+              service: 'Proveedor',
+              contact: '',
+              email: '',
+              phone: '',
+              link: s.link,
+              status: 'Nuevo',
+              date: new Date().toISOString().slice(0, 10),
+              rating: 0,
+              ratingCount: 0,
+              snippet: s.snippet || '',
+            }));
+          return [...prev, ...mapped];
+        });
+      } catch (_) {}
+    };
+    loadSuppliers();
+    window.addEventListener('lovenda-suppliers', loadSuppliers);
+    return () => window.removeEventListener('lovenda-suppliers', loadSuppliers);
+  }, []);
   const [newProvider, setNewProvider] = useState(initialProvider);
   const handleAddProvider = e => {
     e.preventDefault();
@@ -204,7 +237,7 @@ export default function Proveedores() {
                 <td className="p-2">
                   <input type="checkbox" checked={selected.includes(p.id)} onChange={() => toggleSelect(p.id)} />
                 </td>
-                <td className="p-2">{p.name}</td>
+                <td className="p-2">{p.link ? <a href={p.link} target="_blank" rel="noreferrer" className="text-blue-600 underline">{p.name}</a> : p.name}</td>
                 <td className="p-2">{p.service}</td>
                 <td className="p-2">{p.contact}</td>
                 <td className="p-2">{p.email}</td>

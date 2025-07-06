@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { TouchBackend } from 'react-dnd-touch-backend';
+
+
+
 import FreeDrawCanvas from '../../components/FreeDrawCanvas';
 import TableItem from '../../components/TableItem';
 
@@ -29,13 +29,7 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
   containerRef,
 ) {
   return (
-    <DndProvider
-      backend={
-        'ontouchstart' in window || navigator.maxTouchPoints > 0
-          ? TouchBackend
-          : HTML5Backend
-      }
-    >
+
       <div
         className="md:w-3/4 border border-gray-300 h-96 relative"
         onWheel={handleWheel}
@@ -67,7 +61,7 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
         ))}
 
         {/* Líneas guía para banquete */}
-        {tab === 'banquet' && (() => {
+        {false && (() => {
           const xs = [...new Set(tables.map((t) => t.x))];
           const ys = [...new Set(tables.map((t) => t.y))];
           return (
@@ -104,12 +98,9 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
           );
         })()}
 
-        {/* HUD */}
-        <div className="absolute top-2 left-2 bg-white bg-opacity-80 px-2 py-1 text-sm rounded shadow">
-          Áreas: {areas.length} | Mesas: {tables.length} | Zoom: {scale.toFixed(2)} | Online: {online}
-        </div>
+
       </div>
-    </DndProvider>
+
   );
 });
 

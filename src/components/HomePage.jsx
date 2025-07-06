@@ -1,11 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../context/UserContext';
 import { Card } from './ui/Card';
 import { Progress } from './ui/Progress';
 import Nav from './Nav';
 
-import { User, DollarSign, Calendar, Users, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { User, DollarSign, Calendar, Users, ChevronLeft, ChevronRight, Plus, Phone } from 'lucide-react';
+import Input from './Input';
 
 
 import inspo1 from '../assets/inspo1.jpg';
@@ -14,7 +15,13 @@ import inspo3 from '../assets/inspo3.jpg';
 import inspo4 from '../assets/inspo4.jpg';
 
 export default function HomePage() {
+  // Eliminamos navegación para acciones rápidas; usaremos modales locales
   const navigate = useNavigate();
+  const [noteText,setNoteText]=useState('');
+  const [providerQuery,setProviderQuery]=useState('');
+  const [guest,setGuest]=useState({name:'',side:'novia',contact:''});
+  const [newMovement,setNewMovement]=useState({concept:'',amount:0,date:'',type:'expense'});
+  const [activeModal, setActiveModal] = useState(null);
   const { role, userName, weddingName, progress, logoUrl } = useUserContext();
   const galleryRef = useRef(null);
   const scrollAmount = 300;
@@ -51,7 +58,7 @@ export default function HomePage() {
       {/* Header */}
       <header className="relative z-10 p-6 flex justify-between items-center">
         <div className="space-y-1">
-          <p className="text-2xl text-gray-800">Bienvenidos, {userName}</p>
+          <h1 className="page-title">Bienvenidos, {weddingName}{weddingName && userName ? ' y ' : ''}{userName}</h1>
           <p className="text-4xl font-bold text-gray-800">Cada detalle hace tu boda inolvidable</p>
         </div>
         <img
@@ -86,17 +93,17 @@ export default function HomePage() {
       {/* Quick Actions */}
       <section className="z-10 p-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
         {[
-          { label: 'Buscar proveedor', route: '/proveedores', icon: User },
-          { label: 'Añadir invitado', route: '/invitados#nuevo', icon: Users },
-          { label: 'Añadir movimiento', route: '/finance#nuevo', icon: DollarSign },
-          { label: 'Nueva nota', route: '/ideas#nueva', icon: Plus },
+          { key: 'proveedor', label: 'Buscar proveedor', icon: User },
+          { key: 'invitado', label: 'Añadir invitado', icon: Users },
+          { key: 'movimiento', label: 'Añadir movimiento', icon: DollarSign },
+          { key: 'nota', label: 'Nueva nota', icon: Plus },
         ].map((action, idx) => {
           const Icon = action.icon;
           return (
             <Card
               key={idx}
               role="button"
-              onClick={() => navigate(action.route)}
+              onClick={() => setActiveModal(action.key)}
               className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
             >
               <div className="flex items-center space-x-3">
@@ -208,8 +215,149 @@ export default function HomePage() {
       </section>
 
       {/* Fixed Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 w-full z-20">
-        <Nav />
+      {/* Quick Modals */}
+      {activeModal==='nota' && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>{setActiveModal(null);setNoteText('');}}>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={e=>e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-3">Nueva Nota</h3>
+            <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} className="w-full border rounded p-2 mb-4" placeholder="Escribe tu idea..." />
+            <div className="text-right space-x-2">
+              <button onClick={()=>{setActiveModal(null);setNoteText('');}} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+              <button onClick={()=>{
+                if(!noteText.trim()) return;
+                const stored=JSON.parse(localStorage.getItem('ideasNotes')||'[]');
+                stored.push({folder:'General',text:noteText.trim()});
+                localStorage.setItem('ideasNotes',JSON.stringify(stored));
+                setActiveModal(null);setNoteText('');
+              }} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
+            </div>
+          </div>
+        </div>
+    )}
+
+    {activeModal === 'proveedor' && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setActiveModal(null); setProviderQuery(''); }}>
+        <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <h3 className="text-lg font-semibold mb-3">Buscar proveedor</h3>
+          <input value={providerQuery} onChange={e => setProviderQuery(e.target.value)} className="w-full border rounded p-2 mb-4" placeholder="Tipo o nombre de proveedor" />
+          <div className="text-right space-x-2">
+            <button onClick={() => { setActiveModal(null); setProviderQuery(''); }} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+            <button onClick={() => {
+              if (!providerQuery.trim()) return;
+              const searches = JSON.parse(localStorage.getItem('providerSearches') || '[]');
+              searches.push({ query: providerQuery.trim(), date: Date.now() });
+              localStorage.setItem('providerSearches', JSON.stringify(searches));
+              alert('Búsqueda guardada. Próximamente te mostraremos resultados.');
+              setActiveModal(null); setProviderQuery('');
+            }} className="px-4 py-2 bg-blue-600 text-white rounded">Buscar</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {activeModal === 'invitado' && (
+      <GuestModalHomePage onClose={() => setActiveModal(null)} />
+    )}
+
+    {activeModal === 'movimiento' && (
+      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setActiveModal(null); setNewMovement({ concept: '', amount: 0, date: '', type: 'expense' }); }}>
+        <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <h3 className="text-lg font-semibold mb-3">Nuevo movimiento</h3>
+          <input value={newMovement.concept} onChange={e => setNewMovement({ ...newMovement, concept: e.target.value })} className="w-full border rounded p-2 mb-2" placeholder="Concepto" />
+          <input type="number" value={newMovement.amount} onChange={e => setNewMovement({ ...newMovement, amount: +e.target.value || 0 })} className="w-full border rounded p-2 mb-2" placeholder="Monto (€)" />
+          <input type="date" value={newMovement.date} onChange={e => setNewMovement({ ...newMovement, date: e.target.value })} className="w-full border rounded p-2 mb-2" />
+          <select value={newMovement.type} onChange={e => setNewMovement({ ...newMovement, type: e.target.value })} className="w-full border rounded p-2 mb-4">
+            <option value="expense">Gasto</option>
+            <option value="income">Ingreso</option>
+          </select>
+          <div className="text-right space-x-2">
+            <button onClick={() => { setActiveModal(null); setNewMovement({ concept: '', amount: 0, date: '', type: 'expense' }); }} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+            <button onClick={() => {
+              if (!newMovement.concept.trim() || !newMovement.date) return;
+              const movs = JSON.parse(localStorage.getItem('quickMovements') || '[]');
+              movs.push({ ...newMovement, concept: newMovement.concept.trim() });
+              localStorage.setItem('quickMovements', JSON.stringify(movs));
+              setActiveModal(null); setNewMovement({ concept: '', amount: 0, date: '', type: 'expense' });
+            }} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <div className="fixed bottom-0 left-0 w-full z-20">
+      <Nav />
+    </div>
+  </div>
+);
+}
+
+// --- GuestModalHomePage fuera del componente principal ---
+
+function GuestModalHomePage({ onClose }) {
+  const emptyGuest = { name: '', phone: '', address: '', companion: 0, table: '', response: 'Pendiente' };
+  const [editingGuest, setEditingGuest] = React.useState({ ...emptyGuest });
+  const [importing, setImporting] = React.useState(false);
+
+  const importFromContacts = async () => {
+    if (navigator.contacts && navigator.contacts.select) {
+      setImporting(true);
+      try {
+        const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+        if (picked && picked.length) {
+          const stored = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
+          let nextId = stored.length ? Math.max(...stored.map(g => g.id)) + 1 : 1;
+          const mapped = picked.map(c => ({
+            id: nextId++,
+            name: Array.isArray(c.name) ? c.name[0] : c.name || 'Invitado',
+            phone: Array.isArray(c.tel) ? c.tel[0] : c.tel || '',
+            address: '',
+            companion: 0,
+            table: '',
+            response: 'Pendiente'
+          }));
+          const updated = [...stored, ...mapped];
+          localStorage.setItem('lovendaGuests', JSON.stringify(updated));
+          window.dispatchEvent(new Event('lovenda-guests'));
+          onClose();
+        }
+      } catch (err) {
+        alert('Error importando contactos');
+      } finally {
+        setImporting(false);
+      }
+    } else {
+      alert('La API de Contactos no está disponible en este dispositivo.');
+    }
+  };
+
+  const handleSave = () => {
+    if (!editingGuest.name.trim()) return;
+    const stored = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
+    const newId = stored.length ? Math.max(...stored.map(g => g.id)) + 1 : 1;
+    const newGuest = { ...editingGuest, id: newId, name: editingGuest.name.trim() };
+    localStorage.setItem('lovendaGuests', JSON.stringify([...stored, newGuest]));
+    window.dispatchEvent(new Event('lovenda-guests'));
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className="bg-white p-6 rounded shadow w-96 space-y-4">
+        <h2 className="text-lg font-semibold">Añadir Invitado</h2>
+        <div className="space-y-3">
+          <button className="w-full px-3 py-2 rounded border border-blue-400 text-blue-700 bg-blue-50 flex items-center justify-center gap-2" onClick={importFromContacts} disabled={importing}>
+            <Phone size={16}/> Importar desde contactos
+          </button>
+          <Input label="Nombre" value={editingGuest.name} onChange={e => setEditingGuest({ ...editingGuest, name: e.target.value })} />
+          <Input label="Teléfono" value={editingGuest.phone} onChange={e => setEditingGuest({ ...editingGuest, phone: e.target.value })} />
+          <Input label="Dirección postal" value={editingGuest.address} onChange={e => setEditingGuest({ ...editingGuest, address: e.target.value })} />
+          <Input label="Acompañantes" type="number" min="0" value={editingGuest.companion} onChange={e => setEditingGuest({ ...editingGuest, companion: parseInt(e.target.value,10)||0 })} />
+          <Input label="Mesa (número o apodo)" value={editingGuest.table} onChange={e => setEditingGuest({ ...editingGuest, table: e.target.value })} />
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button className="px-4 py-2 rounded bg-gray-300" onClick={onClose}>Cancelar</button>
+          <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={handleSave}>Guardar</button>
+        </div>
       </div>
     </div>
   );

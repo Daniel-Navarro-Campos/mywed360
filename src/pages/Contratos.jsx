@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 import { Plus, Download, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import Toast from '../components/Toast';
 import Card from '../components/Card';
@@ -8,20 +9,18 @@ export default function Contratos() {
     { id: 1, provider: 'Eventos Catering', type: 'Catering', signedDate: '2025-04-01', serviceDate: '2025-06-10', status: 'Vigente', docUrl: '#' },
     { id: 2, provider: 'Flores y Diseño', type: 'Flores', signedDate: '2025-03-15', serviceDate: '2025-06-12', status: 'Vigente', docUrl: '#' },
   ];
-  const [contracts, setContracts] = useState(sampleContracts);
+  const { data: contracts, addItem: addContract, updateItem: updateContract, deleteItem: deleteContract } = useFirestoreCollection('contracts', sampleContracts);
+  // selected state keeps ids locally
   const [selected, setSelected] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [toast, setToast] = useState(null);
   const initialContract = { provider: '', type: '', signedDate: '', serviceDate: '', status: '', docUrl: '' };
   const [newContract, setNewContract] = useState(initialContract);
 
-  const handleAddContract = e => {
+  const handleAddContract = async e => {
     e.preventDefault();
-    const newId = contracts.length ? Math.max(...contracts.map(c => c.id)) + 1 : 1;
-    setContracts(prev => [
-      ...prev,
-      { id: newId, ...newContract, docUrl: newContract.docUrl || '#' }
-    ]);
+    const contractObj = { id: `ct${Date.now()}`, ...newContract, docUrl: newContract.docUrl || '#' };
+    await addContract(contractObj);
     setNewContract(initialContract);
     setShowAddModal(false);
     setToast({ message: 'Contrato agregado', type: 'success' });

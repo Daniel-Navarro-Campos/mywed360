@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Download, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Edit2, Download, Filter, CheckCircle, Circle } from 'lucide-react';
 
 export default function Checklist() {
   const [view, setView] = useState('list');
@@ -9,6 +9,18 @@ export default function Checklist() {
   const [dateFilter, setDateFilter] = useState({ from: '', to: '' });
   const [selected, setSelected] = useState([]);
   const [showNewModal, setShowNewModal] = useState(false);
+  const [completed, setCompleted] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('checklistCompleted') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  // Actualizar localStorage cuando cambie el estado de completadas
+  useEffect(() => {
+    localStorage.setItem('checklistCompleted', JSON.stringify(completed));
+  }, [completed]);
 
   const blocks = [
     {
@@ -27,6 +39,10 @@ export default function Checklist() {
 
   const toggleSelect = id => {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleCompleted = id => {
+    setCompleted(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   return (
@@ -71,7 +87,7 @@ export default function Checklist() {
         <table className="w-full table-auto">
           <thead className="bg-gray-50">
             <tr>
-              <th><input type="checkbox" /></th>
+              <th></th>
               <th>Tarea</th>
               <th>Tipo</th>
               <th>Responsable</th>
@@ -82,13 +98,17 @@ export default function Checklist() {
           <tbody>
             {blocks.flatMap(block =>
               block.tasks.map(t => (
-                <tr key={t.id}>
-                  <td><input type="checkbox" checked={selected.includes(t.id)} onChange={() => toggleSelect(t.id)} /></td>
+                <tr key={t.id} className={completed[t.id] ? 'opacity-60 line-through' : ''}>
+                  <td>
+                    <button aria-label="Marcar completada" onClick={() => toggleCompleted(t.id)} className="focus:outline-none">
+                      {completed[t.id] ? <CheckCircle className="text-green-600" size={20} /> : <Circle className="text-gray-400" size={20} />}
+                    </button>
+                  </td>
                   <td>{t.title}</td>
                   <td>{t.type}</td>
                   <td>{t.responsible}</td>
                   <td>{t.due}</td>
-                  <td className="cursor-pointer" onClick={() => {}}>{t.status}</td>
+                  <td>{completed[t.id] ? 'Completada' : t.status}</td>
                 </tr>
               ))
             )}

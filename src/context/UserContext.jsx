@@ -36,8 +36,23 @@ export default function UserProvider({ children }) {
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const role = userDoc.exists() ? userDoc.data().role : 'particular';
+        let role = 'particular';
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            role = userDoc.data().role || 'particular';
+          } else {
+            // Intenta crear el documento si no existe
+            await setDoc(
+              doc(db, 'users', firebaseUser.uid),
+              { role, email: firebaseUser.email, createdAt: serverTimestamp() },
+              { merge: true }
+            );
+          }
+        } catch (err) {
+          // No interrumpas la sesión por problemas de permisos / offline
+          console.warn('No se pudo obtener/crear el doc de usuario:', err?.code || err);
+        }
         setUser({ ...firebaseUser, role });
       } else {
         setUser(null);

@@ -3,21 +3,49 @@ import { Search, Mail, Edit2, Trash2, RefreshCcw, Plus, User, Phone } from 'luci
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 
 // ---------------- NUEVO COMPONENTE INVITADOS ----------------
 function Invitados() {
   const locationHash = typeof window !== 'undefined' ? window.location.hash : '';
 
-  const initialGuests = [
+  const sampleGuests = [
     { id: 1, name: 'Ana García', phone: '123456789', address: 'Calle Sol 1', companion: 1, table: '5', response: 'Sí' },
     { id: 2, name: 'Luis Martínez', phone: '987654321', address: 'Av. Luna 3', companion: 0, table: '', response: 'Pendiente' },
   ];
-  const [guests, setGuests] = React.useState(initialGuests);
+  const { data: guests, addItem, updateItem, deleteItem } = useFirestoreCollection('guests', sampleGuests);
+
+  // --- Utilidades duplicados ---
+  const normalize = (str = '') => str.trim().toLowerCase();
+  const phoneClean = (str = '') => str.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+
+  // ---- Sincronización global ----
+  // Cada vez que cambie la colección de invitados, actualizamos localStorage
+  // y emitimos un evento para que SeatingPlan u otros escuchadores reaccionen.
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('lovendaGuests', JSON.stringify(guests));
+      window.dispatchEvent(new Event('lovenda-guests'));
+    } catch {}
+  }, [guests]);
+
+  
+
   const [search, setSearch] = React.useState('');
   const [filterResponse, setFilterResponse] = React.useState('');
   const [filterTable, setFilterTable] = React.useState('');
   const [modalOpen, setModalOpen] = React.useState(false);
   const [editingGuest, setEditingGuest] = React.useState(null);
+  const [tablesOpen, setTablesOpen] = React.useState(false);
+  const groupedTables = React.useMemo(() => {
+    const map = {};
+    guests.filter(g => g.table).forEach(g => {
+      const key = g.table;
+      map[key] = map[key] || [];
+      map[key].push(g);
+    });
+    return map;
+  }, [guests]);
 
   const emptyGuest = { name: '', phone: '', address: '', companion: 0, table: '', response: 'Pendiente' };
 
@@ -37,19 +65,20 @@ function Invitados() {
       try {
         const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
         if (picked && picked.length) {
-          setGuests(prev => {
-            let nextId = prev.length ? Math.max(...prev.map(g => g.id)) + 1 : 1;
-            const mapped = picked.map(c => ({
-              id: nextId++,
+          const mapped = picked.map(c => ({
               name: Array.isArray(c.name) ? c.name[0] : c.name || 'Invitado',
               phone: Array.isArray(c.tel) ? c.tel[0] : c.tel || '',
               address: '',
               companion: 0,
               table: '',
               response: 'Pendiente'
-            }));
-            return [...prev, ...mapped];
-          });
+            })).filter(m => !guests.some(g =>
+              normalize(g.name) === normalize(m.name) ||
+              (g.phone && m.phone && phoneClean(g.phone) === phoneClean(m.phone))
+            ));
+            for (const m of mapped) {
+              await addItem(m);
+            }
         }
       } catch (err) {
         console.error('Error importando contactos', err);
@@ -59,24 +88,28 @@ function Invitados() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingGuest.name.trim()) return;
-    setGuests(prev => {
-      if (editingGuest.id) {
-        // update
-        return prev.map(g => g.id === editingGuest.id ? editingGuest : g);
+    if (editingGuest.id) {
+      await updateItem(editingGuest.id, editingGuest);
+    } else {
+      const duplicate = guests.some(g =>
+        normalize(g.name) === normalize(editingGuest.name) ||
+        (g.phone && editingGuest.phone && phoneClean(g.phone) === phoneClean(editingGuest.phone))
+      );
+      if (duplicate) {
+        alert('Ese invitado ya existe');
+        return;
       }
-      // add
-      const newId = prev.length ? Math.max(...prev.map(g => g.id)) + 1 : 1;
-      return [...prev, { ...editingGuest, id: newId }];
-    });
+      await addItem(editingGuest);
+    }
     setModalOpen(false);
     setEditingGuest(null);
   };
 
-  const handleDelete = id => {
+  const handleDelete = async (id) => {
     if (window.confirm('¿Eliminar invitado?')) {
-      setGuests(prev => prev.filter(g => g.id !== id));
+      await deleteItem(id);
     }
   };
 
@@ -100,7 +133,7 @@ function Invitados() {
         <h1 className="text-2xl font-semibold mr-auto">Gestión de Invitados</h1>
         <div className="flex gap-2">
           <Button leftIcon={<Plus size={16}/>} onClick={() => { setEditingGuest({ ...emptyGuest }); setModalOpen(true); }}>Añadir Invitado</Button>
-          <Button variant="outline" leftIcon={<Phone size={16}/>} onClick={importFromContacts}>Añadir desde contactos</Button>
+          <Button variant="outline" onClick={() => setTablesOpen(true)}>Ver mesas</Button>
         </div>
       </div>
 
@@ -146,12 +179,46 @@ function Invitados() {
         </table>
       </div>
 
+      {/* Modal Ver Mesas */}
+      {tablesOpen && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50" onClick={()=>setTablesOpen(false)}>
+          <div className="bg-white p-6 rounded shadow max-w-4xl w-full max-h-[85vh] overflow-auto" onClick={e=>e.stopPropagation()}>
+            <h2 className="text-lg font-semibold mb-4">Mesas e invitados</h2>
+            {Object.keys(groupedTables).length===0 ? (
+              <p>No hay mesas asignadas</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {Object.entries(groupedTables).map(([table, list]) => (
+                  <div key={table} className="border rounded p-3">
+                    <h3 className="font-medium mb-2">Mesa {table}</h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {list.map(g => (
+                        <li key={g.id}>{g.name}{g.companion ? ` (+${g.companion})` : ''}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="text-right mt-4">
+              <Button onClick={()=>setTablesOpen(false)}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal Añadir/Editar */}
       {modalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow w-96 space-y-4">
             <h2 className="text-lg font-semibold">{editingGuest?.id ? 'Editar Invitado' : 'Añadir Invitado'}</h2>
             <div className="space-y-3">
+              {/* Import from contacts (only when adding new guest) */}
+              {!editingGuest?.id && (
+                <Button variant="outline" leftIcon={<Phone size={16}/>} onClick={importFromContacts}>
+                  Importar desde contactos
+                </Button>
+              )}
               <Input label="Nombre" value={editingGuest.name} onChange={e => setEditingGuest({ ...editingGuest, name: e.target.value })} />
               <Input label="Teléfono" value={editingGuest.phone} onChange={e => setEditingGuest({ ...editingGuest, phone: e.target.value })} />
               <Input label="Dirección postal" value={editingGuest.address} onChange={e => setEditingGuest({ ...editingGuest, address: e.target.value })} />

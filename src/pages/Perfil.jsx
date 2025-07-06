@@ -24,7 +24,33 @@ function Perfil() {
     banquetPlace: '',
     schedule: '',
     giftAccount: '',
+    numGuests: '',
   });
+  // Campo de texto amplio para notas importantes de la boda
+  const [importantInfo, setImportantInfo] = useState('');
+  // Sincronizar número de invitados automáticamente
+  // Escucha cambios en la lista de invitados en tiempo real
+  useEffect(() => {
+    function updateGuestCount() {
+      let guests = [];
+      try {
+        guests = JSON.parse(localStorage.getItem('lovendaGuests'));
+        if (!Array.isArray(guests)) guests = null;
+      } catch { guests = null; }
+      if (!guests) {
+        guests = [
+          { id: 1, name: 'Ana García', phone: '123456789', address: 'Calle Sol 1', companion: 1, table: '5', response: 'Sí' },
+          { id: 2, name: 'Luis Martínez', phone: '987654321', address: 'Av. Luna 3', companion: 0, table: '', response: 'Pendiente' },
+        ];
+      }
+      const total = guests.reduce((acc, g) => acc + 1 + (parseInt(g.companion)||0), 0);
+      setWeddingInfo(w => ({ ...w, numGuests: total }));
+    }
+    updateGuestCount(); // inicial
+    window.addEventListener('lovenda-guests', updateGuestCount);
+    return () => window.removeEventListener('lovenda-guests', updateGuestCount);
+  }, []);
+
   const [billing, setBilling] = useState({
     fullName: '',
     address: '',
@@ -39,7 +65,11 @@ function Perfil() {
   const handleWeddingChange = (e) => setWeddingInfo({ ...weddingInfo, [e.target.name]: e.target.value });
   const handleBillingChange = (e) => setBilling({ ...billing, [e.target.name]: e.target.value });
 
-  const saveProfile = () => console.log({ subscription, account, weddingInfo, billing });
+  const saveProfile = () => {
+    const data={subscription,account,weddingInfo,billing,importantInfo};
+    localStorage.setItem('lovendaProfile',JSON.stringify(data));
+    toast.success('Perfil guardado');
+  };
 
   return (
     <div className="space-y-6 p-4 max-w-3xl mx-auto">
@@ -79,7 +109,22 @@ function Perfil() {
           <Input label="Lugar del banquete" name="banquetPlace" value={weddingInfo.banquetPlace} onChange={handleWeddingChange} />
           <Input label="Horario" name="schedule" value={weddingInfo.schedule} onChange={handleWeddingChange} />
           <Input label="Cuenta de regalos" name="giftAccount" value={weddingInfo.giftAccount} onChange={handleWeddingChange} />
+          <Input label="Número de invitados" name="numGuests" type="number" value={weddingInfo.numGuests} readOnly />
         </div>
+        <div className="text-right">
+          <Button onClick={saveProfile}>Guardar</Button>
+        </div>
+      </Card>
+
+      {/* Información importante de la boda */}
+      <Card className="space-y-4">
+        <h2 className="text-lg font-medium">Información importante de la boda</h2>
+        <textarea
+          className="w-full min-h-[150px] border rounded-md p-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Datos o detalles clave que la IA o el usuario quieran guardar (ej.: alergias, proveedores críticos, horarios especiales, etc.)"
+          value={importantInfo}
+          onChange={(e)=>setImportantInfo(e.target.value)}
+        />
         <div className="text-right">
           <Button onClick={saveProfile}>Guardar</Button>
         </div>

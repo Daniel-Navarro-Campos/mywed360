@@ -2,14 +2,24 @@ import React, { useState, useRef, useEffect } from 'react';
 
 export default function Ideas() {
   const [view, setView] = useState('notes');
-  const [notes, setNotes] = useState([]); // {folder, text}
+  const [notes, setNotes] = useState(()=>JSON.parse(localStorage.getItem('ideasNotes')||'[]')); // {folder, text}
   const [noteText, setNoteText] = useState('');
-  const [folders, setFolders] = useState(['General']);
+  const [folders, setFolders] = useState(()=>{
+    const stored=JSON.parse(localStorage.getItem('ideasFolders')||'null');
+    return stored||['General'];
+  });
   const [currentFolder, setCurrentFolder] = useState('General');
   const [photos, setPhotos] = useState([]);
   const textareaRef = useRef(null);
 
   // Si la URL incluye #nueva, enfocamos el textarea automáticamente
+  useEffect(()=>{
+    localStorage.setItem('ideasNotes',JSON.stringify(notes));
+  },[notes]);
+  useEffect(()=>{
+    localStorage.setItem('ideasFolders',JSON.stringify(folders));
+  },[folders]);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash === '#nueva') {
       setView('notes');
@@ -62,7 +72,7 @@ export default function Ideas() {
           <button
             onClick={() => {
               if (noteText) {
-                setNotes(prev => [...prev, { folder: currentFolder, text: noteText }]);
+                setNotes(prev => [...prev, { folder: currentFolder, text: noteText.trim() }]);
                 setNoteText('');
               }
             }}
