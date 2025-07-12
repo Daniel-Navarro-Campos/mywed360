@@ -6,6 +6,7 @@ import Input from '../components/Input';
 import { useUserContext } from '../context/UserContext';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 
 // ---------------------- NUEVO PERFIL -----------------------
 function Perfil() {
@@ -28,6 +29,8 @@ function Perfil() {
   });
   // Campo de texto amplio para notas importantes de la boda
   const [importantInfo, setImportantInfo] = useState('');
+  const [syncStatus, setSyncStatus] = useState(getSyncState());
+
   // Sincronizar número de invitados automáticamente
   // Escucha cambios en la lista de invitados en tiempo real
   useEffect(() => {
@@ -49,6 +52,15 @@ function Perfil() {
     updateGuestCount(); // inicial
     window.addEventListener('lovenda-guests', updateGuestCount);
     return () => window.removeEventListener('lovenda-guests', updateGuestCount);
+   }, []);
+
+  // Escucha notas importantes agregadas desde el chat
+  useEffect(() => {
+    function updateNotes() {
+      setImportantInfo(loadData('importantNotes'));
+    }
+    window.addEventListener('lovenda-important-note', updateNotes);
+    return () => window.removeEventListener('lovenda-important-note', updateNotes);
   }, []);
 
   const [billing, setBilling] = useState({
@@ -65,15 +77,76 @@ function Perfil() {
   const handleWeddingChange = (e) => setWeddingInfo({ ...weddingInfo, [e.target.name]: e.target.value });
   const handleBillingChange = (e) => setBilling({ ...billing, [e.target.name]: e.target.value });
 
-  const saveProfile = () => {
-    const data={subscription,account,weddingInfo,billing,importantInfo};
-    localStorage.setItem('lovendaProfile',JSON.stringify(data));
-    toast.success('Perfil guardado');
+  const saveProfile = async () => {
+    const data = {subscription, account, weddingInfo, billing, importantInfo};
+    
+    try {
+      // Usar el nuevo servicio de sincronización híbrida
+      const success = await saveData('lovendaProfile', data, {
+        collection: 'userProfiles',
+        showNotification: false // Manejamos las notificaciones aquí
+      });
+      
+      if (success) {
+        toast.success('Perfil guardado');
+      } else {
+        toast.warning('Perfil guardado localmente. Se sincronizará cuando haya conexión');
+      }
+    } catch (error) {
+      console.error('Error guardando perfil:', error);
+      toast.error('Error al guardar el perfil');
+    }
   };
+
+  useEffect(() => {
+    // Suscribirse a cambios en el estado de sincronización
+    const unsubscribe = subscribeSyncState(setSyncStatus);
+    
+    // Cargar datos con la nueva estrategia híbrida
+    const loadProfileData = async () => {
+      try {
+        const profileData = await loadData('lovendaProfile', {
+          collection: 'userProfiles',
+          fallbackToLocal: true
+        });
+        
+        if (profileData) {
+          if (profileData.weddingInfo) setWeddingInfo(profileData.weddingInfo);
+          if (profileData.account) setAccount(profileData.account);
+          if (profileData.billing) setBilling(profileData.billing);
+          if (profileData.subscription) setSubscription(profileData.subscription);
+          if (profileData.importantInfo) setImportantInfo(profileData.importantInfo);
+        }
+      } catch (error) {
+        console.error('Error cargando datos del perfil:', error);
+        toast.error('Error al cargar el perfil');
+      }
+    };
+    
+    loadProfileData();
+    
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="space-y-6 p-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-semibold">Perfil</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">Perfil</h1>
+        
+        {/* Indicador de estado de sincronización */}
+        <div className="flex items-center text-sm">
+          <div className={`w-3 h-3 rounded-full mr-2 ${
+            !syncStatus.isOnline ? 'bg-red-500' : 
+            syncStatus.isSyncing ? 'bg-yellow-500' :
+            syncStatus.pendingChanges ? 'bg-orange-500' : 'bg-green-500'
+          }`}></div>
+          <span>
+            {!syncStatus.isOnline ? 'Sin conexión (modo offline)' : 
+             syncStatus.isSyncing ? 'Sincronizando...' : 
+             syncStatus.pendingChanges ? 'Cambios pendientes' : 'Sincronizado'}
+          </span>
+        </div>
+      </div>
 
       {/* Suscripción */}
       <Card className="space-y-4">

@@ -66,6 +66,19 @@ router.post('/parse-dialog', async (req, res) => {
                 },
               },
             },
+            meetings: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  start: { type: 'string', description: 'Fecha/hora inicio ISO' },
+                  end: { type: 'string', description: 'Fecha/hora fin ISO' },
+                  date: { type: 'string', description: 'Fecha ISO shorthand' },
+                  when: { type: 'string', description: 'Expresión natural de fecha/hora' }
+                },
+              },
+            },
             budgetMovements: {
               type: 'array',
               items: {
@@ -84,7 +97,7 @@ router.post('/parse-dialog', async (req, res) => {
               items: {
                 type: 'object',
                 properties: {
-                  entity: { type: 'string', enum: ['task','guest','movement','table','config','supplier'] },
+                  entity: { type: 'string', enum: ['task','meeting','guest','movement','table','config','supplier'] },
                   action: { type: 'string', enum: ['add','update','delete','complete','move','set','search'] },
                   payload: { type: 'object' }
                 },

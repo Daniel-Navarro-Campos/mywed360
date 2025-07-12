@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
+import PageWrapper from '../../components/PageWrapper';
 import Button from '../../components/Button';
 import { useUserContext } from '../../context/UserContext';
 
@@ -106,37 +107,35 @@ const AyudaCeremonia = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-gray-800">Ayuda para la Ceremonia</h2>
+    <PageWrapper title="Ayuda Ceremonia">
+      <div className="space-y-6">
         <p className="text-gray-600">Gestiona las lecturas y momentos especiales de tu ceremonia</p>
-      </div>
 
-      {/* Pestañas */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('lecturas')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'lecturas'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Lecturas
-          </button>
-          <button
-            onClick={() => setActiveTab('ramos-sorpresas')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'ramos-sorpresas'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Ramos y Sorpresas
-          </button>
-        </nav>
-      </div>
+        {/* Pestañas */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('lecturas')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'lecturas'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Lecturas
+            </button>
+            <button
+              onClick={() => setActiveTab('ramos-sorpresas')}
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'ramos-sorpresas'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Ramos y Sorpresas
+            </button>
+          </nav>
+        </div>
 
       {/* Contenido de las pestañas */}
       {activeTab === 'lecturas' ? (
@@ -496,6 +495,8 @@ const AyudaCeremonia = () => {
         </div>
       )}
 
+      </div>
+
       {/* Modal de vista previa */}
       {showReadingPreview && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -525,7 +526,7 @@ const AyudaCeremonia = () => {
           </Card>
         </div>
       )}
-    </div>
+    </PageWrapper>
   );
 };
 

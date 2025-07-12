@@ -30,7 +30,8 @@ router.post('/', async (req, res) => {
     // TODO: integrate real email provider e.g., SendGrid – placeholder only
     // await axios.post('https://api.sendgrid.com/v3/mail/send', {...})
 
-    const docRef = await db.collection('mails').add({
+    // Registro en carpeta 'sent' para el remitente
+    const sentRef = await db.collection('mails').add({
       from: 'yo@lovenda.app',
       to,
       subject,
@@ -40,7 +41,18 @@ router.post('/', async (req, res) => {
       read: true,
     });
 
-    res.status(201).json({ id: docRef.id, to, subject, body, date, folder: 'sent', read: true, from: 'yo@lovenda.app' });
+    // Registro en carpeta 'inbox' para el destinatario (sin leer)
+    await db.collection('mails').add({
+      from: 'yo@lovenda.app',
+      to,
+      subject,
+      body,
+      date,
+      folder: 'inbox',
+      read: false,
+    });
+
+    res.status(201).json({ id: sentRef.id, to, subject, body, date, folder: 'sent', read: true, from: 'yo@lovenda.app' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error sending mail' });

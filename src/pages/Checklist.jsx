@@ -46,9 +46,9 @@ export default function Checklist() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Checklist de Protocolo</h2>
-      <p className="text-sm text-gray-600">Más / Protocolo / Checklist</p>
+    <div className="p-4 md:p-6 space-y-8">
+      <h1 className="text-2xl font-bold text-gray-800">Checklist</h1>
+      
 
       {/* Controles */}
       <div className="flex flex-wrap gap-2 items-center">

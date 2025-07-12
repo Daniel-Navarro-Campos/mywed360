@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 import { Plus, Download, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import Toast from '../components/Toast';
+import PageWrapper from '../components/PageWrapper';
 import Card from '../components/Card';
 
 export default function Contratos() {
@@ -43,14 +44,31 @@ export default function Contratos() {
     console.log('Export contracts:', selected);
   };
 
-  return (
+  const actionButtons = (
     <>
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="bg-blue-600 text-white px-4 py-2 rounded flex items-center"
+      >
+        <Plus size={16} className="mr-2" /> Añadir Contrato
+      </button>
+      <button
+        onClick={exportSelected}
+        className="bg-gray-200 px-4 py-2 rounded flex items-center"
+      >
+        <Download size={16} className="mr-2" /> Exportar Seleccionados
+      </button>
+    </>
+  );
+
+  return (
+    <PageWrapper title="Contratos" actions={actionButtons}>
       <Card className="p-6 space-y-6">
         {toast && (
           <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
         )}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Contratos</h1>
+        
+          
           <div className="flex gap-2">
             <button
               onClick={() => setShowAddModal(true)}
@@ -65,8 +83,6 @@ export default function Contratos() {
               <Download size={16} className="mr-2" /> Exportar Seleccionados
             </button>
           </div>
-        </div>
-
         {/* Escritorio */}
         <div className="hidden md:block overflow-auto">
           <table className="w-full table-auto">
@@ -135,7 +151,6 @@ export default function Contratos() {
         </div>
       </Card>
 
-      {/* Modal Añadir */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded shadow w-96">
@@ -200,7 +215,7 @@ export default function Contratos() {
           </div>
         </div>
       )}
-    </>
+    </PageWrapper>
   );
 }
 

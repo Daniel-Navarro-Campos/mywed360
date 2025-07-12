@@ -5,10 +5,10 @@ import { Users, Briefcase, Clock, User, Layers } from 'lucide-react';
 export default function More() {
   const [openMenu, setOpenMenu] = useState(null);
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6 space-y-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Más</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Más</h1>
       </div>
 
       {/* Tiles */}

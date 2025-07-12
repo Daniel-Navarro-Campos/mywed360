@@ -7,10 +7,11 @@ import React, { useRef, useState, useEffect } from 'react';
  * Props:
  *   onFinalize(points) => called when user double-clicks / presses Finish to commit current stroke
  */
-export default function FreeDrawCanvas({ className = '', style = {}, strokeColor = '#3b82f6', scale = 1, offset = { x: 0, y: 0 }, areas = [], onFinalize }) {
+export default function FreeDrawCanvas({ className = '', style = {}, strokeColor = '#3b82f6', scale = 1, offset = { x: 0, y: 0 }, areas = [], drawMode = 'free', onFinalize, onDeleteArea = () => {} }) {
   const svgRef = useRef(null);
   const [points, setPoints] = useState([]);
   const [drawing, setDrawing] = useState(false);
+  const startRef = useRef(null);
 
   const toSvgPoint = (e) => {
     const svg = svgRef.current;
@@ -44,24 +45,81 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
 
   const handlePointerDown = (e) => {
     e.preventDefault();
-    setDrawing(true);
-    setPoints([toSvgPoint(e)]);
+    const pt = toSvgPoint(e);
+    if (drawMode === 'line') {
+      setDrawing(true);
+      setPoints([pt]);
+      return;
+    }
+    if (drawMode === 'rect') {
+      setDrawing(true);
+      startRef.current = pt;
+      setPoints([pt]);
+      return;
+    }
+    if (drawMode === 'free' || drawMode === 'curve') {
+      setDrawing(true);
+      setPoints([pt]);
+    }
   };
 
   const handlePointerMove = (e) => {
     if (!drawing) return;
-    setPoints((prev) => [...prev, toSvgPoint(e)]);
+    if (drawMode === 'line') {
+      const pt = toSvgPoint(e);
+      setPoints(prev => (prev.length === 1 ? [prev[0], pt] : [prev[0], pt]));
+      return;
+    }
+    if (drawMode === 'rect') {
+      const cur = toSvgPoint(e);
+      const start = startRef.current;
+      if (!start) return;
+      const rectPts = [
+        start,
+        { x: cur.x, y: start.y },
+        cur,
+        { x: start.x, y: cur.y },
+        start,
+      ];
+      setPoints(rectPts);
+      return;
+    }
+    if (drawMode === 'free' || drawMode === 'curve') {
+      const pt = toSvgPoint(e);
+      setPoints(prev => [...prev, pt]);
+    }
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e) => {
+    if (!drawing) return;
+    if (drawMode === 'line') {
+      const pt = toSvgPoint(e);
+      const line = points.length === 2 ? points : [points[0], pt];
+      onFinalize && onFinalize(line);
+      setPoints([]);
+      setDrawing(false);
+      return;
+    }
+    if (drawMode === 'rect') {
+      if (points.length >= 4) {
+        onFinalize && onFinalize(points);
+      }
+      setPoints([]);
+      startRef.current = null;
+      setDrawing(false);
+      return;
+    }
+    // Para freehand / curva simplemente detenemos la captura; la finalización será mediante doble clic
     setDrawing(false);
   };
 
   const handleDoubleClick = () => {
-    if (points.length > 2) {
-      const smoothed = smooth(points);
-      onFinalize && onFinalize(smoothed);
-      setPoints([]);
+    if (drawMode === 'free' || drawMode === 'curve') {
+      if (points.length > 2) {
+        const smoothed = smooth(points);
+        onFinalize && onFinalize(smoothed);
+        setPoints([]);
+      }
     }
   };
 
@@ -75,18 +133,23 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
       onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
     >
-      {/* rendered areas */}
-      {areas.map((poly, idx) => (
-        <path key={idx} d={getPathD(poly)} stroke="#10b981" strokeWidth={2} fill="none" />
-      ))}
-      {/* current stroke */}
+      {/* Áreas existentes */}
       <g transform={`translate(${offset.x} ${offset.y}) scale(${scale})`}>
-      {/* rendered areas */}
-      {areas.map((poly, idx) => (
-        <path key={idx} d={getPathD(poly)} stroke="#10b981" strokeWidth={2} fill="none" />
-      ))}
-      {/* current stroke */}
-      <path d={getPathD(points)} stroke={strokeColor} strokeWidth={2} fill="none" />
+        {areas.map((poly, idx) => (
+          <path
+            key={idx}
+            d={getPathD(poly)}
+            stroke="#10b981"
+            strokeWidth={2}
+            fill="none"
+            onPointerDown={drawMode === 'erase' ? (e) => { e.stopPropagation(); onDeleteArea(idx); } : undefined}
+            style={{ cursor: drawMode === 'erase' ? 'pointer' : 'default' }}
+          />
+        ))}
+        {/* Trazo actual */}
+        {points.length > 0 && (
+          <path d={getPathD(points)} stroke={strokeColor} strokeWidth={2} fill="none" />
+        )}
       </g>
     </svg>
   );

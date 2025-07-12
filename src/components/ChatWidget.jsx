@@ -1,20 +1,89 @@
 import React, { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
 import Spinner from './Spinner';
 import { toast } from 'react-toastify';
 
+// --- Configuración de memoria conversacional ---
+const MAX_MESSAGES = 50;        // Cuántos mensajes “frescos” mantener en memoria corta
+const SHORT_HISTORY = 20;       // Cuántos mensajes recientes se envían a la IA junto al resumen
+// Función para normalizar texto de categoría: elimina acentos y convierte a mayúsculas
+const normalizeCategory = (cat = 'OTROS') => cat.normalize('NFD').replace(/[^\w\s]|_/g, '').replace(/\s+/g, '').toUpperCase();
+// Intenta adivinar la categoría en base al título/descripcion de la tarea
+const guessCategory = (title = '') => {
+  const t = title.toLowerCase();
+  if (/lugar|finca|sal[oó]n/.test(t)) return 'LUGAR';
+  if (/foto|fot[oó]graf/.test(t)) return 'FOTOGRAFO';
+  if (/m[uú]sica|dj|banda/.test(t)) return 'MUSICA';
+  if (/vestido|traje|vestuari|zapato/.test(t)) return 'VESTUARIO';
+  if (/catering|banquete|men[uú]/.test(t)) return 'CATERING';
+  return 'OTROS';
+};
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(() => { const saved = localStorage.getItem('chatOpen'); return saved ? JSON.parse(saved) : false; });
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('chatMessages') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [summary, setSummary] = useState(() => {
+    try {
+      return localStorage.getItem('chatSummary') || '';
+    } catch {
+      return '';
+    }
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const toggleImportant = (idx) => {
+    setMessages(prev => {
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], important: !copy[idx].important };
+      if (copy[idx].important) {
+        try {
+          const notes = JSON.parse(localStorage.getItem('importantNotes') || '[]');
+          notes.push({ text: copy[idx].text, date: Date.now() });
+          localStorage.setItem('importantNotes', JSON.stringify(notes));
+          window.dispatchEvent(new Event('lovenda-important-note'));
+          toast.success('Nota marcada como importante');
+        } catch { /* ignore */ }
+      }
+      return copy;
+    });
+  };
 
   useEffect(() => {
     localStorage.setItem('chatOpen', JSON.stringify(open));
   }, [open]);
 
-  // Utilidad para aplicar comandos de la IA
+  // Persistir resumen entre sesiones
+  useEffect(() => {
+    localStorage.setItem('chatSummary', summary);
+  }, [summary]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    } catch {/* ignore */}
+  }, [messages]);
+
+  // --- Utilidad para compactar mensajes y moverlos al resumen ---
+  const compactMessages = (arr) => {
+    if (arr.length <= MAX_MESSAGES) return arr;
+    const excess = arr.length - MAX_MESSAGES;
+    const toSummarize = arr.slice(0, excess);
+    const rest = arr.slice(excess);
+    const summaryPart = toSummarize.map(m => `${m.from === 'user' ? 'Usuario' : 'IA'}: ${m.text}`).join('\n');
+    setSummary(prev => prev ? `${prev}\n${summaryPart}` : summaryPart);
+    return rest;
+  };
+
+// Utilidad para aplicar comandos de la IA
 const applyCommands = async (commands = []) => {
   if (!commands.length) return;
   let meetings = JSON.parse(localStorage.getItem('lovendaMeetings') || '[]');
@@ -29,7 +98,7 @@ const applyCommands = async (commands = []) => {
 
   commands.forEach(async (cmd) => {
     const { entity, action, payload = {} } = cmd;
-    if (entity === 'task') {
+    if (entity === 'task' || entity === 'meeting') {
       switch(action){
       case 'add': {
         // asegurar id único
@@ -38,15 +107,15 @@ const applyCommands = async (commands = []) => {
         const endDate = payload.end ? new Date(payload.end) : startDate;
         meetings.push({
           id: newId,
-          title: payload.title || payload.name || 'Tarea',
-          name: payload.title || payload.name || 'Tarea',
+          title: payload.title || payload.name || (entity === 'task' ? 'Tarea' : 'Reunión'),
+          name: payload.title || payload.name || (entity === 'task' ? 'Tarea' : 'Reunión'),
           desc: payload.desc || '',
-          start: startDate,
-          end: endDate,
-          type: 'meeting',
-          category: (payload.category || 'OTROS').toUpperCase(),
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          type: entity,
+          category: normalizeCategory(payload.category || guessCategory(payload.title || payload.name || '')),
         });
-        toast.success('Tarea añadida');
+        toast.success(entity === 'task' ? 'Tarea añadida' : 'Reunión añadida');
         changed = true;
         break;
       }
@@ -57,6 +126,9 @@ const applyCommands = async (commands = []) => {
         const idx = findTaskIndex(payload.id || payload.title);
         if (idx !== -1){
           meetings[idx] = { ...meetings[idx], ...payload };
+          // normalizar fechas si vienen en Date
+          if (meetings[idx].start instanceof Date) meetings[idx].start = meetings[idx].start.toISOString();
+          if (meetings[idx].end instanceof Date) meetings[idx].end = meetings[idx].end.toISOString();
           toast.success('Tarea actualizada');
           changed = true;
         }
@@ -198,7 +270,7 @@ const applyCommands = async (commands = []) => {
         const query = payload.query || payload.q || payload.keyword || payload.term || '';
         if (query) {
           try {
-            const apiBase = import.meta.env.VITE_BACKEND_URL || '';
+            const apiBase = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
             const resp = await fetch(`${apiBase}/api/ai/search-suppliers?q=${encodeURIComponent(query)}`);
             const dataS = await resp.json();
             if (dataS.results) {
@@ -252,15 +324,18 @@ const applyCommands = async (commands = []) => {
 const sendMessage = async () => {
     if (!input) return;
     const userMsg = { from: 'user', text: input };
-    setMessages(prev => [...prev, userMsg]);
+    const currentMsgs = compactMessages([...messages, userMsg]);
+    setMessages(currentMsgs);
     setInput('');
     setLoading(true);
     try {
-      const apiBase = import.meta.env.VITE_BACKEND_URL || '';
+      const apiBase = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
+      const recent = currentMsgs.slice(-SHORT_HISTORY).map(m => ({ role: m.from === 'user' ? 'user' : 'assistant', content: m.text }));
+      const history = summary ? [{ role: 'system', content: summary }, ...recent] : recent;
       const response = await fetch(`${apiBase}/api/ai/parse-dialog`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: input })
+        body: JSON.stringify({ text: input, history })
       });
       const data = await response.json();
 
@@ -306,18 +381,46 @@ const sendMessage = async () => {
             start: startDate,
             end: endDate,
             type: 'meeting',
-            category: (t.category || 'OTROS').toUpperCase(),
+            category: normalizeCategory(t.category || 'OTROS'),
           };
         });
         const updatedM = [...storedMeetings, ...mappedT];
         localStorage.setItem('lovendaMeetings', JSON.stringify(updatedM));
         window.dispatchEvent(new Event('lovenda-tasks'));
+        window.dispatchEvent(new Event('lovenda-meetings'));
         toast.success(`${mappedT.length} tarea${mappedT.length>1?'s':''} añadida${mappedT.length>1?'s':''}`);
       }
 
+      // --- Persistir reuniones extraídas ---
+      if (data.extracted?.meetings?.length) {
+        const storedMeetings = JSON.parse(localStorage.getItem('lovendaMeetings') || '[]');
+        let nextId = Date.now();
+        const mappedR = data.extracted.meetings.map(r => {
+          const startIso = r.start || r.date || r.when || r.begin;
+          const endIso = r.end || r.until || startIso;
+          const startDate = startIso ? new Date(startIso) : new Date();
+          const endDate = endIso ? new Date(endIso) : startDate;
+          return {
+            id: `ai-${nextId++}`,
+            title: r.title || r.name || 'Reunión',
+            name: r.title || r.name || 'Reunión',
+            desc: r.desc || r.description || '',
+            start: startDate,
+            end: endDate,
+            type: 'meeting',
+            category: normalizeCategory(r.category || 'OTROS'),
+          };
+        });
+        const updatedR = [...storedMeetings, ...mappedR];
+        localStorage.setItem('lovendaMeetings', JSON.stringify(updatedR));
+        window.dispatchEvent(new Event('lovenda-tasks'));
+        window.dispatchEvent(new Event('lovenda-meetings'));
+        toast.success(`${mappedR.length} reunión${mappedR.length>1?'es':''} añadida${mappedR.length>1?'s':''}`);
+      }
+
       // --- Persistir movimientos extraídos ---
-  const extMovs = data.extracted?.movements || data.extracted?.budgetMovements;
-  if (extMovs?.length) {
+      const extMovs = data.extracted?.movements || data.extracted?.budgetMovements;
+      if (extMovs?.length) {
         const storedMov = JSON.parse(localStorage.getItem('lovendaMovements') || '[]');
         let nextId = storedMov.length ? Date.now() : Date.now();
         const mappedMov = extMovs.map(m => ({
@@ -343,7 +446,7 @@ const sendMessage = async () => {
         text = 'No se detectaron datos para extraer. ¿Puedes darme más detalles?';
       }
       const botMsg = { from: 'bot', text };
-      setMessages(prev => [...prev, botMsg]);
+      setMessages(prev => compactMessages([...prev, botMsg]));
     } catch (err) {
       setMessages(prev => [...prev, { from: 'bot', text: 'Error al llamar a la API de IA' }]);
     } finally {
@@ -370,7 +473,10 @@ const sendMessage = async () => {
                 key={i}
                 className={`mb-2 ${m.from === 'user' ? 'text-right' : 'text-left'}`}
               >
-                <span className="inline-block p-2 rounded bg-gray-200">{m.text}</span>
+                <span className="inline-block p-2 rounded bg-gray-200 mr-1">{m.text}</span>
+                <button onClick={() => toggleImportant(i)} className="align-middle" title={m.important ? 'Marcado como importante' : 'Marcar como importante'}>
+                  <Star size={16} className={m.important ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} />
+                </button>
               </div>
             ))}
           </div>
@@ -379,6 +485,7 @@ const sendMessage = async () => {
               type="text"
               value={input}
               onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); } }}
               className="flex-1 border rounded px-2 py-1"
               placeholder="Escribe..."
             />

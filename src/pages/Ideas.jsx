@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { saveData, loadData } from '../services/SyncService';
+import SyncIndicator from '../components/SyncIndicator';
 
 export default function Ideas() {
+  
   const [view, setView] = useState('notes');
-  const [notes, setNotes] = useState(()=>JSON.parse(localStorage.getItem('ideasNotes')||'[]')); // {folder, text}
+  const [notes, setNotes] = useState(()=>{
+    return loadData('ideasNotes', { defaultValue: [], collection: 'userIdeas' });
+  }); // {folder, text}
   const [noteText, setNoteText] = useState('');
   const [folders, setFolders] = useState(()=>{
-    const stored=JSON.parse(localStorage.getItem('ideasFolders')||'null');
-    return stored||['General'];
+    const stored = loadData('ideasFolders', { defaultValue: null, collection: 'userIdeas' });
+    return stored || ['General'];
   });
   const [currentFolder, setCurrentFolder] = useState('General');
   const [photos, setPhotos] = useState([]);
@@ -14,10 +19,17 @@ export default function Ideas() {
 
   // Si la URL incluye #nueva, enfocamos el textarea automáticamente
   useEffect(()=>{
-    localStorage.setItem('ideasNotes',JSON.stringify(notes));
+    saveData('ideasNotes', notes, {
+      collection: 'userIdeas',
+      showNotification: false
+    });
   },[notes]);
+  
   useEffect(()=>{
-    localStorage.setItem('ideasFolders',JSON.stringify(folders));
+    saveData('ideasFolders', folders, {
+      collection: 'userIdeas',
+      showNotification: false
+    });
   },[folders]);
 
   useEffect(() => {
@@ -29,8 +41,9 @@ export default function Ideas() {
   }, []);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Ideas</h1>
+    <div className="p-4 md:p-6 space-y-8">
+      <SyncIndicator />
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Ideas</h1>
       <div className="flex space-x-4 mb-4">
         <button onClick={() => setView('notes')} className={`px-4 py-2 rounded ${view==='notes'?'bg-blue-600 text-white':''}`}>Notas</button>
         

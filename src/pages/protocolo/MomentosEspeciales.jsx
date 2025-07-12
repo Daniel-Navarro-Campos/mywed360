@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Music, Edit2, Play, GripVertical, ChevronDown, ChevronUp, Trash2, Search as SearchIcon, FileText, ExternalLink } from 'lucide-react';
 import Card from '../../components/Card';
+import PageWrapper from '../../components/PageWrapper';
 import Button from '../../components/Button';
 
 const MomentosEspeciales = () => {
@@ -51,34 +52,27 @@ const MomentosEspeciales = () => {
     },
   ]);
 
-  const [activeBlock, setActiveBlock] = useState(blocks[0]?.id || null);
+  const [expandedBlock, setExpandedBlock] = useState(null);
+  const toggleBlock = (id) => setExpandedBlock(prev => prev === id ? null : id);
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-gray-800">Momentos Especiales</h1>
-        <p className="text-gray-600">Planifica cada instante clave de tu gran día.</p>
-      </header>
+    <PageWrapper title="Momentos Especiales" className="space-y-8">
+      <p className="text-gray-600">Planifica cada instante clave de tu gran día.</p>
 
-      {/* Navegación por pestañas */}
-      <div className="space-x-2 border-b mb-4 overflow-x-auto">
-        {blocks.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => setActiveBlock(b.id)}
-            className={`px-4 py-2 text-sm whitespace-nowrap border-b-2 transition-colors ${
-              activeBlock === b.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-blue-600'
-            }`}
-          >
-            {b.name}
-          </button>
-        ))}
-      </div>
+      
 
       <div className="lg:grid lg:grid-cols-12 gap-6">
       {/* Contenido del bloque activo */}
-      {blocks.filter(b => b.id === activeBlock).map(block => (
+      {blocks.map(block => (
         <Card key={block.id} className="p-4 space-y-4 lg:col-span-8">
+          {/* Encabezado bloque */}
+          <button onClick={()=>toggleBlock(block.id)} className="w-full text-left flex justify-between items-center font-medium text-lg mb-2">
+            <span>{block.name}</span>
+            {expandedBlock===block.id ? <ChevronUp size={18}/> : <ChevronDown size={18}/>}
+          </button>
+          {expandedBlock!==block.id && <hr/>}
+          {expandedBlock===block.id && (<>
+
           {/* Tabla de momentos */}
                   {/* Tabla de momentos */}
                   <div className="overflow-x-auto">
@@ -134,6 +128,8 @@ const MomentosEspeciales = () => {
                       <Button size="sm" className="mt-1">Crear nueva lista</Button>
                     </div>
                   )}
+          </>)
+          }
         </Card>
       ))}
 
@@ -167,7 +163,7 @@ const MomentosEspeciales = () => {
           ))}
         </div>
       </section>
-    </div>
+    </PageWrapper>
   );
 };
 

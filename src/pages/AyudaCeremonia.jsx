@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUserContext } from '../context/UserContext';
 import { MessageSquare, Clock, RefreshCcw } from 'lucide-react';
+import PageWrapper from '../components/PageWrapper';
 
 const sampleBlocks = [
   { name: 'Ceremonia', items: ['Entrada novios', 'Lectura de votos', 'Anillos'] },
@@ -44,8 +45,8 @@ export default function AyudaCeremonia() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Ayuda Ceremonia</h2>
+    <PageWrapper title="Ayuda Ceremonia">
+      
       <div className="flex items-center gap-2">
         <label>Momento:</label>
         <select
@@ -119,6 +120,6 @@ export default function AyudaCeremonia() {
           ))}
         </ul>
       </div>
-    </div>
+    </PageWrapper>
   );
 }

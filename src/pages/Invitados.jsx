@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Search, Mail, Edit2, Trash2, RefreshCcw, Plus, User, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Mail, Edit2, Trash2, RefreshCcw, Plus, User, Phone, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
+import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 
 // ---------------- NUEVO COMPONENTE INVITADOS ----------------
 function Invitados() {
@@ -19,15 +20,58 @@ function Invitados() {
   const normalize = (str = '') => str.trim().toLowerCase();
   const phoneClean = (str = '') => str.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
 
-  // ---- Sincronización global ----
-  // Cada vez que cambie la colección de invitados, actualizamos localStorage
+  // --- Funciones para enviar invitaciones ---
+  const bulkInvite = () => {
+    // recoger todos los invitados con email o teléfono
+    const mails = guests.filter(g=>g.email).map(g=>g.email).join(',');
+    if (mails) {
+      const subject = encodeURIComponent('Invitación a nuestra boda');
+      const body = encodeURIComponent('¡Hola! Nos encantaría contar contigo en nuestra boda. Por favor confirma tu asistencia.');
+      window.open(`mailto:${mails}?subject=${subject}&body=${body}`);
+    } else {
+      alert('No hay emails de invitados disponibles');
+    }
+  };
+  const inviteWhatsApp = (guest) => {
+    const phone = phoneClean(guest.phone);
+    if(!phone){ alert('Invitado sin teléfono'); return; }
+    const txt = encodeURIComponent(`¡Hola ${guest.name}! Nos encantaría contar contigo en nuestra boda. ¿Puedes confirmar tu asistencia?`);
+    window.open(`https://wa.me/${phone}?text=${txt}`, '_blank');
+  };
+  const inviteEmail = (guest) => {
+    const email = guest.email || '';
+    if(!email){ alert('Invitado sin email'); return; }
+    const subject = encodeURIComponent('Invitación a nuestra boda');
+    const body = encodeURIComponent(`Hola ${guest.name},\n\nNos complace invitarte a nuestra boda. Esperamos contar contigo. Por favor confirma tu asistencia.\n\n¡Gracias!`);
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+  };
+
+  // ---- Sincronización híbrida ----
+  // Estado de sincronización
+  const [syncStatus, setSyncStatus] = useState(getSyncState());
+  
+  // Cada vez que cambie la colección de invitados, actualizamos localStorage + Firestore
   // y emitimos un evento para que SeatingPlan u otros escuchadores reaccionen.
-  React.useEffect(() => {
+  useEffect(() => {
     try {
-      localStorage.setItem('lovendaGuests', JSON.stringify(guests));
+      // Usar SyncService para persistencia híbrida
+      saveData('lovendaGuests', guests, {
+        collection: 'userGuests',
+        showNotification: false // No mostrar notificación cada vez
+      });
+      
+      // Mantener compatibilidad con componentes que usan localStorage directamente
       window.dispatchEvent(new Event('lovenda-guests'));
-    } catch {}
+    } catch (error) {
+      console.error('Error al sincronizar invitados:', error);
+    }
   }, [guests]);
+  
+  // Suscribirse a cambios en el estado de sincronización
+  useEffect(() => {
+    const unsubscribe = subscribeSyncState(setSyncStatus);
+    return () => unsubscribe();
+  }, []);
 
   
 
@@ -47,7 +91,7 @@ function Invitados() {
     return map;
   }, [guests]);
 
-  const emptyGuest = { name: '', phone: '', address: '', companion: 0, table: '', response: 'Pendiente' };
+  const emptyGuest = { name: '', phone: '', email: '', address: '', companion: 0, table: '', response: 'Pendiente' };
 
   // Abrir modal automáticamente si la URL incluye #nuevo
   React.useEffect(() => {
@@ -90,9 +134,12 @@ function Invitados() {
 
   const handleSave = async () => {
     if (!editingGuest.name.trim()) return;
-    if (editingGuest.id) {
+    const exists = editingGuest.id && guests.some(g => g.id === editingGuest.id);
+    if (exists) {
+      // Actualiza invitado existente
       await updateItem(editingGuest.id, editingGuest);
     } else {
+      // Nuevo invitado: comprobamos duplicados
       const duplicate = guests.some(g =>
         normalize(g.name) === normalize(editingGuest.name) ||
         (g.phone && editingGuest.phone && phoneClean(g.phone) === phoneClean(editingGuest.phone))
@@ -128,17 +175,19 @@ function Invitados() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-semibold mr-auto">Gestión de Invitados</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mr-auto">Gestión de Invitados</h1>
         <div className="flex gap-2">
+          <Button leftIcon={<Mail size={16}/>} onClick={bulkInvite}>Enviar invitaciones</Button>
           <Button leftIcon={<Plus size={16}/>} onClick={() => { setEditingGuest({ ...emptyGuest }); setModalOpen(true); }}>Añadir Invitado</Button>
           <Button variant="outline" onClick={() => setTablesOpen(true)}>Ver mesas</Button>
         </div>
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <Card className="space-y-6 p-6">
+        <div className="flex flex-wrap gap-2 items-center">
         <div className="flex items-center border rounded px-2 py-1">
           <Search size={16} className="mr-2 text-gray-600" />
           <input type="text" placeholder="Buscar por nombre" value={search} onChange={e => setSearch(e.target.value)} className="outline-none" />
@@ -162,22 +211,22 @@ function Invitados() {
               <th className="p-2">Respuesta</th>
               <th className="p-2">Acompañante(s)</th>
               <th className="p-2">Mesa</th>
-              
             </tr>
-          </thead>
-          <tbody>
-            {filtered.map(g => (
-              <tr key={g.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => { setEditingGuest({ ...g }); setModalOpen(true); }}>
-                <td className="p-2 flex items-center"><User size={16} className="mr-2 text-gray-600" />{g.name}</td>
-                <td className="p-2">{g.phone}</td>
-                <td className="p-2">{g.response}</td>
-                <td className="p-2">{g.companion}</td>
-                <td className="p-2" title={getTooltipForTable(g.table)}>{g.table || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filtered.map(g => (
+                <tr key={g.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => { setEditingGuest({ ...g }); setModalOpen(true); }}>
+                  <td className="p-2 flex items-center"><User size={16} className="mr-2 text-gray-600" />{g.name}</td>
+                  <td className="p-2">{g.phone}</td>
+                  <td className="p-2">{g.response}</td>
+                  <td className="p-2">{g.companion}</td>
+                  <td className="p-2" title={getTooltipForTable(g.table)}>{g.table || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Modal Ver Mesas */}
       {tablesOpen && (
@@ -221,6 +270,7 @@ function Invitados() {
               )}
               <Input label="Nombre" value={editingGuest.name} onChange={e => setEditingGuest({ ...editingGuest, name: e.target.value })} />
               <Input label="Teléfono" value={editingGuest.phone} onChange={e => setEditingGuest({ ...editingGuest, phone: e.target.value })} />
+               <Input label="Email" value={editingGuest.email} onChange={e => setEditingGuest({ ...editingGuest, email: e.target.value })} />
               <Input label="Dirección postal" value={editingGuest.address} onChange={e => setEditingGuest({ ...editingGuest, address: e.target.value })} />
               <Input label="Acompañantes" type="number" min="0" value={editingGuest.companion} onChange={e => setEditingGuest({ ...editingGuest, companion: parseInt(e.target.value,10)||0 })} />
               <Input label="Mesa (número o apodo)" value={editingGuest.table} onChange={e => setEditingGuest({ ...editingGuest, table: e.target.value })} />
@@ -335,9 +385,9 @@ const handleSaveGuest = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-8">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-semibold mr-auto">Gestión de Invitados</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mr-auto">Gestión de Invitados</h1>
         <div className="flex gap-2">
           <button onClick={importFromContacts} className="bg-green-600 text-white px-4 py-2 rounded flex items-center">
             <Phone size={16} className="mr-2" />Importar contactos
@@ -405,6 +455,7 @@ const handleSaveGuest = () => {
               <th className="p-2">Estado RSVP</th>
               <th className="p-2">Nº acompañantes</th>
               <th className="p-2">Mesa</th>
+               <th className="p-2">Invitar</th>
             </tr>
           </thead>
           <tbody>

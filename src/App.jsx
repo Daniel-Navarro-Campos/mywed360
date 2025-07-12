@@ -4,6 +4,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserProvider, { useUserContext } from './context/UserContext';
 import MainLayout from './components/MainLayout';
+import EmailNotification from './components/EmailNotification';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Home from './pages/Home';
@@ -24,6 +25,7 @@ import Timing from './pages/protocolo/Timing';
 import Checklist from './pages/protocolo/Checklist';
 import AyudaCeremonia from './pages/protocolo/AyudaCeremonia';
 import DisenoWeb from './pages/DisenoWeb';
+import WebEditor from './pages/WebEditor';
 import DisenosLayout from './pages/disenos/DisenosLayout';
 import DisenosInvitaciones from './pages/disenos/Invitaciones';
 import DisenosLogo from './pages/disenos/Logo';
@@ -32,12 +34,18 @@ import SeatingPlanPost from './pages/disenos/SeatingPlanPost';
 import MenuCatering from './pages/disenos/MenuCatering';
 import PapelesNombres from './pages/disenos/PapelesNombres';
 import Ideas from './pages/Ideas';
-import Buzon from './pages/Buzon';
+// El componente Buzon ha sido eliminado
 import Notificaciones from './pages/Notificaciones';
+import WeddingSite from './pages/WeddingSite';
 
 function ProtectedRoute() {
   const { isAuthenticated } = useUserContext();
-  return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
+  return isAuthenticated ? (
+    <>
+      <Outlet />
+      <EmailNotification />
+    </>
+  ) : <Navigate to="/" replace />;
 }
 
 
@@ -57,8 +65,11 @@ function App() {
         theme="light"
       />
       <BrowserRouter>
+        {/* Componente de notificaciones de correo - solo visible en rutas protegidas */}
         <Routes>
-          <Route path="/" element={process.env.NODE_ENV === 'development' ? <Navigate to="/home" replace /> : <Login />} />
+          <Route path="/" element={<Login />} />
+          {/* Web pública de cada boda */}
+          <Route path="w/:uid" element={<WeddingSite />} />
             <Route path="/signup" element={<Signup />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
@@ -81,8 +92,9 @@ function App() {
               </Route>
               <Route path="perfil" element={<Perfil />} />
                <Route path="notificaciones" element={<Notificaciones />} />
-                <Route path="buzon" element={<Buzon />} />
+                
                <Route path="diseno-web" element={<DisenoWeb />} />
+              <Route path="web" element={<WebEditor />} />
                <Route path="ideas" element={<Ideas />} />
 
                {/* Rutas Diseños */}

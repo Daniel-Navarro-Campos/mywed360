@@ -4,6 +4,7 @@ import React, { forwardRef } from 'react';
 
 import FreeDrawCanvas from '../../components/FreeDrawCanvas';
 import TableItem from '../../components/TableItem';
+import ChairItem from '../../components/ChairItem';
 
 /**
  * SeatingCanvas
@@ -15,9 +16,11 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
     tab,
     areas,
     tables,
+    seats = [],
     scale,
     offset,
     addArea,
+    onDeleteArea,
     moveTable,
     onAssignGuest,
     onToggleEnabled,
@@ -25,15 +28,21 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
     online,
     handleWheel,
     handlePointerDown,
+    guests = [],
+    onSelectTable,
+    drawMode = 'free',
+    canPan = true,
+    canMoveTables = true,
+    onToggleSeat = () => {},
   },
   containerRef,
 ) {
   return (
 
       <div
-        className="md:w-3/4 border border-gray-300 h-96 relative"
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
+        className="flex-grow border border-gray-300 h-96 relative"
+        onWheel={canPan ? handleWheel : undefined}
+        onPointerDown={canPan ? handlePointerDown : undefined}
         role="main"
         aria-label="Lienzo de plano"
         ref={containerRef}
@@ -44,10 +53,17 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
           scale={scale}
           offset={offset}
           onFinalize={addArea}
+          onDeleteArea={onDeleteArea}
+          drawMode={drawMode}
         />
 
-        {/* Mesas */}
-        {tables.map((t) => (
+{/* Sillas (solo ceremonia) */}
+        {tab==='ceremony' && seats.map(seat=> (
+          <ChairItem key={seat.id} seat={seat} scale={scale} offset={offset} onToggleEnabled={onToggleSeat} />
+        ))}
+
+        {/* Mesas (solo banquete) */}
+        {tab==='banquet' && tables.map((t) => (
           <TableItem
             key={t.id}
             table={t}
@@ -57,46 +73,13 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
             onAssignGuest={onAssignGuest}
             onToggleEnabled={onToggleEnabled}
             onOpenConfig={setConfigTable}
+            onSelect={onSelectTable}
+            guests={guests}
+            canMove={canMoveTables}
           />
         ))}
 
-        {/* Líneas guía para banquete */}
-        {false && (() => {
-          const xs = [...new Set(tables.map((t) => t.x))];
-          const ys = [...new Set(tables.map((t) => t.y))];
-          return (
-            <>
-              {xs.map((x, i) => (
-                <div
-                  key={`v${i}`}
-                  style={{
-                    position: 'absolute',
-                    left: x * scale + offset.x,
-                    top: 0,
-                    height: '100%',
-                    width: 1,
-                    background: '#cbd5e1',
-                    pointerEvents: 'none',
-                  }}
-                />
-              ))}
-              {ys.map((y, i) => (
-                <div
-                  key={`h${i}`}
-                  style={{
-                    position: 'absolute',
-                    top: y * scale + offset.y,
-                    left: 0,
-                    width: '100%',
-                    height: 1,
-                    background: '#cbd5e1',
-                    pointerEvents: 'none',
-                  }}
-                />
-              ))}
-            </>
-          );
-        })()}
+
 
 
       </div>

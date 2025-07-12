@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Eye, Download, Save, Copy, Zap } from 'lucide-react';
+import { Search, Eye, Download, Save, Copy, Zap, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import Spinner from '../components/Spinner';
 import Toast from '../components/Toast';
 import Card from '../components/Card';
+import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 
 export default function Invitaciones() {
-  const [aiPrompt, setAiPrompt] = useState(() => localStorage.getItem('invitationAiPrompt') || '');
+  // Estado de sincronización
+  const [syncStatus, setSyncStatus] = useState(getSyncState());
+
+  // Suscribirse a cambios en el estado de sincronización
+  useEffect(() => {
+    const unsubscribe = subscribeSyncState(setSyncStatus);
+    return () => unsubscribe();
+  }, []);
+  
+  const [aiPrompt, setAiPrompt] = useState(() => loadData('invitationAiPrompt', { defaultValue: '', collection: 'userInvitations' }));
   const [loading, setLoading] = useState(false);
   const [generatedText, setGeneratedText] = useState('');
   const [toast, setToast] = useState(null);
-  const [showPreview, setShowPreview] = useState(() => JSON.parse(localStorage.getItem('invitationShowPreview')) || false);
+  const [showPreview, setShowPreview] = useState(() => loadData('invitationShowPreview', { defaultValue: false, collection: 'userInvitations' }));
   const handleAiGenerate = async () => {
     if (!aiPrompt) return;
     setLoading(true);
@@ -42,20 +52,29 @@ export default function Invitaciones() {
   };  
   const handleSaveDraft = () => {
     const draft = { aiPrompt, panel, filterCategory, filterColor, filterFont, step, generatedText };
-    localStorage.setItem('invitationDraft', JSON.stringify(draft));
+    saveData('invitationDraft', draft, {
+      collection: 'userInvitations',
+      showNotification: true
+    });
     setToast({ message: 'Borrador guardado', type: 'success' });
   };
   const handleDuplicateDesign = () => {
     const draftKey = `invitationDraft_${Date.now()}`;
     const data = { aiPrompt, panel, filterCategory, filterColor, filterFont, step, generatedText };
-    localStorage.setItem(draftKey, JSON.stringify(data));
+    saveData(draftKey, data, {
+      collection: 'userInvitations',
+      showNotification: false
+    });
     setToast({ message: 'Diseño duplicado', type: 'success' });
   };
-  const [panel, setPanel] = useState(() => localStorage.getItem('invitationPanel') || 'invitation'); // 'invitation' o 'envelope'
-  const [filterCategory, setFilterCategory] = useState(() => localStorage.getItem('invitationFilterCategory') || '');
-  const [filterColor, setFilterColor] = useState(() => localStorage.getItem('invitationFilterColor') || '');
-  const [filterFont, setFilterFont] = useState(() => localStorage.getItem('invitationFilterFont') || '');
-  const [step, setStep] = useState(() => parseInt(localStorage.getItem('invitationStep')) || 1);
+  const [panel, setPanel] = useState(() => loadData('invitationPanel', { defaultValue: 'invitation', collection: 'userInvitations' })); // 'invitation' o 'envelope'
+  const [filterCategory, setFilterCategory] = useState(() => loadData('invitationFilterCategory', { defaultValue: '', collection: 'userInvitations' }));
+  const [filterColor, setFilterColor] = useState(() => loadData('invitationFilterColor', { defaultValue: '', collection: 'userInvitations' }));
+  const [filterFont, setFilterFont] = useState(() => loadData('invitationFilterFont', { defaultValue: '', collection: 'userInvitations' }));
+  const [step, setStep] = useState(() => {
+    const savedStep = loadData('invitationStep', { defaultValue: '1', collection: 'userInvitations' });
+    return parseInt(savedStep) || 1;
+  });
 
   // Ejemplo de plantillas
   const templates = [
@@ -70,15 +89,37 @@ export default function Invitaciones() {
     (filterFont ? t.font === filterFont : true)
   );
   useEffect(() => {
-    localStorage.setItem('invitationAiPrompt', aiPrompt);
-    localStorage.setItem('invitationPanel', panel);
-    localStorage.setItem('invitationFilterCategory', filterCategory);
-    localStorage.setItem('invitationFilterColor', filterColor);
-    localStorage.setItem('invitationFilterFont', filterFont);
-    localStorage.setItem('invitationStep', step.toString());
-    localStorage.setItem('invitationGeneratedText', generatedText);
-    localStorage.setItem('invitationShowPreview', JSON.stringify(showPreview));
+    saveData('invitationAiPrompt', aiPrompt, { collection: 'userInvitations', showNotification: false });
+    saveData('invitationPanel', panel, { collection: 'userInvitations', showNotification: false });
+    saveData('invitationFilterCategory', filterCategory, { collection: 'userInvitations', showNotification: false });
+    saveData('invitationFilterColor', filterColor, { collection: 'userInvitations', showNotification: false });
+    saveData('invitationFilterFont', filterFont, { collection: 'userInvitations', showNotification: false });
+    saveData('invitationStep', step.toString(), { collection: 'userInvitations', showNotification: false });
+    saveData('invitationGeneratedText', generatedText, { collection: 'userInvitations', showNotification: false });
+    saveData('invitationShowPreview', showPreview, { collection: 'userInvitations', showNotification: false });
   }, [aiPrompt, panel, filterCategory, filterColor, filterFont, step, generatedText, showPreview]);
+
+  // Indicador de sincronización
+  const SyncIndicator = () => (
+    <div className="fixed bottom-4 right-4 z-50 flex items-center space-x-2 bg-white px-3 py-2 rounded-full shadow-md">
+      {syncStatus === 'online' ? (
+        <>
+          <Cloud size={18} className="text-green-500" />
+          <span className="text-sm">Sincronizado</span>
+        </>
+      ) : syncStatus === 'offline' ? (
+        <>
+          <CloudOff size={18} className="text-yellow-500" />
+          <span className="text-sm">Guardado localmente</span>
+        </>
+      ) : (
+        <>
+          <RefreshCw size={18} className="text-blue-500 animate-spin" />
+          <span className="text-sm">Sincronizando...</span>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <Card className="p-6 space-y-6">

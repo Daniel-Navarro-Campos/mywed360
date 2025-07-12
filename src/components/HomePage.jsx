@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useUserContext } from '../context/UserContext';
 import { Card } from './ui/Card';
 import { Progress } from './ui/Progress';
@@ -7,7 +6,7 @@ import Nav from './Nav';
 
 import { User, DollarSign, Calendar, Users, ChevronLeft, ChevronRight, Plus, Phone } from 'lucide-react';
 import Input from './Input';
-
+import ProviderSearchModal from './ProviderSearchModal';
 
 import inspo1 from '../assets/inspo1.jpg';
 import inspo2 from '../assets/inspo2.jpg';
@@ -15,10 +14,8 @@ import inspo3 from '../assets/inspo3.jpg';
 import inspo4 from '../assets/inspo4.jpg';
 
 export default function HomePage() {
-  // Eliminamos navegación para acciones rápidas; usaremos modales locales
-  const navigate = useNavigate();
+  // Todo se maneja con modales locales
   const [noteText,setNoteText]=useState('');
-  const [providerQuery,setProviderQuery]=useState('');
   const [guest,setGuest]=useState({name:'',side:'novia',contact:''});
   const [newMovement,setNewMovement]=useState({concept:'',amount:0,date:'',type:'expense'});
   const [activeModal, setActiveModal] = useState(null);
@@ -34,18 +31,48 @@ export default function HomePage() {
     galleryRef.current?.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   };
 
+  // --- Métricas dinámicas ---
+  const guestsArr = (() => {
+    try { return JSON.parse(localStorage.getItem('lovendaGuests') || '[]'); } catch { return []; }
+  })();
+  const confirmedCount = guestsArr.filter(g => ((g.response || g.status || '').toLowerCase() === 'confirmado')).length;
+  const totalGuests = guestsArr.length;
+
+  const tasksCompletedMap = (() => { try { return JSON.parse(localStorage.getItem('tasksCompleted') || '{}'); } catch { return {}; } })();
+  const meetingsArr = (() => { try { return JSON.parse(localStorage.getItem('lovendaMeetings') || '[]'); } catch { return []; } })();
+  const longTasksArr = (() => { try { return JSON.parse(localStorage.getItem('lovendaLongTasks') || '[]'); } catch { return []; } })();
+  const allTasks = [...meetingsArr, ...longTasksArr];
+  const tasksTotal = allTasks.length;
+  const tasksCompleted = allTasks.filter(t => tasksCompletedMap[t.id]).length;
+
+  const providersArr = (() => { try { return JSON.parse(localStorage.getItem('lovendaProviders') || '[]'); } catch { return []; } })();
+  const providersTotalNeeded = 8; // puede venir de ajustes
+  const providersAssigned = providersArr.length;
+
+  const movements = (() => { try { return JSON.parse(localStorage.getItem('quickMovements') || '[]'); } catch { return []; } })();
+  const spent = movements.filter(m => m.type !== 'income').reduce((sum, m) => sum + (m.amount || 0), 0);
+  const budgetTotal = 15000; // placeholder
+ (() => {
+    try {
+      const arr = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
+      return arr.filter(g => ((g.response || g.status || '').toLowerCase() === 'confirmado')).length;
+    } catch {
+      return 0;
+    }
+  })();
+
   const statsNovios = [
-    { label: 'Invitados confirmados', value: 120, icon: Users },
-    { label: 'Presupuesto gastado', value: '€8,500', icon: DollarSign },
-    { label: 'Proveedores contratados', value: '5 / 8', icon: User },
-    { label: 'Tareas completadas', value: '25 / 30', icon: Calendar },
+    { label: 'Invitados confirmados', value: confirmedCount, icon: Users },
+    { label: 'Presupuesto gastado', value: `€${spent.toLocaleString()}` + (budgetTotal ? ` / €${budgetTotal.toLocaleString()}` : ''), icon: DollarSign },
+    { label: 'Proveedores contratados', value: `${providersAssigned} / ${providersTotalNeeded}`, icon: User },
+    { label: 'Tareas completadas', value: `${tasksCompleted} / ${tasksTotal}`, icon: Calendar },
   ];
 
   const statsPlanner = [
-    { label: 'Tareas asignadas', value: 12, icon: Calendar },
-    { label: 'Proveedores asignados', value: 3, icon: User },
-    { label: 'Momentos por coordinar', value: 4, icon: Users },
-    { label: 'Presupuesto gastado', value: '€4,500', icon: DollarSign },
+    { label: 'Tareas asignadas', value: `${tasksTotal}`, icon: Calendar },
+    { label: 'Proveedores asignados', value: providersAssigned, icon: User },
+    { label: 'Invitados confirmados', value: confirmedCount, icon: Users },
+    { label: 'Presupuesto gastado', value: `€${spent.toLocaleString()}` + (budgetTotal ? ` / €${budgetTotal.toLocaleString()}` : ''), icon: DollarSign },
   ];
 
   const statsCommon = role === 'particular' ? statsNovios : statsPlanner;
@@ -236,23 +263,30 @@ export default function HomePage() {
     )}
 
     {activeModal === 'proveedor' && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setActiveModal(null); setProviderQuery(''); }}>
-        <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-          <h3 className="text-lg font-semibold mb-3">Buscar proveedor</h3>
-          <input value={providerQuery} onChange={e => setProviderQuery(e.target.value)} className="w-full border rounded p-2 mb-4" placeholder="Tipo o nombre de proveedor" />
-          <div className="text-right space-x-2">
-            <button onClick={() => { setActiveModal(null); setProviderQuery(''); }} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
-            <button onClick={() => {
-              if (!providerQuery.trim()) return;
-              const searches = JSON.parse(localStorage.getItem('providerSearches') || '[]');
-              searches.push({ query: providerQuery.trim(), date: Date.now() });
-              localStorage.setItem('providerSearches', JSON.stringify(searches));
-              alert('Búsqueda guardada. Próximamente te mostraremos resultados.');
-              setActiveModal(null); setProviderQuery('');
-            }} className="px-4 py-2 bg-blue-600 text-white rounded">Buscar</button>
-          </div>
-        </div>
-      </div>
+      <ProviderSearchModal 
+        onClose={() => setActiveModal(null)} 
+        onSelectProvider={(provider) => {
+          // Guardar el proveedor seleccionado
+          const providers = JSON.parse(localStorage.getItem('lovendaProviders') || '[]');
+          const newId = providers.length ? Math.max(...providers.map(p => p.id)) + 1 : 1;
+          const newProvider = {
+            id: newId,
+            name: provider.title || provider.name || 'Proveedor',
+            service: provider.service || 'Proveedor',
+            contact: '',
+            email: '',
+            phone: '',
+            link: provider.link || '',
+            status: 'Nuevo',
+            date: new Date().toISOString().slice(0, 10),
+            rating: 0,
+            ratingCount: 0,
+            snippet: provider.snippet || '',
+          };
+          localStorage.setItem('lovendaProviders', JSON.stringify([...providers, newProvider]));
+          window.dispatchEvent(new Event('lovenda-providers'));
+        }}
+      />
     )}
 
     {activeModal === 'invitado' && (

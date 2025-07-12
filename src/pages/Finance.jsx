@@ -5,7 +5,8 @@ import Pagination from '../components/Pagination';
 import Toast from '../components/Toast';
 import { saveAs } from 'file-saver';
 import { getTransactions } from '../services/bankService';
-import { Plus, Link2, Edit3, Settings, AlertCircle, Clock, CheckCircle, AlertTriangle, Download, Upload } from 'lucide-react';
+import { Plus, Link2, Edit3, AlertCircle, Clock, CheckCircle, AlertTriangle, Download, Upload, Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -17,6 +18,7 @@ import Modal from '../components/Modal';
 // -------------------------- NUEVA PÁGINA FINANZAS --------------------------
 function Finance() {
   const locationHash = typeof window !== 'undefined' ? window.location.hash : '';
+  const [tab, setTab] = useState('contabilidad');
 
   const [configOpen, setConfigOpen] = React.useState(false);
   // Estado para aportaciones y regalos
@@ -34,11 +36,20 @@ function Finance() {
   // Balance se calcula dinámicamente a partir de todas las transacciones (movimientos manuales + IA + banco)
   const [manualOpen, setManualOpen] = useState(false);
 
+  // Estado de sincronización
+  const [syncStatus, setSyncStatus] = useState(getSyncState());
+
+  // Suscribirse a cambios en el estado de sincronización
+  useEffect(() => {
+    const unsubscribe = subscribeSyncState(setSyncStatus);
+    return () => unsubscribe();
+  }, []);
+
   // Al abrir/mostrar configuracion intentar cargar número de invitados desde perfil
   React.useEffect(() => {
     if (configOpen) {
       try {
-        const profile = JSON.parse(localStorage.getItem('lovendaProfile') || '{}');
+        const profile = loadData('lovendaProfile', { defaultValue: {}, collection: 'userProfile' });
         if (profile?.weddingInfo?.numGuests) {
           setGuestCount(Number(profile.weddingInfo.numGuests));
         }
@@ -64,6 +75,7 @@ function Finance() {
   ]);
   const emergencyAmount = Math.round(totalBudget * 0.1);
 
+
   const addCategory = () => {
     const name = prompt('Nombre de la categoría');
     if (name && !categories.find(c => c.name === name)) {
@@ -76,12 +88,17 @@ function Finance() {
     setCategories(next);
   };
 
-  // --- Cargar movimientos IA/externos desde localStorage ---
+  // --- Cargar movimientos IA/externos con SyncService ---
 const loadStoredMovements = () => {
   try {
-    const stored = JSON.parse(localStorage.getItem('lovendaMovements') || '[]');
-    return stored;
-  } catch(_) { return []; }
+    return loadData('lovendaMovements', { 
+      defaultValue: [], 
+      collection: 'userFinanceMovements' 
+    });
+  } catch(error) { 
+    console.error('Error al cargar movimientos:', error);
+    return []; 
+  }
 };
 
 /* upcomingExpenses, upcomingIncomes y pendingExpenses se calculan dinámicamente más abajo */
@@ -96,13 +113,15 @@ const loadStoredMovements = () => {
   useEffect(() => {
     const handler = async () => {
       try {
-        const stored = JSON.parse(localStorage.getItem('lovendaMovements') || '[]');
+        const stored = loadData('lovendaMovements', { defaultValue: [], collection: 'userFinanceMovements' });
         for (const m of stored) {
           if (!historyState.some(e => e.id === m.id)) {
             await addMovement(m);
           }
         }
-      } catch(_){}
+      } catch(error){
+        console.error('Error al procesar movimientos:', error);
+      }
     };
     window.addEventListener('lovenda-movements', handler);
     return () => window.removeEventListener('lovenda-movements', handler);
@@ -151,19 +170,34 @@ const loadStoredMovements = () => {
   const upcomingIncomes = useMemo(() => transactions.filter(t => t.type==='income' && t.date && new Date(t.date) > today).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,5), [transactions]);
   const pendingExpenses = useMemo(() => transactions.filter(t => t.type==='expense' && t.date && new Date(t.date) >= today).sort((a,b)=>new Date(a.date)-new Date(b.date)), [transactions]);
 
+  // Calcular gastos totales y porcentaje gastado del presupuesto
+  const totalExpenses = React.useMemo(() => transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount ?? t.realCost ?? 0), 0), [transactions]);
+  const percentSpent = totalBudget ? (totalExpenses / totalBudget) * 100 : 0;
+
   const fmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
   return (
-    <div className="space-y-6 p-4 pb-24">
+    <div className="p-4 md:p-6 space-y-8 pb-24">
       <h1 className="text-2xl font-semibold">Finanzas</h1>
+      <div className="flex gap-2 mt-2">
+        {['contabilidad','planificacion'].map(t => (
+          <button
+            key={t}
+            className={`px-3 py-1 rounded ${tab===t? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+            onClick={() => setTab(t)}
+          >
+            {t==='contabilidad' ? 'Contabilidad' : 'Planificación'}
+          </button>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-2 my-4">
         <Button leftIcon={<Link2 size={18} />} onClick={() => alert('Función de vincular banco próximamente')}>Vincular banco</Button>
         <Button leftIcon={<Edit3 size={18} />} onClick={() => setManualOpen(true)}>Añadir movimiento</Button>
-        <Button leftIcon={<Settings size={18} />} onClick={() => setConfigOpen(true)}>Configuración</Button>
+        {/* Botón de configuración eliminado */}
         
         
       </div>
-      <div className="flex flex-wrap md:flex-nowrap gap-4 w-full">
+      <div className={`flex flex-wrap md:flex-nowrap gap-4 w-full ${tab!=='contabilidad' ? 'hidden' : ''}`}>
         <Card className="flex-1 md:basis-1/2 min-w-[260px] text-center">
         <h2 className="text-lg font-medium mb-2">Saldo disponible</h2>
         <p className="text-4xl font-bold text-green-600">{fmt.format(balance)}</p>
@@ -201,8 +235,8 @@ const loadStoredMovements = () => {
 
       </div>
 
-      {/* Tabla gastos pendientes */}
-      <Card>
+      {/* Tabla gastos pendientes (solo contabilidad) */}
+      <Card className={`${tab!=='contabilidad' ? 'hidden' : ''}`}>
         <h3 className="font-medium mb-2">Gastos pendientes</h3>
         <table className="w-full text-sm divide-y">
           <thead>
@@ -225,7 +259,7 @@ const loadStoredMovements = () => {
       </Card>
 
       {/* Planificación de presupuesto */}
-      <Card className="space-y-4">
+      <Card className="hidden">
         <h3 className="font-medium text-lg">Planificación de presupuesto</h3>
         <div className="flex items-center space-x-2">
           <span>Presupuesto total:</span>
@@ -264,21 +298,155 @@ const loadStoredMovements = () => {
             </tr>
           </tbody>
         </table>
-        <Button variant="secondary" onClick={addCategory}>+ Añadir categoría</Button>
+        <div className="mt-4">
+            <div className="w-full bg-gray-200 rounded h-4 overflow-hidden">
+              <div className={`h-4 ${percentSpent>100?'bg-red-600':percentSpent>=90?'bg-yellow-500':'bg-green-600'}`} style={{ width: `${Math.min(percentSpent,100)}%` }}></div>
+            </div>
+            <p className="text-xs text-right mt-1">{percentSpent.toFixed(0)}% del presupuesto gastado</p>
+          </div>
+          <Button variant="secondary" onClick={addCategory}>+ Añadir categoría</Button>
+
+          {/* Configuración de aportaciones y regalos */}
+          <div className="space-y-4 mt-6 hidden">
+            <h4 className="font-medium">Aportaciones iniciales</h4>
+            <label className="block">
+              Persona A (€)
+              <input type="number" className="border rounded px-2 py-1 w-full" value={initA} onChange={e=>setInitA(+e.target.value||0)} />
+            </label>
+            <label className="block">
+              Persona B (€)
+              <input type="number" className="border rounded px-2 py-1 w-full" value={initB} onChange={e=>setInitB(+e.target.value||0)} />
+            </label>
+
+            <h4 className="font-medium mt-3">Aportaciones mensuales</h4>
+            <label className="block">
+              Persona A (€ / mes)
+              <input type="number" className="border rounded px-2 py-1 w-full" value={monthlyA} onChange={e=>setMonthlyA(+e.target.value||0)} />
+            </label>
+            <label className="block">
+              Persona B (€ / mes)
+              <input type="number" className="border rounded px-2 py-1 w-full" value={monthlyB} onChange={e=>setMonthlyB(+e.target.value||0)} />
+            </label>
+
+            <h4 className="font-medium mt-3">Aportaciones extras</h4>
+            <label className="block">
+              Total extras (€)
+              <input type="number" className="border rounded px-2 py-1 w-full" value={extras} onChange={e=>setExtras(+e.target.value||0)} />
+            </label>
+
+            <h4 className="font-medium mt-3">Regalos estimados</h4>
+            <label className="block">
+              Regalo estimado por invitado (€)
+              <input type="number" className="border rounded px-2 py-1 w-full" value={giftPerGuest} onChange={e=>setGiftPerGuest(+e.target.value||0)} />
+            </label>
+            <label className="block">
+              Número de invitados
+              <input type="number" className="border rounded px-2 py-1 w-full" value={guestCount} onChange={e=>setGuestCount(+e.target.value||0)} />
+            </label>
+          </div>
       </Card>
 
        {/* Panel de análisis y alertas */}
-       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+       <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-4 ${tab!=='contabilidad' ? 'hidden' : ''}`}>
          <CategoryBreakdown transactions={transactions} type="expense" />
          <CategoryBreakdown transactions={transactions} type="income" />
          <BudgetAlerts transactions={transactions} budgetLimits={categories.reduce((acc,c)=>{acc[c.name]=c.amount;return acc;},{})} />
        </div>
 
        {/* Seguimiento de pagos a proveedores */}
-       <VendorPayments transactions={transactions} />
+       {tab==='contabilidad' && <VendorPayments transactions={transactions} />}
 
-       {/* Historial */}
-      <Card className="overflow-x-auto">
+       {/* === PLANIFICACIÓN === */}
+      {tab==='planificacion' && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Ingresos esperados */}
+          <Card className="p-4 col-span-full lg:col-span-1 text-center">
+            <h3 className="text-lg font-medium mb-2">Ingresos esperados</h3>
+            <p className="text-3xl font-bold text-green-600">{fmt.format(expectedIncome)}</p>
+            <p className="text-sm text-gray-500 mt-1">Aportaciones + regalos</p>
+          </Card>
+
+          {/* Aportaciones y extras */}
+          <Card className="p-4 space-y-3 lg:col-span-2">
+            <h3 className="text-lg font-medium">Aportaciones y regalos</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label className="block">
+                Persona A (inicial €)
+                <input type="number" className="border rounded px-2 py-1 w-full" value={initA} onChange={e=>setInitA(+e.target.value||0)} />
+              </label>
+              <label className="block">
+                Persona B (inicial €)
+                <input type="number" className="border rounded px-2 py-1 w-full" value={initB} onChange={e=>setInitB(+e.target.value||0)} />
+              </label>
+              <label className="block">
+                Persona A (mensual €)
+                <input type="number" className="border rounded px-2 py-1 w-full" value={monthlyA} onChange={e=>setMonthlyA(+e.target.value||0)} />
+              </label>
+              <label className="block">
+                Persona B (mensual €)
+                <input type="number" className="border rounded px-2 py-1 w-full" value={monthlyB} onChange={e=>setMonthlyB(+e.target.value||0)} />
+              </label>
+              <label className="block">
+                Extras (€)
+                <input type="number" className="border rounded px-2 py-1 w-full" value={extras} onChange={e=>setExtras(+e.target.value||0)} />
+              </label>
+              <label className="block">
+                Regalo por invitado (€)
+                <input type="number" className="border rounded px-2 py-1 w-full" value={giftPerGuest} onChange={e=>setGiftPerGuest(+e.target.value||0)} />
+              </label>
+              <label className="block">
+                Número de invitados
+                <input type="number" className="border rounded px-2 py-1 w-full" value={guestCount} onChange={e=>setGuestCount(+e.target.value||0)} />
+              </label>
+            </div>
+          </Card>
+
+          {/* Planificación de presupuesto */}
+          <Card className="space-y-4 col-span-full">
+            <h3 className="font-medium text-lg">Planificación de presupuesto</h3>
+            <div className="flex items-center space-x-2">
+              <span>Presupuesto total:</span>
+              <input
+                type="number"
+                className="border rounded px-2 py-1 w-32"
+                value={totalBudget}
+                onChange={e => setTotalBudget(Number(e.target.value))}
+              />
+            </div>
+            <table className="w-full text-sm divide-y">
+              <thead>
+                <tr className="text-left">
+                  <th>Categoría</th>
+                  <th>Importe</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {categories.map((cat, idx) => (
+                  <tr key={cat.name} className="border-t">
+                    <td className="py-1">{cat.name}</td>
+                    <td className="py-1">
+                      <input
+                        type="number"
+                        className="border rounded px-1 w-24"
+                        value={cat.amount}
+                        onChange={e => updateCategory(idx, e.target.value)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t font-medium">
+                  <td className="py-1">Fondo de emergencia (10%)</td>
+                  <td className="py-1">{fmt.format(emergencyAmount)}</td>
+                </tr>
+              </tbody>
+            </table>
+            <Button variant="secondary" onClick={addCategory}>+ Añadir categoría</Button>
+          </Card>
+        </div>
+      )}
+
+      {/* Historial */}
+      <Card className={`overflow-x-auto ${tab!=='contabilidad' ? 'hidden' : ''}`}>
         <h3 className="font-medium mb-2">Histórico de gastos e ingresos</h3>
         <table className="w-full text-sm divide-y">
           <thead>
@@ -302,8 +470,9 @@ const loadStoredMovements = () => {
         </table>
       </Card>
 
-      {/* Modal configuración */}
-      <Modal open={configOpen} onClose={() => setConfigOpen(false)} title="Configuración finanzas">
+      
+      
+        <Modal open={configOpen} onClose={() => setConfigOpen(false)} title="Configuración">
         <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
           <h4 className="font-medium">Aportaciones iniciales</h4>
           <label className="block">
@@ -342,7 +511,7 @@ const loadStoredMovements = () => {
           </label>
 
           <div className="text-right mt-4">
-            <Button onClick={() => setConfigOpen(false)}>Guardar</Button>
+            <Button >Guardar</Button>
           </div>
         </div>
       </Modal>
@@ -373,10 +542,13 @@ const loadStoredMovements = () => {
             <Button variant="outline" onClick={()=>setManualOpen(false)}>Cancelar</Button>
             <Button onClick={()=>{const id = `mov-${Date.now()}`;
                 const movObj = { ...newMovement, id };
-                // Actualizar estados y localStorage
-                setHistoryState(prev => [...prev, movObj]);
-                const stored = loadStoredMovements();
-                localStorage.setItem('lovendaMovements', JSON.stringify([...stored, movObj]));
+                // Actualizar estados y sincronizar datos
+                setNewTransaction({ type: 'expense', date: today, name: '', amount: '', category: 'OTROS' });
+                const updatedMovements = [...stored, movObj];
+                saveData('lovendaMovements', updatedMovements, {
+                  collection: 'userFinanceMovements',
+                  showNotification: false
+                });
                 window.dispatchEvent(new Event('lovenda-movements'));
                 setManualOpen(false);}}>Guardar</Button>
           </div>

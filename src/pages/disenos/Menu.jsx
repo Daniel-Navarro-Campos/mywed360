@@ -1,23 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import { Plus, Trash2 } from 'lucide-react';
+import { saveData, loadData } from '../../services/SyncService';
+import SyncIndicator from '../../components/SyncIndicator';
 
 const initialState = () => {
   try {
-    const saved = localStorage.getItem('menuDesigner');
-    return saved ? JSON.parse(saved) : { entradas: [], principales: [], postres: [], bebidas: [] };
-  } catch {
+    return loadData('menuDesigner', { 
+      defaultValue: { entradas: [], principales: [], postres: [], bebidas: [] }, 
+      collection: 'userMenus' 
+    });
+  } catch (error) {
+    console.error('Error al cargar el diseño del menú:', error);
     return { entradas: [], principales: [], postres: [], bebidas: [] };
   }
 };
 
+// Plantillas predefinidas para menús de boda
+const menuTemplates = [
+  {
+    name: 'Elegante & Clásico',
+    description: 'Diseño de menú formal con estilo clásico y refinado',
+    prompt: 'Diseña un menú elegante para una boda con estilo clásico y refinado. Formato vertical con tipografía serif elegante. Usa colores neutros con detalles dorados o plateados. Incluye secciones para entrante, plato principal, postre y bebidas. El diseño debe ser sobrio y sofisticado, adecuado para una cena formal de boda.'
+  },
+  {
+    name: 'Rústico & Natural',
+    description: 'Menú con estética rústica, elementos naturales y texto manuscrito',
+    prompt: 'Crea un menú de boda con estética rústica y natural. Utiliza elementos como madera, flores silvestres y hojas. Tipografía con aspecto manuscrito o caligráfico. Formato de una página con secciones para entrante, principal, postre y bebidas. Paleta de colores tierra y verdes naturales. El diseño debe transmitir calidez y un ambiente campestre elegante.'
+  },
+  {
+    name: 'Minimalista & Moderno',
+    description: 'Diseño limpio y contemporáneo con espacios blancos y tipografía simple',
+    prompt: 'Diseña un menú minimalista y moderno para boda. Utiliza mucho espacio en blanco, tipografía sans-serif limpia y elementos geométricos simples. Formato elegante con distribución equilibrada. Paleta monocromática o con un acento de color. Incluye secciones para los platos principales y bebidas. El diseño debe ser contemporáneo, limpio y fácil de leer.'
+  },
+  {
+    name: 'Botánico & Floral',
+    description: 'Menú decorado con elementos botánicos, flores y follaje',
+    prompt: 'Crea un menú de boda con temática botánica y floral. Incorpora ilustraciones delicadas de flores, hojas y ramas como elementos decorativos. Usa una combinación de tipografías elegantes y caligráficas. Paleta de colores suaves como verde salvia, rosa pálido y toques dorados. Formato de una página con todas las secciones del menú organizadas armónicamente entre los elementos vegetales.'
+  },
+  {
+    name: 'Vintage & Romántico',
+    description: 'Menú con estética nostálgica, detalles ornamentados y aire romántico',
+    prompt: 'Diseña un menú de boda con estética vintage y romántica. Utiliza elementos decorativos como encajes, marcos ornamentados y motivos florales delicados. Tipografía elegante con serifs o caligráfica. Paleta en tonos sepia, crema o rosa antiguo. Formato que recuerde a documentos antiguos o postales vintage. Incluye todas las secciones del menú dentro de un diseño que evoque nostalgia y romance.'
+  },
+];
+
 export default function MenuDiseno() {
+  
   const [menu, setMenu] = useState(initialState);
   const [course, setCourse] = useState('entradas');
   const [dish, setDish] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('menuDesigner', JSON.stringify(menu));
+    saveData('menuDesigner', menu, {
+      collection: 'userMenus',
+      showNotification: false
+    });
   }, [menu]);
 
   const addDish = () => {
@@ -33,8 +71,22 @@ export default function MenuDiseno() {
     }));
   };
 
+  // Generar un prompt personalizado basado en los datos del menú
+  const generateCustomPrompt = () => {
+    const menuItems = [];
+    if (menu.entradas.length > 0) menuItems.push(`Entrantes: ${menu.entradas.join(', ')}`);
+    if (menu.principales.length > 0) menuItems.push(`Platos principales: ${menu.principales.join(', ')}`);
+    if (menu.postres.length > 0) menuItems.push(`Postres: ${menu.postres.join(', ')}`);
+    if (menu.bebidas.length > 0) menuItems.push(`Bebidas: ${menu.bebidas.join(', ')}`);
+    
+    if (menuItems.length === 0) return '';
+    
+    return `Diseña un menú elegante para boda con los siguientes platos:\n${menuItems.join('\n')}`;
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <SyncIndicator />
       <Card className="p-6 space-y-4">
         <h1 className="text-2xl font-semibold">Diseño del Menú</h1>
         <div className="flex flex-col md:flex-row gap-2 md:items-end">
@@ -80,6 +132,20 @@ export default function MenuDiseno() {
           ))}
         </div>
       </Card>
+
+      <div className="mt-8 mb-4">
+        <h2 className="text-lg font-semibold mb-2">Diseña tu menú</h2>
+        <p className="text-gray-600">Genera diseños para tu menú utilizando IA. Los datos que has introducido arriba se incluirán automáticamente.</p>
+      </div>
+
+      <ImageGeneratorAI 
+        category="menu" 
+        templates={menuTemplates}
+        customPrompt={generateCustomPrompt()}
+        onImageGenerated={(image) => {
+          console.log('Nuevo diseño de menú generado:', image);
+        }}
+      />
     </div>
   );
 }
