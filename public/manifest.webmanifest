@@ -1,0 +1,21 @@
+{
+  "name": "Lovenda Email",
+  "short_name": "Lovenda",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    {
+      "src": "/logo-app.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-app.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import Card from '../../components/Card';
-import Button from '../../components/Button';
+import { Card } from '../../components/ui';
+import { Button } from '../../components/ui';
 import PageWrapper from '../../components/PageWrapper';
 
 const Timing = () => {

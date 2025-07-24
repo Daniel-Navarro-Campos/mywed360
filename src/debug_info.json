@@ -1,0 +1,23 @@
+{
+  "system": {
+    "platform": "win32",
+    "release": "10.0.26100",
+    "type": "Windows_NT",
+    "arch": "x64",
+    "memory": {
+      "total": "40 GB",
+      "free": "28 GB"
+    }
+  },
+  "ports": {
+    "error": null,
+    "stderr": null,
+    "stdout": "  TCP    0.0.0.0:5173           0.0.0.0:0              LISTENING       7584\r\n  TCP    [::]:5173              [::]:0                 LISTENING       7584\r\n  TCP    [::1]:5173             [::1]:54425            ESTABLISHED     7584\r\n  TCP    [::1]:54425            [::1]:5173             ESTABLISHED     3560\r\n"
+  },
+  "nodeProcesses": {
+    "error": null,
+    "stderr": null,
+    "stdout": "node.exe                      3608 RDP-Tcp#1                  2    49.948 KB\r\nnode.exe                      7584 RDP-Tcp#1                  2   152.132 KB\r\nnode.exe                     11584 RDP-Tcp#1                  2    43.624 KB\r\n"
+  },
+  "date": "2025-07-14T13:52:07.444Z"
+}

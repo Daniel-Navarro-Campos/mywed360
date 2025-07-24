@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Email - Versión Simple</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        textarea {
+            height: 150px;
+        }
+        button {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d1fae5;
+            border: 1px solid #10b981;
+        }
+        .error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prueba de Email Personalizado (Versión Simple)</h1>
+    <div class="form-container">
+        <form id="emailForm" method="POST" action="http://localhost:4004/api/mail/test-personal-email">
+            <div class="form-group">
+                <label for="from">Remitente:</label>
+                <input type="email" id="from" name="from" value="danielnavarrocampos@mywed360.com" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="to">Destinatario:</label>
+                <input type="email" id="to" name="to" value="danielnavarrocampos@icloud.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">Asunto:</label>
+                <input type="text" id="subject" name="subject" value="Prueba de correo personalizado desde MyWed360" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Mensaje:</label>
+                <textarea id="message" name="message" required>Este es un mensaje de prueba enviado desde el sistema de correo personalizado de MyWed360.</textarea>
+            </div>
+            
+            <button type="submit">Enviar Correo de Prueba</button>
+        </form>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('emailForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const resultElement = document.getElementById('result');
+            resultElement.style.display = 'none';
+            
+            const formData = {
+                from: document.getElementById('from').value,
+                to: document.getElementById('to').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value
+            };
+            
+            // Método 1: usando XMLHttpRequest para compatibilidad máxima
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://localhost:4004/api/mail/test-personal-email', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            // No necesitamos withCredentials ya que el servidor está configurado con un origen específico
+            // xhr.withCredentials = true;
+            
+            xhr.onload = function() {
+                resultElement.style.display = 'block';
+                
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        resultElement.className = 'success';
+                        resultElement.innerHTML = `
+                            <h3>¡Correo enviado con éxito!</h3>
+                            <p>${response.message}</p>
+                            <pre>${JSON.stringify(response.data, null, 2)}</pre>
+                        `;
+                    } catch (e) {
+                        resultElement.className = 'error';
+                        resultElement.innerHTML = `
+                            <h3>Error al procesar respuesta</h3>
+                            <p>La respuesta del servidor no es un JSON válido</p>
+                            <pre>${xhr.responseText}</pre>
+                        `;
+                    }
+                } else {
+                    resultElement.className = 'error';
+                    resultElement.innerHTML = `
+                        <h3>Error ${xhr.status}</h3>
+                        <p>No se pudo enviar el correo</p>
+                        <pre>${xhr.responseText}</pre>
+                    `;
+                }
+            };
+            
+            xhr.onerror = function() {
+                resultElement.style.display = 'block';
+                resultElement.className = 'error';
+                resultElement.innerHTML = `
+                    <h3>Error de conexión</h3>
+                    <p>No se pudo conectar al servidor. Verifica que el servidor backend esté en ejecución en el puerto 4004.</p>
+                `;
+            };
+            
+            xhr.send(JSON.stringify(formData));
+        });
+    </script>
+</body>
+</html>

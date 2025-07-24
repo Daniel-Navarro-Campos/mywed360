@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Variables de color (Claro / Oscuro) */
+:root {
+  --color-bg: #FFF9DB;
+  --color-surface: #ffffff;
+  --color-text: #1f2937;
+  --color-primary: #8ACBFF;
+  --color-accent: #FFE4F2;
+}
+.dark {
+  --color-bg: #1f2937;
+  --color-surface: #111827;
+  --color-text: #f3f4f6;
+  --color-primary: #2563eb;
+  --color-accent: #db2777;
+}
+
+
 /* Ocultar flechas de los inputs number */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {
@@ -13,9 +30,11 @@ input[type='number'] {
 }
 @layer base {
   /* Dark mode base styles */
-  .dark body { @apply bg-gray-900 text-gray-100; }
+  .dark body { /* Los colores se gestionan por variables */ }
   body {
-    @apply bg-pastel-yellow text-gray-800 font-sans transition-colors duration-300;
+    @apply font-sans transition-colors duration-300;
+    background-color: var(--color-bg);
+    color: var(--color-text);
   }
   h1, .page-title {
     @apply font-sans font-semibold text-2xl mb-6 tracking-tight;
@@ -24,7 +43,8 @@ input[type='number'] {
     @apply font-bold;
   }
   a {
-    @apply text-pastel-blue hover:underline;
+    color: var(--color-primary);
+    @apply hover:underline;
   }
   p {
     @apply mb-4 leading-relaxed;
@@ -33,9 +53,18 @@ input[type='number'] {
     @apply list-disc pl-5 mb-4;
   }
   button {
-    @apply bg-pastel-blue hover:bg-pastel-purple text-gray-800 font-semibold py-2 px-4 rounded transition-colors duration-200;
+    background-color: var(--color-primary);
+    color: var(--color-text);
+    @apply font-semibold py-2 px-4 rounded transition-colors duration-200;
+  }
+  button:hover {
+    background-color: var(--color-accent);
   }
   input, select, textarea {
-    @apply border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-pastel-blue focus:border-transparent;
+    @apply border rounded p-2 focus:outline-none focus:ring-2 focus:border-transparent;
+    border-color: var(--color-text);
+  }
+  input:focus, select:focus, textarea:focus {
+    --tw-ring-color: var(--color-primary);
   }
 }

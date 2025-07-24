@@ -1,0 +1,79 @@
+[
+  {
+    "id": "email101",
+    "from": "maria.garcia@lovenda.com",
+    "to": "proveedor@florista.com",
+    "subject": "Re: Presupuesto de flores para boda",
+    "body": "<p>Estimada Florista Bella,</p><p>Gracias por el presupuesto. Me gustaría consultar si es posible modificar las cantidades de rosas blancas.</p><p>Saludos cordiales,<br/>María García</p>",
+    "attachments": [],
+    "timestamp": "2025-07-11T09:15:22.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "sent",
+    "tags": []
+  },
+  {
+    "id": "email102",
+    "from": "maria.garcia@lovenda.com",
+    "to": "invitados@listado.com",
+    "subject": "Información importante sobre la boda",
+    "body": "<p>Queridos invitados,</p><p>Os enviamos información importante sobre la celebración de nuestra boda.</p><p>Saludos,<br/>María y Juan</p>",
+    "attachments": [
+      {
+        "name": "info-boda.pdf",
+        "url": "https://example.com/info-boda.pdf",
+        "size": 1536
+      }
+    ],
+    "timestamp": "2025-07-10T18:40:35.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "sent",
+    "tags": ["tag4"]
+  },
+  {
+    "id": "email103",
+    "from": "maria.garcia@lovenda.com",
+    "to": "musica@melodias.com",
+    "subject": "Consulta sobre repertorio",
+    "body": "<p>Buenas tardes,</p><p>Hemos revisado el repertorio propuesto y nos gustaría hacer algunas modificaciones.</p><p>Saludos,<br/>María García</p>",
+    "attachments": [
+      {
+        "name": "cambios-repertorio.docx",
+        "url": "https://example.com/cambios-repertorio.docx",
+        "size": 512
+      }
+    ],
+    "timestamp": "2025-07-09T14:25:10.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "sent",
+    "tags": []
+  },
+  {
+    "id": "email104",
+    "from": "maria.garcia@lovenda.com",
+    "to": "catering@delicioso.com",
+    "subject": "Confirmación de menú",
+    "body": "<p>Estimado equipo de catering,</p><p>Después de revisar las opciones, confirmamos la selección del menú número 3 con las modificaciones acordadas.</p><p>Saludos cordiales,<br/>María García</p>",
+    "attachments": [],
+    "timestamp": "2025-07-08T11:30:45.000Z",
+    "read": true,
+    "starred": true,
+    "folder": "sent",
+    "tags": ["tag2"]
+  },
+  {
+    "id": "email105",
+    "from": "maria.garcia@lovenda.com",
+    "to": "alojamiento@hotel.com",
+    "subject": "Confirmación de reserva",
+    "body": "<p>Buenos días,</p><p>Confirmamos la reserva del bloque de habitaciones según el presupuesto enviado.</p><p>Saludos,<br/>María García</p>",
+    "attachments": [],
+    "timestamp": "2025-07-07T10:15:30.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "sent",
+    "tags": ["tag1"]
+  }
+]

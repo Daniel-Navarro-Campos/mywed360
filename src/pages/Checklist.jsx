@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Download, Filter, CheckCircle, Circle } from 'lucide-react';
+import PageWrapper from '../components/PageWrapper';
+import Card from '../components/Card';
+import Button from '../components/Button';
 
 export default function Checklist() {
   const [view, setView] = useState('list');
@@ -46,8 +49,8 @@ export default function Checklist() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-8">
-      <h1 className="text-2xl font-bold text-gray-800">Checklist</h1>
+    <PageWrapper title="Checklist">
+      <div className="space-y-8">
       
 
       {/* Controles */}
@@ -121,13 +124,14 @@ export default function Checklist() {
       {/* Modal Nueva Tarea */}
       {showNewModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-4 rounded shadow w-80">
+          <Card className="p-4 shadow w-80">
             <h3 className="font-semibold mb-2">Nueva Tarea</h3>
             {/* TODO: formulario */}
-            <button onClick={() => setShowNewModal(false)} className="mt-2 px-2 py-1 bg-red-600 text-white rounded">Cerrar</button>
-          </div>
+            <Button variant="danger" onClick={() => setShowNewModal(false)} className="mt-2">Cerrar</Button>
+          </Card>
         </div>
       )}
-    </div>
+      </div>
+    </PageWrapper>
   );
 }

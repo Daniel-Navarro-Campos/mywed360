@@ -98,6 +98,21 @@ export default function useSpecialMoments() {
   }, []);
 
   
+  // Mover un momento a una posición concreta dentro de su mismo bloque
+  const moveMoment = useCallback((blockId, momentId, toIndex) => {
+    setMoments(prev => {
+      const list = prev[blockId] || [];
+      const idx = list.findIndex(m => m.id === momentId);
+      if (idx === -1 || toIndex < 0 || toIndex >= list.length) return prev;
+      const reordered = [...list];
+      const [item] = reordered.splice(idx, 1);
+      reordered.splice(toIndex, 0, item);
+      // Recalcular order
+      const updated = reordered.map((m, i) => ({ ...m, order: i + 1 }));
+      return { ...prev, [blockId]: updated };
+    });
+  }, []);
+
   const duplicateMoment = useCallback((fromBlock, momentId, toBlock) => {
     if (fromBlock === toBlock) return;
     setMoments(prev => {

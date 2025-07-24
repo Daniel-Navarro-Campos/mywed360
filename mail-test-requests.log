@@ -1,0 +1,2 @@
+{"timestamp":"2025-07-18T04:26:39.855Z","endpoint":"/api/mail/test-personal-email","request":{"from":"danielnavarrocampos@mywed360.com","to":"danielnavarrocampos@icloud.com","subject":"Prueba desde servidor local","message":"Este es un mensaje de prueba enviado desde el servidor local."}}
+{"timestamp":"2025-07-18T04:29:38.071Z","endpoint":"/api/mail/test-personal-email","request":{"from":"danielnavarrocampos@mywed360.com","to":"danielnavarrocampos@icloud.com","subject":"Prueba desde servidor local","message":"Este es un mensaje de prueba enviado desde el servidor local."}}

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserProvider, { useUserContext } from './context/UserContext';
+import { AuthProvider } from './hooks/useAuth'; // Importamos el AuthProvider
 import MainLayout from './components/MainLayout';
 import EmailNotification from './components/EmailNotification';
 import Login from './pages/Login';
@@ -12,7 +13,13 @@ import Tasks from './pages/Tasks';
 import Finance from './pages/Finance';
 import More from './pages/More';
 import Invitados from './pages/Invitados';
-import Proveedores from './pages/Proveedores';
+import GestionProveedores from './pages/GestionProveedores';
+import UnifiedEmail from './pages/UnifiedEmail';
+import MailboxPage from './pages/MailboxPage';
+import EmailAdminDashboard from './components/admin/EmailAdminDashboard';
+import MetricsDashboard from './components/metrics/MetricsDashboard';
+import AdminRoutes from './routes/AdminRoutes';
+import UserRoutes from './routes/UserRoutes';
 
 import Perfil from './pages/Perfil';
 import SeatingPlan from './pages/SeatingPlan';
@@ -34,7 +41,7 @@ import SeatingPlanPost from './pages/disenos/SeatingPlanPost';
 import MenuCatering from './pages/disenos/MenuCatering';
 import PapelesNombres from './pages/disenos/PapelesNombres';
 import Ideas from './pages/Ideas';
-// El componente Buzon ha sido eliminado
+
 import Notificaciones from './pages/Notificaciones';
 import WeddingSite from './pages/WeddingSite';
 
@@ -50,21 +57,24 @@ function ProtectedRoute() {
 
 
 function App() {
+  // Mensaje de diagnóstico para verificar si la aplicación carga correctamente
+  console.log('App component rendering...');
   return (
     <UserProvider>
-      <ToastContainer 
-        position="top-right"
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
-      <BrowserRouter>
+      <AuthProvider>
+        <ToastContainer 
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         {/* Componente de notificaciones de correo - solo visible en rutas protegidas */}
         <Routes>
           <Route path="/" element={<Login />} />
@@ -79,7 +89,7 @@ function App() {
               <Route path="invitados" element={<Invitados />} />
               <Route path="invitados/seating" element={<SeatingPlan />} />
               <Route path="invitados/invitaciones" element={<Invitaciones />} />
-              <Route path="proveedores" element={<Proveedores />} />
+              <Route path="proveedores" element={<GestionProveedores />} />
               <Route path="proveedores/contratos" element={<Contratos />} />
 
               {/* Rutas de Protocolo */}
@@ -97,6 +107,10 @@ function App() {
               <Route path="web" element={<WebEditor />} />
                <Route path="ideas" element={<Ideas />} />
 
+               {/* Panel de administración con monitoreo de caché */}
+               <Route path="admin/*" element={<AdminRoutes />} />
+               <Route path="email-admin" element={<EmailAdminDashboard />} />
+
                {/* Rutas Diseños */}
                <Route path="disenos" element={<DisenosLayout />}>
                  <Route index element={<Navigate to="invitaciones" replace />} />
@@ -107,20 +121,27 @@ function App() {
                  <Route path="menu-catering" element={<MenuCatering />} />
                  <Route path="papeles-nombres" element={<PapelesNombres />} />
                </Route>
-              <Route path="more" element={<More />}>
-                
+              <Route path="more" element={<More />} />
+              
+              {/* Bandeja unificada de emails */}
+              <Route path="email" element={<UnifiedEmail />} />
+              <Route path="buzon" element={<MailboxPage />} />
+              
+              {/* Rutas de usuario */}
+              <Route path="user/*" element={<UserRoutes />} />
+              
+              {/* Rutas de administración de email */}
+              <Route path="admin">
+                <Route path="email" element={<EmailAdminDashboard />} />
+                <Route path="metrics" element={<MetricsDashboard />} />
               </Route>
-
-
-
-
-  
   
               <Route path="*" element={<Navigate to="home" replace />} />
             </Route>
           </Route>
         </Routes>
       </BrowserRouter>
+      </AuthProvider>
     </UserProvider>
   );
 }

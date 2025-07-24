@@ -1,0 +1,41 @@
+{
+  "results": [
+    {
+      "id": 1,
+      "name": "Fotografía Naturaleza Viva",
+      "service": "Fotografía",
+      "snippet": "Estudio especializado en fotografía de bodas con estilo natural y documental. Captamos los momentos más emotivos y espontáneos de tu boda.",
+      "match": 95,
+      "image": "https://images.unsplash.com/photo-1537633552985-df8429e8048b",
+      "location": "Madrid",
+      "price": "1200€ - 2500€",
+      "email": "info@naturalezaviva.com",
+      "aiSummary": "Este fotógrafo tiene un estilo natural y documental perfecto para bodas en exteriores. Sus imágenes capturen momentos espontáneos con iluminación natural, ideal para lo que buscas."
+    },
+    {
+      "id": 2,
+      "name": "Lente Azul Fotografía",
+      "service": "Fotografía",
+      "snippet": "Más de 10 años de experiencia en fotografía de bodas en playa y espacios naturales. Ofrecemos paquetes personalizados para cada pareja.",
+      "match": 87,
+      "image": "https://images.unsplash.com/photo-1508435234994-67cfd7690508",
+      "location": "Barcelona",
+      "price": "1500€ - 3000€",
+      "email": "contacto@lenteazul.com",
+      "aiSummary": "Especialistas en bodas en la playa con un estilo luminoso y natural. Su portfolio muestra una gran experiencia en entornos costeros y saben aprovechar la luz natural."
+    },
+    {
+      "id": 3,
+      "name": "Momentos Eternos",
+      "service": "Fotografía",
+      "snippet": "Fotografía de autor para bodas con estilo único. Combinamos fotografía documental con retratos artísticos para crear un álbum inolvidable.",
+      "match": 79,
+      "image": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc",
+      "location": "Valencia",
+      "price": "1000€ - 2000€",
+      "email": "hola@momentoseternos.com",
+      "aiSummary": "Ofrece un enfoque artístico con elementos documentales. Aunque su estilo es más estilizado que puramente natural, tiene experiencia en bodas al aire libre."
+    }
+  ],
+  "query": "fotógrafo estilo natural para boda en exteriores"
+}

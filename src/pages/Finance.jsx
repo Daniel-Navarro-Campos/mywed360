@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
-import Spinner from '../components/Spinner';
+import { Spinner } from '../components/ui';
 import Pagination from '../components/Pagination';
 import Toast from '../components/Toast';
 import { saveAs } from 'file-saver';
@@ -8,11 +8,11 @@ import { getTransactions } from '../services/bankService';
 import { Plus, Link2, Edit3, AlertCircle, Clock, CheckCircle, AlertTriangle, Download, Upload, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Card from '../components/Card';
-import Button from '../components/Button';
+import { Card } from '../components/ui';
+import { Button } from '../components/ui';
 import { CategoryBreakdown } from '../components/finance/CategoryBreakdown';
 import { BudgetAlerts } from '../components/finance/BudgetAlerts';
-import { VendorPayments } from '../components/finance/VendorPayments';
+
 import Modal from '../components/Modal';
 
 // -------------------------- NUEVA PÁGINA FINANZAS --------------------------
@@ -113,7 +113,7 @@ const loadStoredMovements = () => {
   useEffect(() => {
     const handler = async () => {
       try {
-        const stored = loadData('lovendaMovements', { defaultValue: [], collection: 'userFinanceMovements' });
+        const stored = await loadData('lovendaMovements', { defaultValue: [], collection: 'userFinanceMovements' }) || [];
         for (const m of stored) {
           if (!historyState.some(e => e.id === m.id)) {
             await addMovement(m);
@@ -177,7 +177,7 @@ const loadStoredMovements = () => {
   const fmt = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
   return (
-    <div className="p-4 md:p-6 space-y-8 pb-24">
+    <div className="p-4 md:p-6 space-y-8 pb-36">
       <h1 className="text-2xl font-semibold">Finanzas</h1>
       <div className="flex gap-2 mt-2">
         {['contabilidad','planificacion'].map(t => (
@@ -198,7 +198,7 @@ const loadStoredMovements = () => {
         
       </div>
       <div className={`flex flex-wrap md:flex-nowrap gap-4 w-full ${tab!=='contabilidad' ? 'hidden' : ''}`}>
-        <Card className="flex-1 md:basis-1/2 min-w-[260px] text-center">
+        <Card className="p-4 flex-1 md:basis-1/2 min-w-[260px] text-center">
         <h2 className="text-lg font-medium mb-2">Saldo disponible</h2>
         <p className="text-4xl font-bold text-green-600">{fmt.format(balance)}</p>
       </Card>
@@ -235,28 +235,33 @@ const loadStoredMovements = () => {
 
       </div>
 
-      {/* Tabla gastos pendientes (solo contabilidad) */}
-      <Card className={`${tab!=='contabilidad' ? 'hidden' : ''}`}>
-        <h3 className="font-medium mb-2">Gastos pendientes</h3>
-        <table className="w-full text-sm divide-y">
-          <thead>
-            <tr className="text-left">
-              <th>Concepto</th>
-              <th>Fecha</th>
-              <th>Importe</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {pendingExpenses.map(e => (
-              <tr key={e.id} className="border-t">
-                <td>{e.name}</td>
-                <td>{e.date}</td>
-                <td className="text-red-600">{fmt.format(e.amount)}</td>
+      {/* Sección de gastos pendientes y alertas de presupuesto (solo contabilidad) */}
+      <div className={`grid md:grid-cols-2 gap-4 ${tab!=='contabilidad' ? 'hidden' : ''}`}>
+        <Card className="p-4">
+          <h3 className="font-medium mb-2">Gastos pendientes</h3>
+          <table className="w-full text-sm divide-y">
+            <thead>
+              <tr className="text-left">
+                <th>Concepto</th>
+                <th>Fecha</th>
+                <th>Importe</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+            </thead>
+            <tbody className="divide-y">
+              {pendingExpenses.map(e => (
+                <tr key={e.id} className="border-t">
+                  <td>{e.name}</td>
+                  <td>{e.date}</td>
+                  <td className="text-red-600">{fmt.format(e.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+        
+        {/* Alertas de presupuesto */}
+        <BudgetAlerts transactions={transactions} budgetLimits={categories.reduce((acc,c)=>{acc[c.name]=c.amount;return acc;},{})} />
+      </div>
 
       {/* Planificación de presupuesto */}
       <Card className="hidden">
@@ -346,15 +351,7 @@ const loadStoredMovements = () => {
           </div>
       </Card>
 
-       {/* Panel de análisis y alertas */}
-       <div className={`grid md:grid-cols-2 lg:grid-cols-3 gap-4 ${tab!=='contabilidad' ? 'hidden' : ''}`}>
-         <CategoryBreakdown transactions={transactions} type="expense" />
-         <CategoryBreakdown transactions={transactions} type="income" />
-         <BudgetAlerts transactions={transactions} budgetLimits={categories.reduce((acc,c)=>{acc[c.name]=c.amount;return acc;},{})} />
-       </div>
-
-       {/* Seguimiento de pagos a proveedores */}
-       {tab==='contabilidad' && <VendorPayments transactions={transactions} />}
+       {/* Panel eliminado - las alertas ya están arriba */}
 
        {/* === PLANIFICACIÓN === */}
       {tab==='planificacion' && (
@@ -402,7 +399,7 @@ const loadStoredMovements = () => {
           </Card>
 
           {/* Planificación de presupuesto */}
-          <Card className="space-y-4 col-span-full">
+          <Card className="p-4 space-y-4 col-span-full">
             <h3 className="font-medium text-lg">Planificación de presupuesto</h3>
             <div className="flex items-center space-x-2">
               <span>Presupuesto total:</span>
@@ -446,7 +443,7 @@ const loadStoredMovements = () => {
       )}
 
       {/* Historial */}
-      <Card className={`overflow-x-auto ${tab!=='contabilidad' ? 'hidden' : ''}`}>
+      <Card className={`p-4 overflow-x-auto ${tab!=='contabilidad' ? 'hidden' : ''}`}>
         <h3 className="font-medium mb-2">Histórico de gastos e ingresos</h3>
         <table className="w-full text-sm divide-y">
           <thead>

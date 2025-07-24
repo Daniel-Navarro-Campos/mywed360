@@ -15,9 +15,9 @@ import inspo4 from '../assets/inspo4.jpg';
 
 export default function HomePage() {
   // Todo se maneja con modales locales
-  const [noteText,setNoteText]=useState('');
-  const [guest,setGuest]=useState({name:'',side:'novia',contact:''});
-  const [newMovement,setNewMovement]=useState({concept:'',amount:0,date:'',type:'expense'});
+  const [noteText, setNoteText] = useState('');
+  const [guest, setGuest] = useState({name: '', side: 'novia', contact: ''});
+  const [newMovement, setNewMovement] = useState({concept: '', amount: 0, date: '', type: 'expense'});
   const [activeModal, setActiveModal] = useState(null);
   const { role, userName, weddingName, progress, logoUrl } = useUserContext();
   const galleryRef = useRef(null);
@@ -52,14 +52,6 @@ export default function HomePage() {
   const movements = (() => { try { return JSON.parse(localStorage.getItem('quickMovements') || '[]'); } catch { return []; } })();
   const spent = movements.filter(m => m.type !== 'income').reduce((sum, m) => sum + (m.amount || 0), 0);
   const budgetTotal = 15000; // placeholder
- (() => {
-    try {
-      const arr = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
-      return arr.filter(g => ((g.response || g.status || '').toLowerCase() === 'confirmado')).length;
-    } catch {
-      return 0;
-    }
-  })();
 
   const statsNovios = [
     { label: 'Invitados confirmados', value: confirmedCount, icon: Users },
@@ -78,321 +70,305 @@ export default function HomePage() {
   const statsCommon = role === 'particular' ? statsNovios : statsPlanner;
 
   return (
-    <div className="relative flex flex-col h-full bg-pastel-yellow pb-16">
-      {/* Decorative background circle */}
-      <div className="absolute top-0 right-0 w-64 h-64 bg-pastel-pink rounded-full opacity-20 transform translate-x-1/2 -translate-y-1/2" />
+    <React.Fragment>
+      <div className="relative flex flex-col h-full bg-[var(--color-bg)] pb-16">
+        {/* Decorative background circle */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-accent)] rounded-full opacity-20 transform translate-x-1/2 -translate-y-1/2" />
 
-      {/* Header */}
-      <header className="relative z-10 p-6 flex justify-between items-center">
-        <div className="space-y-1">
-          <h1 className="page-title">Bienvenidos, {weddingName}{weddingName && userName ? ' y ' : ''}{userName}</h1>
-          <p className="text-4xl font-bold text-gray-800">Cada detalle hace tu boda inolvidable</p>
-        </div>
-        <img
+        {/* Header */}
+        <header className="relative z-10 p-6 flex justify-between items-center">
+          <div className="space-y-1">
+            <h1 className="page-title">Bienvenidos, {weddingName}{weddingName && userName ? ' y ' : ''}{userName}</h1>
+            <p className="text-4xl font-bold text-[color:var(--color-text)]">Cada detalle hace tu boda inolvidable</p>
+          </div>
+          <img
             src={`${import.meta.env.BASE_URL}logo-app.png`}
             alt="Logo de la boda"
             className="w-32 h-32 object-contain"
           />
-      </header>
+        </header>
 
-      {/* Progress Section */}
-      <section className="z-10 w-full p-6">
-        <Card className="bg-white/70 backdrop-blur-md p-4 w-full">
-          <p className="text-sm text-gray-600 mb-2">Progreso de tareas</p>
-          <Progress
-            className="h-4 rounded-full w-full"
-            value={progress}
-            max={100}
-            variant={
-              progress >= 100
-                ? 'success'
-                : progress >= 80
-                ? 'primary'
-                : 'destructive'
-            }
-          />
-          <p className="mt-2 text-sm font-medium text-gray-700">
-            {progress}% completado
-          </p>
-        </Card>
-      </section>
+        {/* Progress Section */}
+        <section className="z-10 w-full p-6">
+          <Card className="bg-[var(--color-surface)]/70 backdrop-blur-md p-4 w-full">
+            <p className="text-sm text-[color:var(--color-text)]/70 mb-2">Progreso de tareas</p>
+            <Progress
+              className="h-4 rounded-full w-full"
+              value={progress}
+              max={100}
+              variant={
+                progress >= 100
+                  ? 'success'
+                  : progress >= 80
+                  ? 'primary'
+                  : 'destructive'
+              }
+            />
+            <p className="mt-2 text-sm font-medium text-[color:var(--color-text)]">
+              {progress}% completado
+            </p>
+          </Card>
+        </section>
 
-      {/* Quick Actions */}
-      <section className="z-10 p-6 grid grid-cols-1 sm:grid-cols-4 gap-4">
-        {[
-          { key: 'proveedor', label: 'Buscar proveedor', icon: User },
-          { key: 'invitado', label: 'Añadir invitado', icon: Users },
-          { key: 'movimiento', label: 'Añadir movimiento', icon: DollarSign },
-          { key: 'nota', label: 'Nueva nota', icon: Plus },
-        ].map((action, idx) => {
-          const Icon = action.icon;
-          return (
-            <Card
-              key={idx}
-              role="button"
-              onClick={() => setActiveModal(action.key)}
-              className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
-            >
-              <div className="flex items-center space-x-3">
-                <Icon className="text-pastel-blue" />
-                <span className="text-gray-700 font-medium">{action.label}</span>
-              </div>
-              <ChevronRight className="text-gray-400" />
-            </Card>
-          );
-        })}
-      </section>
-
-      {/* Stats Cards */}
-      <section className="z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 flex-grow">
-        {statsCommon.map((stat, idx) => {
-          const Icon = stat.icon;
-          return (
-            <Card
-              key={idx}
-              className="p-4 bg-white/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105"
-            >
-              <div className="flex items-center space-x-2">
-                <Icon className="text-pastel-blue" />
-                <p className="text-sm text-gray-500">{stat.label}</p>
-              </div>
-              <p className="text-2xl font-extrabold text-blue-600 mt-2">
-                {stat.value}
-              </p>
-            </Card>
-          );
-        })}
-      </section>
-
-      {/* Inspiration Gallery */}
-      <section className="z-10 p-6">
-        
-        <div className="relative">
-          <button
-            onClick={scrollPrev}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-20 p-2 bg-white/80 rounded-full shadow-md"
-          >
-            <ChevronLeft className="text-gray-700" />
-          </button>
-          <div
-            ref={galleryRef}
-            className="flex space-x-4 py-2 overflow-hidden scroll-smooth"
-          >
-            {[inspo1, inspo2, inspo3, inspo4].map((src, idx) => (
-              <div
+        {/* Quick Actions */}
+        <section className="z-10 p-6 flex flex-nowrap gap-4 w-full">
+          {[
+            { key: 'proveedor', label: 'Buscar proveedor', icon: User },
+            { key: 'invitado', label: 'Añadir invitado', icon: Users },
+            { key: 'movimiento', label: 'Añadir movimiento', icon: DollarSign },
+            { key: 'nota', label: 'Nueva nota', icon: Plus },
+          ].map((action, idx) => {
+            const Icon = action.icon;
+            return (
+              <Card
                 key={idx}
-                className="flex-shrink-0 w-80 h-56 rounded-xl overflow-hidden shadow-md"
+                role="button"
+                onClick={() => setActiveModal(action.key)}
+                className="flex-1 flex items-center justify-between p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
               >
-                <img
-                  src={src}
-                  alt={`Inspiración ${idx + 1}`}
-                  className="w-full h-full object-cover"
+                <div className="flex items-center space-x-3">
+                  <Icon className="text-[var(--color-primary)]" />
+                  <span className="text-[color:var(--color-text)] font-medium">{action.label}</span>
+                </div>
+                <ChevronRight className="text-[color:var(--color-text)]/50" />
+              </Card>
+            );
+          })}
+        </section>
+
+        {/* Stats Cards */}
+        <section className="z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 p-6 flex-grow">
+          {statsCommon.map((stat, idx) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={idx} className="p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105">
+                <div className="flex items-center space-x-2">
+                  <Icon className="text-[var(--color-primary)]" />
+                  <p className="text-sm text-[color:var(--color-text)]">{stat.label}</p>
+                </div>
+                <p className="text-2xl font-extrabold text-[var(--color-primary)] mt-2">
+                  {stat.value}
+                </p>
+              </Card>
+            );
+          })}
+        </section>
+
+        {/* Inspiration Gallery */}
+        <section className="z-10 p-6 pb-12 relative">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-[var(--color-text)]">Inspiración para tu boda</h2>
+            <div className="flex space-x-2">
+              <button onClick={scrollPrev} className="p-2 rounded-full bg-[var(--color-surface)]/80 backdrop-blur-md">
+                <ChevronLeft className="text-[var(--color-primary)]" />
+              </button>
+              <button onClick={scrollNext} className="p-2 rounded-full bg-[var(--color-surface)]/80 backdrop-blur-md">
+                <ChevronRight className="text-[var(--color-primary)]" />
+              </button>
+            </div>
+          </div>
+          <div 
+            ref={galleryRef} 
+            className="flex space-x-4 overflow-x-auto pb-4 snap-x scrollbar-hide"
+          >
+            {[
+              { src: inspo1, alt: "Decoración floral" },
+              { src: inspo2, alt: "Mesa de banquete" },
+              { src: inspo3, alt: "Pastel de bodas" },
+              { src: inspo4, alt: "Ceremonia al aire libre" }
+            ].map((img, idx) => (
+              <div key={idx} className="snap-start flex-shrink-0 w-64 h-64 relative rounded-lg overflow-hidden">
+                <img 
+                  src={img.src} 
+                  alt={img.alt}
+                  className="w-full h-full object-cover transition transform hover:scale-110"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-4">
+                  <p className="text-white font-medium">{img.alt}</p>
+                </div>
               </div>
             ))}
           </div>
-          <button
-            onClick={scrollNext}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-20 p-2 bg-white/80 rounded-full shadow-md"
-          >
-            <ChevronRight className="text-gray-700" />
-          </button>
-        </div>
-      </section>
+        </section>
 
-      {/* News & Articles */}
-      <section className="z-10 p-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">
-          Últimas Noticias
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Artículos de Inspiración */}
+        <section className="z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 p-6">
           {[
-            {
-              title: 'Tendencias en decoraciones nupciales 2025',
-              url: '#',
-              source: 'Blog de Bodas',
-            },
-            {
-              title: 'Cómo elegir el menú perfecto para tu boda',
-              url: '#',
-              source: 'Revista Eventos',
-            },
-            {
-              title: 'Guía definitiva de flores de temporada',
-              url: '#',
-              source: 'Noticias Florales',
-            },
+            { title: "10 ideas para personalizar tu boda", source: "Blog de Bodas", url: "#" },
+            { title: "Tendencias en decoración para este año", source: "Revista Novias", url: "#" },
+            { title: "Guía de planificación paso a paso", source: "Lovenda", url: "#" },
+            { title: "Consejos para elegir proveedores", source: "Expertos en Bodas", url: "#" }
           ].map((article, idx) => (
             <Card key={idx} className="p-4 hover:shadow-lg transition">
-              <p className="text-lg font-medium text-gray-800">
+              <p className="text-lg font-medium text-[var(--color-text)]">
                 {article.title}
               </p>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-[color:var(--color-text)] mt-1">
                 {article.source}
               </p>
               <a
                 href={article.url}
-                className="inline-flex items-center text-blue-600 mt-2"
+                className="inline-flex items-center text-[var(--color-primary)] mt-2"
               >
-                Leer más <ChevronRight className="ml-1" />
+                Leer más
               </a>
             </Card>
           ))}
-        </div>
-      </section>
+        </section>
 
-      {/* Fixed Bottom Navigation */}
-      {/* Quick Modals */}
-      {activeModal==='nota' && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={()=>{setActiveModal(null);setNoteText('');}}>
-          <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={e=>e.stopPropagation()}>
-            <h3 className="text-lg font-semibold mb-3">Nueva Nota</h3>
-            <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} className="w-full border rounded p-2 mb-4" placeholder="Escribe tu idea..." />
-            <div className="text-right space-x-2">
-              <button onClick={()=>{setActiveModal(null);setNoteText('');}} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
-              <button onClick={()=>{
-                if(!noteText.trim()) return;
-                const stored=JSON.parse(localStorage.getItem('ideasNotes')||'[]');
-                stored.push({folder:'General',text:noteText.trim()});
-                localStorage.setItem('ideasNotes',JSON.stringify(stored));
-                setActiveModal(null);setNoteText('');
-              }} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
+        <Nav active="home" />
+      </div>
+      
+      {/* Modales */}
+      {activeModal === 'proveedor' && <ProviderSearchModal onClose={() => setActiveModal(null)} />}
+
+      {activeModal === 'invitado' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-surface)] p-6 rounded-lg w-96 max-w-full">
+            <h2 className="text-xl font-bold mb-4">Añadir Invitado</h2>
+            <div className="space-y-4">
+              <Input 
+                label="Nombre" 
+                value={guest.name} 
+                onChange={e => setGuest({...guest, name: e.target.value})} 
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Parte de</label>
+                  <select 
+                    className="w-full p-2 border border-gray-300 rounded"
+                    value={guest.side}
+                    onChange={e => setGuest({...guest, side: e.target.value})}
+                  >
+                    <option value="novia">Novia</option>
+                    <option value="novio">Novio</option>
+                    <option value="ambos">Ambos</option>
+                  </select>
+                </div>
+                <Input 
+                  label="Contacto" 
+                  value={guest.contact} 
+                  onChange={e => setGuest({...guest, contact: e.target.value})} 
+                />
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="px-4 py-2 text-[var(--color-text)] border border-[var(--color-text)]/20 rounded"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  const guests = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
+                  guests.push({...guest, id: Date.now()});
+                  localStorage.setItem('lovendaGuests', JSON.stringify(guests));
+                  setGuest({name:'',side:'novia',contact:''});
+                  setActiveModal(null);
+                }}
+                className="px-4 py-2 bg-[var(--color-primary)] text-white rounded"
+              >
+                Guardar
+              </button>
             </div>
           </div>
         </div>
-    )}
+      )}
 
-    {activeModal === 'proveedor' && (
-      <ProviderSearchModal 
-        onClose={() => setActiveModal(null)} 
-        onSelectProvider={(provider) => {
-          // Guardar el proveedor seleccionado
-          const providers = JSON.parse(localStorage.getItem('lovendaProviders') || '[]');
-          const newId = providers.length ? Math.max(...providers.map(p => p.id)) + 1 : 1;
-          const newProvider = {
-            id: newId,
-            name: provider.title || provider.name || 'Proveedor',
-            service: provider.service || 'Proveedor',
-            contact: '',
-            email: '',
-            phone: '',
-            link: provider.link || '',
-            status: 'Nuevo',
-            date: new Date().toISOString().slice(0, 10),
-            rating: 0,
-            ratingCount: 0,
-            snippet: provider.snippet || '',
-          };
-          localStorage.setItem('lovendaProviders', JSON.stringify([...providers, newProvider]));
-          window.dispatchEvent(new Event('lovenda-providers'));
-        }}
-      />
-    )}
-
-    {activeModal === 'invitado' && (
-      <GuestModalHomePage onClose={() => setActiveModal(null)} />
-    )}
-
-    {activeModal === 'movimiento' && (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={() => { setActiveModal(null); setNewMovement({ concept: '', amount: 0, date: '', type: 'expense' }); }}>
-        <div className="bg-white rounded-lg p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
-          <h3 className="text-lg font-semibold mb-3">Nuevo movimiento</h3>
-          <input value={newMovement.concept} onChange={e => setNewMovement({ ...newMovement, concept: e.target.value })} className="w-full border rounded p-2 mb-2" placeholder="Concepto" />
-          <input type="number" value={newMovement.amount} onChange={e => setNewMovement({ ...newMovement, amount: +e.target.value || 0 })} className="w-full border rounded p-2 mb-2" placeholder="Monto (€)" />
-          <input type="date" value={newMovement.date} onChange={e => setNewMovement({ ...newMovement, date: e.target.value })} className="w-full border rounded p-2 mb-2" />
-          <select value={newMovement.type} onChange={e => setNewMovement({ ...newMovement, type: e.target.value })} className="w-full border rounded p-2 mb-4">
-            <option value="expense">Gasto</option>
-            <option value="income">Ingreso</option>
-          </select>
-          <div className="text-right space-x-2">
-            <button onClick={() => { setActiveModal(null); setNewMovement({ concept: '', amount: 0, date: '', type: 'expense' }); }} className="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
-            <button onClick={() => {
-              if (!newMovement.concept.trim() || !newMovement.date) return;
-              const movs = JSON.parse(localStorage.getItem('quickMovements') || '[]');
-              movs.push({ ...newMovement, concept: newMovement.concept.trim() });
-              localStorage.setItem('quickMovements', JSON.stringify(movs));
-              setActiveModal(null); setNewMovement({ concept: '', amount: 0, date: '', type: 'expense' });
-            }} className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
+      {activeModal === 'movimiento' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-surface)] p-6 rounded-lg w-96 max-w-full">
+            <h2 className="text-xl font-bold mb-4">Nuevo Movimiento</h2>
+            <div className="space-y-4">
+              <Input 
+                label="Concepto" 
+                value={newMovement.concept} 
+                onChange={e => setNewMovement({...newMovement, concept: e.target.value})} 
+              />
+              <Input 
+                label="Cantidad (€)" 
+                type="number"
+                value={newMovement.amount} 
+                onChange={e => setNewMovement({...newMovement, amount: parseFloat(e.target.value) || 0})} 
+              />
+              <Input 
+                label="Fecha" 
+                type="date"
+                value={newMovement.date} 
+                onChange={e => setNewMovement({...newMovement, date: e.target.value})} 
+              />
+              <div>
+                <label className="block text-sm font-medium mb-1">Tipo</label>
+                <select 
+                  className="w-full p-2 border border-gray-300 rounded"
+                  value={newMovement.type}
+                  onChange={e => setNewMovement({...newMovement, type: e.target.value})}
+                >
+                  <option value="expense">Gasto</option>
+                  <option value="income">Ingreso</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="px-4 py-2 text-[var(--color-text)] border border-[var(--color-text)]/20 rounded"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  const movs = JSON.parse(localStorage.getItem('quickMovements') || '[]');
+                  movs.push({...newMovement, id: Date.now()});
+                  localStorage.setItem('quickMovements', JSON.stringify(movs));
+                  setNewMovement({concept:'',amount:0,date:'',type:'expense'});
+                  setActiveModal(null);
+                }}
+                className="px-4 py-2 bg-[var(--color-primary)] text-white rounded"
+              >
+                Guardar
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    <div className="fixed bottom-0 left-0 w-full z-20">
-      <Nav />
-    </div>
-  </div>
-);
-}
-
-// --- GuestModalHomePage fuera del componente principal ---
-
-function GuestModalHomePage({ onClose }) {
-  const emptyGuest = { name: '', phone: '', address: '', companion: 0, table: '', response: 'Pendiente' };
-  const [editingGuest, setEditingGuest] = React.useState({ ...emptyGuest });
-  const [importing, setImporting] = React.useState(false);
-
-  const importFromContacts = async () => {
-    if (navigator.contacts && navigator.contacts.select) {
-      setImporting(true);
-      try {
-        const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
-        if (picked && picked.length) {
-          const stored = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
-          let nextId = stored.length ? Math.max(...stored.map(g => g.id)) + 1 : 1;
-          const mapped = picked.map(c => ({
-            id: nextId++,
-            name: Array.isArray(c.name) ? c.name[0] : c.name || 'Invitado',
-            phone: Array.isArray(c.tel) ? c.tel[0] : c.tel || '',
-            address: '',
-            companion: 0,
-            table: '',
-            response: 'Pendiente'
-          }));
-          const updated = [...stored, ...mapped];
-          localStorage.setItem('lovendaGuests', JSON.stringify(updated));
-          window.dispatchEvent(new Event('lovenda-guests'));
-          onClose();
-        }
-      } catch (err) {
-        alert('Error importando contactos');
-      } finally {
-        setImporting(false);
-      }
-    } else {
-      alert('La API de Contactos no está disponible en este dispositivo.');
-    }
-  };
-
-  const handleSave = () => {
-    if (!editingGuest.name.trim()) return;
-    const stored = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
-    const newId = stored.length ? Math.max(...stored.map(g => g.id)) + 1 : 1;
-    const newGuest = { ...editingGuest, id: newId, name: editingGuest.name.trim() };
-    localStorage.setItem('lovendaGuests', JSON.stringify([...stored, newGuest]));
-    window.dispatchEvent(new Event('lovenda-guests'));
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white p-6 rounded shadow w-96 space-y-4">
-        <h2 className="text-lg font-semibold">Añadir Invitado</h2>
-        <div className="space-y-3">
-          <button className="w-full px-3 py-2 rounded border border-blue-400 text-blue-700 bg-blue-50 flex items-center justify-center gap-2" onClick={importFromContacts} disabled={importing}>
-            <Phone size={16}/> Importar desde contactos
-          </button>
-          <Input label="Nombre" value={editingGuest.name} onChange={e => setEditingGuest({ ...editingGuest, name: e.target.value })} />
-          <Input label="Teléfono" value={editingGuest.phone} onChange={e => setEditingGuest({ ...editingGuest, phone: e.target.value })} />
-          <Input label="Dirección postal" value={editingGuest.address} onChange={e => setEditingGuest({ ...editingGuest, address: e.target.value })} />
-          <Input label="Acompañantes" type="number" min="0" value={editingGuest.companion} onChange={e => setEditingGuest({ ...editingGuest, companion: parseInt(e.target.value,10)||0 })} />
-          <Input label="Mesa (número o apodo)" value={editingGuest.table} onChange={e => setEditingGuest({ ...editingGuest, table: e.target.value })} />
+      {activeModal === 'nota' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-surface)] p-6 rounded-lg w-96 max-w-full">
+            <h2 className="text-xl font-bold mb-4">Nueva Nota</h2>
+            <div className="space-y-4">
+              <textarea
+                className="w-full p-3 border border-gray-300 rounded h-32"
+                placeholder="Escribe tu nota aquí..."
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+              ></textarea>
+            </div>
+            <div className="flex justify-end space-x-2 mt-6">
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="px-4 py-2 text-[var(--color-text)] border border-[var(--color-text)]/20 rounded"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  const notes = JSON.parse(localStorage.getItem('lovendaNotes') || '[]');
+                  notes.push({text: noteText, id: Date.now()});
+                  localStorage.setItem('lovendaNotes', JSON.stringify(notes));
+                  setNoteText('');
+                  setActiveModal(null);
+                }}
+                className="px-4 py-2 bg-[var(--color-primary)] text-white rounded"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <button className="px-4 py-2 rounded bg-gray-300" onClick={onClose}>Cancelar</button>
-          <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={handleSave}>Guardar</button>
-        </div>
-      </div>
-    </div>
+      )}
+    </React.Fragment>
   );
 }

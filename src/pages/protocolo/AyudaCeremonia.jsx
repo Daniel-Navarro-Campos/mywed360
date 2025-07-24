@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../../components/Card';
+import { Card } from '../../components/ui';
 import PageWrapper from '../../components/PageWrapper';
-import Button from '../../components/Button';
+import { Button } from '../../components/ui';
 import { useUserContext } from '../../context/UserContext';
 
 const AyudaCeremonia = () => {

@@ -29,7 +29,7 @@ const ProtocoloLayout = React.memo(() => {
         Cargando...
       </div>
     );
-  };
+  }
 
   return (
     <section className="p-4 md:p-6 flex flex-col gap-8" aria-labelledby="protocolo-heading">

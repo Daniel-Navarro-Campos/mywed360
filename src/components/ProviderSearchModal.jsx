@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, RefreshCcw, Star, MapPin } from 'lucide-react';
 import { saveData, loadData } from '../services/SyncService';
 import Spinner from './Spinner';
@@ -11,6 +11,28 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
   const [aiResults, setAiResults] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [toast, setToast] = useState(null);
+
+  const modalRef = useRef(null);
+
+  // Cerrar al hacer clic fuera usando referencia (por si overlay pierde eventos)
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [onClose]);
+
+  // Cerrar con tecla ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
 
   // Servicios comunes para bodas
   const commonServices = [
@@ -331,8 +353,11 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl h-4/5 flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[999]" onMouseDownCapture={(e)=>{if(e.target===e.currentTarget) onClose();}}>
+      <div ref={modalRef} role="dialog" aria-modal="true"
+        className="bg-white rounded shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col p-4 m-4 overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-xl font-semibold mb-4">Buscar proveedor</h3>
         
         {/* Formulario de búsqueda */}
@@ -386,7 +411,7 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
         {/* Indicador de carga */}
         {aiLoading && (
           <div className="flex-1 flex items-center justify-center">
-            <Spinner text="Buscando proveedores de calidad..." />
+            <Spinner text="Buscando proveedores..." />
           </div>
         )}
         

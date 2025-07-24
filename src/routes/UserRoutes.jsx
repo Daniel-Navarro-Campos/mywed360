@@ -1,0 +1,44 @@
+import React, { lazy, Suspense } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Loader from '../components/ui/Loader';
+
+// Páginas de usuario
+import EmailInbox from '../components/email/EmailInbox';
+import EmailStatistics from '../pages/user/EmailStatistics';
+import GestionProveedores from '../pages/GestionProveedores';
+import EmailSetup from '../pages/EmailSetup';
+import MailgunTester from '../components/email/MailgunTester';
+
+// Carga perezosa (lazy loading) de componentes para mejor rendimiento
+const EmailInboxLazy = lazy(() => import('../components/email/EmailInbox'));
+const EmailSetupLazy = lazy(() => import('../pages/EmailSetup'));
+
+// Componente para mostrar durante la carga
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader className="w-10 h-10" />
+    <span className="ml-3 text-lg">Cargando...</span>
+  </div>
+);
+
+/**
+ * Rutas para la sección de usuario
+ * Requiere autenticación
+ */
+const UserRoutes = () => {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/user/dashboard" replace />} />
+        <Route path="/email" element={<EmailInbox />} />
+        <Route path="/email/stats" element={<EmailStatistics />} />
+        <Route path="/email/setup" element={<EmailSetup />} />
+        <Route path="/proveedores/*" element={<GestionProveedores />} />
+        <Route path="/email/test" element={<MailgunTester />} />
+        <Route path="*" element={<Navigate to="/user/dashboard" replace />} />
+      </Routes>
+    </Suspense>
+  );
+};
+
+export default UserRoutes;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMails } from '../services/EmailService';
+import { getMails, initEmailService } from '../services/EmailService';
 import { loadData } from '../services/SyncService';
 
 /**
@@ -17,33 +17,38 @@ export default function EmailNotification() {
   useEffect(() => {
     async function checkUnreadMails() {
       try {
-        // Esperar a que se cargue el perfil para inicializar el servicio
+        // Inicializar servicio de email una sola vez cuando tengamos perfil
         if (!serviceInitialized) {
-          await loadData('lovendaProfile', {});
-          setServiceInitialized(true);
+          const profile = await loadData('lovendaProfile', {});
+          if (profile && Object.keys(profile).length) {
+            initEmailService(profile);
+            setServiceInitialized(true);
+          } else {
+            // Si no hay perfil aún, salir y reintentar en el próximo ciclo
+            return;
+          }
         }
-        
-        // Obtener correos de la bandeja de entrada
+
+        // Una vez inicializado, obtener correos de la bandeja de entrada
         const inboxMails = await getMails('inbox');
-        
+
         // Contar los no leídos
         const unread = inboxMails.filter(mail => !mail.read).length;
-        
+
         // Actualizar estado
         setUnreadCount(unread);
         setShowNotification(unread > 0);
-        
       } catch (error) {
         console.error('Error al comprobar correos nuevos:', error);
       }
     }
-    
+
     // Comprobar al inicio
     checkUnreadMails();
-    
+
     // Comprobar cada minuto
     const intervalId = setInterval(checkUnreadMails, 60000);
-    
+
     return () => clearInterval(intervalId);
   }, [serviceInitialized]);
   

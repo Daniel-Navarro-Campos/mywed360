@@ -21,7 +21,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-pastel-yellow">
+    <div className="flex items-center justify-center h-screen bg-[var(--color-bg)]">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md">
         <h2 className="text-2xl mb-4">Crear cuenta</h2>
         <input
@@ -41,12 +41,12 @@ export default function Signup() {
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
         <button
           type="submit"
-          className="bg-pastel-blue text-white px-4 py-2 rounded w-full hover:bg-pastel-green transition-colors"
+          className="bg-[var(--color-primary)] text-[color:var(--color-surface)] px-4 py-2 rounded w-full hover:bg-[var(--color-accent)] transition-colors"
         >
           Registrarse
         </button>
         <p className="mt-4 text-sm">
-          ¿Ya tienes cuenta? <Link to="/" className="text-pastel-blue hover:underline">Inicia sesión</Link>
+          ¿Ya tienes cuenta? <Link to="/" className="text-[var(--color-primary)] hover:underline">Inicia sesión</Link>
         </p>
       </form>
     </div>

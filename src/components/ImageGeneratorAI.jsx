@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { saveData, loadData } from '../services/SyncService';
 import Spinner from './Spinner';
-import { Wand2, RefreshCcw, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { saveAs } from 'file-saver';
+import { Wand2, RefreshCcw, Download, FileDown } from 'lucide-react';
 
 /**
  * Componente para generar imágenes con IA
@@ -90,7 +92,8 @@ const ImageGeneratorAI = ({ category = 'general', templates = [], onImageGenerat
           model: "dall-e-3",
           prompt: prompt,
           n: 1,
-          size: "1024x1024"
+          size: "1024x1024",
+          quality: "hd"
         })
       });
 
@@ -148,6 +151,22 @@ const ImageGeneratorAI = ({ category = 'general', templates = [], onImageGenerat
 
   // Descargar la imagen
   const downloadImage = async (imageUrl, imageName) => {
+    const urlObj = new URL(imageUrl);
+    const sameOrigin = urlObj.origin === window.location.origin;
+
+    // Si es otro dominio (Azure/OpenAI), usamos fallback directo sin fetch para evitar CORS error
+    if (!sameOrigin) {
+      const a = document.createElement('a');
+      a.href = imageUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.download = imageName || `lovenda-${category}-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
@@ -162,9 +181,65 @@ const ImageGeneratorAI = ({ category = 'general', templates = [], onImageGenerat
       document.body.removeChild(a);
     } catch (err) {
       console.error('Error al descargar la imagen:', err);
+      // Fallback: abrir la URL directamente en nueva pestaña
+      const aFallback = document.createElement('a');
+      aFallback.href = imageUrl;
+      aFallback.target = '_blank';
+      aFallback.rel = 'noopener noreferrer';
+      document.body.appendChild(aFallback);
+      aFallback.click();
+      document.body.removeChild(aFallback);
       setToast({
         type: 'error',
         message: 'Error al descargar la imagen'
+      });
+    }
+  };
+
+  // Descargar como PDF vectorial listo para impresión
+  const downloadVectorPdf = async (imageUrl, fileName) => {
+    try {
+      const res = await fetch('/api/ai-image/vector-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: imageUrl })
+      });
+      if (!res.ok) throw new Error('Error generando PDF');
+
+      const blob = await res.blob();
+      if (!blob || blob.size === 0) throw new Error('PDF vacío');
+
+      // Descargar usando FileSaver (cross-browser)
+      saveAs(blob, fileName || `lovenda-${category}-${Date.now()}.pdf`);
+    } catch (err) {
+      console.error('Error al descargar PDF:', err);
+      setToast({ type: 'error', message: 'No se pudo generar el PDF' });
+    }
+  };
+
+  // Descargar como PDF sin márgenes
+  const downloadAsPdf = async (imageUrl, fileName) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const img = new Image();
+      img.src = url;
+      img.onload = () => {
+        const pdf = new jsPDF({
+          unit: 'pt',
+          orientation: img.width >= img.height ? 'l' : 'p',
+          format: [img.width, img.height]
+        });
+        pdf.addImage(img, 'PNG', 0, 0, img.width, img.height);
+        pdf.save(fileName || `lovenda-${category}-${Date.now()}.pdf`);
+        window.URL.revokeObjectURL(url);
+      };
+    } catch (err) {
+      console.error('Error al descargar PDF:', err);
+      setToast({
+        type: 'error',
+        message: 'Error al generar el PDF'
       });
     }
   };
@@ -244,13 +319,22 @@ const ImageGeneratorAI = ({ category = 'general', templates = [], onImageGenerat
                     className="w-full h-auto object-contain"
                     loading="lazy"
                   />
-                  <button
-                    onClick={() => downloadImage(image.url)}
-                    className="absolute top-2 right-2 bg-white/80 p-2 rounded-full hover:bg-white"
-                    title="Descargar imagen"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
+                  <div className="absolute top-2 right-2 flex space-x-2">
+                    <button
+                      onClick={() => downloadImage(image.url)}
+                      className="bg-white/80 p-2 rounded-full hover:bg-white"
+                      title="Descargar PNG"
+                    >
+                      <Download className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => downloadVectorPdf(image.url)}
+                      className="bg-white/80 p-2 rounded-full hover:bg-white"
+                      title="Descargar PDF"
+                    >
+                      <FileDown className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="p-3">
                   <p className="text-sm text-gray-700 line-clamp-2">{image.prompt}</p>

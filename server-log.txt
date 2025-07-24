@@ -1,0 +1,26 @@
+[2025-07-18T00:06:07.657Z] ===== INICIANDO SERVIDOR BACKEND =====
+[2025-07-18T00:06:07.668Z] Directorio actual: C:\Users\Administrator\Documents\Lovenda\lovenda13123123
+[2025-07-18T00:06:07.695Z] Proceso del servidor iniciado con PID: 10928
+[2025-07-18T00:06:07.695Z] El servidor debería estar escuchando en el puerto 4004
+[2025-07-18T00:06:07.696Z] Presiona Ctrl+C para detener el servidor
+[2025-07-18T00:06:09.309Z] [ERROR] ⚠️  GOOGLE_APPLICATION_CREDENTIALS not set. Firestore access will fail unless the emulator is running or Application Default Credentials are configured.
+[2025-07-18T00:06:09.677Z] [STDOUT] Intentando cargar configuración de Mailgun desde: C:\Users\Administrator\Documents\Lovenda\lovenda13123123\backend\.env
+[2025-07-18T00:06:09.683Z] [STDOUT] Configuración de Mailgun: {
+  apiKey: 'a42e6...',
+  domain: 'mywed360.com',
+  sendingDomain: 'mg.mywed360.com',
+  euRegion: 'true'
+}
+[2025-07-18T00:06:09.698Z] [ERROR] file:///C:/Users/Administrator/Documents/Lovenda/lovenda13123123/backend/node_modules/openai/index.mjs:48
+            throw new Errors.OpenAIError("The OPENAI_API_KEY environment variable is missing or empty; either provide it, or instantiate the OpenAI client with an apiKey option, like new OpenAI({ apiKey: 'My API Key' }).");
+                  ^
+
+OpenAIError: The OPENAI_API_KEY environment variable is missing or empty; either provide it, or instantiate the OpenAI client with an apiKey option, like new OpenAI({ apiKey: 'My API Key' }).
+    at new OpenAI (file:///C:/Users/Administrator/Documents/Lovenda/lovenda13123123/backend/node_modules/openai/index.mjs:48:19)
+    at file:///C:/Users/Administrator/Documents/Lovenda/lovenda13123123/backend/routes/ai.js:14:16
+    at ModuleJob.run (node:internal/modules/esm/module_job:274:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:644:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+
+Node.js v22.16.0
+[2025-07-18T00:06:09.727Z] El proceso del servidor terminó con código: 1

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba de Email Personalizado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #0369a1;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .form-container {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background-color: #fef2f2;
+            border-left: 4px solid #ef4444;
+            color: #b91c1c;
+        }
+        .note {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f3f4f6;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Prueba de Email Personalizado</h1>
+            <p>Sistema de envío de correos con dominio @mywed360.com</p>
+        </div>
+        <div class="form-container">
+            <form id="emailForm">
+                <div class="form-group">
+                    <label for="from">De (Remitente):</label>
+                    <input 
+                        type="email" 
+                        id="from" 
+                        value="danielnavarrocampos@mywed360.com" 
+                        readonly
+                    >
+                    <small>Correo personalizado configurado en el sistema</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="to">Para (Destinatario):</label>
+                    <input 
+                        type="email" 
+                        id="to" 
+                        value="danielnavarrocampos@icloud.com"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="subject">Asunto:</label>
+                    <input 
+                        type="text" 
+                        id="subject" 
+                        value="Prueba de correo personalizado desde MyWed360"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">Mensaje:</label>
+                    <textarea 
+                        id="message" 
+                        required
+                    >Este es un mensaje de prueba enviado desde el sistema de correo personalizado de MyWed360.</textarea>
+                </div>
+                
+                <button type="submit" id="submitBtn">Enviar Correo de Prueba</button>
+            </form>
+            
+            <div id="result" class="result"></div>
+            
+            <div class="note">
+                <p>Esta herramienta permite probar el envío de correos personalizados con dominio @mywed360.com sin necesidad de configurar previamente una dirección de correo.</p>
+                <p>Para configurar tu propia dirección personalizada, ponte en contacto con el administrador del sistema.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('emailForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Mostrar estado de carga
+                submitBtn.textContent = 'Enviando...';
+                submitBtn.disabled = true;
+                resultDiv.style.display = 'none';
+                
+                try {
+                    const formData = {
+                        from: document.getElementById('from').value,
+                        to: document.getElementById('to').value,
+                        subject: document.getElementById('subject').value,
+                        message: document.getElementById('message').value
+                    };
+                    
+                    console.log('Enviando datos:', formData);
+                    
+                    // Enviar solicitud al backend usando la URL correcta
+                    const response = await fetch('http://localhost:4004/api/mail/test-personal-email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    console.log('Respuesta recibida:', response);
+                    
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    // Obtener texto primero para depurar posibles errores
+                    const responseText = await response.text();
+                    console.log('Texto de respuesta:', responseText);
+                    
+                    // Convertir texto a JSON
+                    let data = {};
+                    if (responseText.trim()) {
+                        try {
+                            data = JSON.parse(responseText);
+                        } catch (error) {
+                            console.error('Error al parsear JSON:', error);
+                            throw new Error(`Respuesta no válida del servidor: ${responseText}`);
+                        }
+                    }
+                    
+                    if (data.success) {
+                        // Mostrar mensaje de éxito
+                        resultDiv.className = 'result success';
+                        resultDiv.innerHTML = `
+                            <h3 style="margin-top: 0;">¡Correo enviado con éxito!</h3>
+                            <p>${data.message}</p>
+                        `;
+                    } else {
+                        // Mostrar mensaje de error
+                        resultDiv.className = 'result error';
+                        resultDiv.innerHTML = `
+                            <h3 style="margin-top: 0;">Error al enviar correo</h3>
+                            <p>${data.message}</p>
+                            <p>${data.error || ''}</p>
+                        `;
+                    }
+                } catch (error) {
+                    // Mostrar error de conexión
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h3 style="margin-top: 0;">Error de conexión</h3>
+                        <p>No se pudo conectar con el servidor. Por favor, inténtalo de nuevo más tarde.</p>
+                        <p>${error.message}</p>
+                    `;
+                } finally {
+                    // Restaurar botón y mostrar resultado
+                    submitBtn.textContent = 'Enviar Correo de Prueba';
+                    submitBtn.disabled = false;
+                    resultDiv.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

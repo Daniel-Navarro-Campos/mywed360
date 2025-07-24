@@ -187,6 +187,92 @@ export function generateTrackingNotifications(trackingRecords, providers) {
   };
 }
 
+// =============== EMAIL NOTIFICATIONS ===============
+
+/**
+ * Muestra una notificación en la interfaz de usuario
+ * @param {Object} notification - Configuración de la notificación
+ * @param {string} notification.title - Título de la notificación
+ * @param {string} notification.message - Mensaje de la notificación
+ * @param {string} notification.type - Tipo de notificación (success, error, info, warning)
+ * @param {number} notification.duration - Duración en ms (opcional, por defecto 3000ms)
+ */
+export function showNotification({ title, message, type = 'info', duration = 3000 }) {
+  // Crear evento personalizado para el sistema de notificaciones
+  const event = new CustomEvent('lovenda-toast', { 
+    detail: { title, message, type, duration }
+  });
+  
+  // Disparar evento para que lo capture el componente de notificaciones
+  window.dispatchEvent(event);
+  
+  // También registrar en consola para desarrollo
+  console.log(`[${type.toUpperCase()}] ${title}: ${message}`);
+}
+
+/**
+ * Crea una notificación relacionada con un nuevo email recibido
+ * @param {Object} email - Datos del email recibido
+ */
+export async function createNewEmailNotification(email) {
+  // Añadir al sistema de notificaciones
+  await addNotification({
+    type: 'info',
+    message: `Nuevo email de ${email.from}: ${email.subject || '(Sin asunto)'}`,
+    action: 'viewEmail',
+    emailId: email.id
+  });
+  
+  // Mostrar toast inmediato
+  showNotification({
+    title: 'Nuevo email',
+    message: `Has recibido un nuevo email de ${email.from}`,
+    type: 'info',
+    duration: 5000
+  });
+}
+
+/**
+ * Genera notificaciones para emails importantes o que requieren acción
+ * @param {Array} emails - Lista de emails para analizar
+ */
+export function generateEmailNotifications(emails) {
+  if (!emails || !emails.length) return { count: 0 };
+  
+  // Filtrar emails no leídos
+  const unreadEmails = emails.filter(email => !email.read);
+  
+  // Notificar sobre emails no leídos
+  if (unreadEmails.length > 0) {
+    showNotification({
+      title: 'Emails sin leer',
+      message: `Tienes ${unreadEmails.length} ${unreadEmails.length === 1 ? 'email sin leer' : 'emails sin leer'}`,
+      type: 'info'
+    });
+  }
+  
+  // Filtrar emails importantes y no leídos para notificaciones persistentes
+  const importantUnread = unreadEmails.filter(email => 
+    email.folder === 'important' || 
+    email.subject?.toLowerCase().includes('urgente')
+  );
+  
+  // Crear notificaciones persistentes para emails importantes
+  importantUnread.forEach(email => {
+    addNotification({
+      type: 'warning',
+      message: `Email importante: ${email.subject || '(Sin asunto)'}`,
+      action: 'viewEmail',
+      emailId: email.id
+    });
+  });
+  
+  return {
+    count: unreadEmails.length,
+    importantCount: importantUnread.length
+  };
+}
+
 // =============== LOCAL STORAGE FALLBACK ===============
 
 // Funciones helper para almacenamiento local de notificaciones

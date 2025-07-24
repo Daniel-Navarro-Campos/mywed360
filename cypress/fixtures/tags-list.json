@@ -1,0 +1,32 @@
+[
+  {
+    "id": "tag1",
+    "name": "Urgente",
+    "color": "#FF5733",
+    "systemTag": true
+  },
+  {
+    "id": "tag2",
+    "name": "Proveedores",
+    "color": "#33FF57",
+    "systemTag": false
+  },
+  {
+    "id": "tag3",
+    "name": "Presupuestos",
+    "color": "#3357FF",
+    "systemTag": false
+  },
+  {
+    "id": "tag4",
+    "name": "Invitados",
+    "color": "#F3FF33",
+    "systemTag": false
+  },
+  {
+    "id": "tag5",
+    "name": "Decoración",
+    "color": "#FF33F3",
+    "systemTag": false
+  }
+]

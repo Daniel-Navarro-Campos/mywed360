@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico de Mailgun</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+        }
+        .result {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Herramienta de Diagnóstico de Mailgun</h1>
+    <p>Esta herramienta permite probar diferentes configuraciones para el envío de correos con Mailgun.</p>
+
+    <div class="card">
+        <h2>1. Verificar Variables de Entorno</h2>
+        <p>Comprueba que las variables de entorno estén configuradas correctamente.</p>
+        <button id="checkEnv" class="btn">Verificar Entorno</button>
+        <div id="envResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Probar Múltiples Configuraciones</h2>
+        <p>Prueba el envío de correo con diferentes configuraciones de dominio y formato.</p>
+        <form id="testForm">
+            <div>
+                <label for="to">Destinatario:</label>
+                <input type="email" id="to" name="to" value="danielnavarrocampos@icloud.com" required>
+            </div>
+            <div>
+                <label for="subject">Asunto:</label>
+                <input type="text" id="subject" name="subject" value="Prueba de diagnóstico Mailgun" required>
+            </div>
+            <div>
+                <label for="message">Mensaje:</label>
+                <textarea id="message" name="message" required>Este es un mensaje de prueba para diagnosticar la configuración de Mailgun.</textarea>
+            </div>
+            <button type="submit" class="btn">Probar Todas las Configuraciones</button>
+        </form>
+        <div id="testResult" class="result"></div>
+    </div>
+
+    <script>
+        // Verificar entorno
+        document.getElementById('checkEnv').addEventListener('click', async () => {
+            try {
+                const response = await fetch('http://localhost:4004/api/mailgun-debug/environment');
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('envResult');
+                resultDiv.innerHTML = '<span class="success">✅ Respuesta recibida:</span>\n' + 
+                                     JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('envResult').innerHTML = 
+                    `<span class="error">❌ Error:</span> ${error.message}`;
+            }
+        });
+
+        // Probar configuraciones
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const to = document.getElementById('to').value;
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value;
+            
+            document.getElementById('testResult').innerHTML = "⏳ Probando configuraciones... (puede tardar varios segundos)";
+            
+            try {
+                const response = await fetch('http://localhost:4004/api/mailgun-debug/test-domains', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ to, subject, message })
+                });
+                
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('testResult');
+                if (data.success) {
+                    resultDiv.innerHTML = '<span class="success">✅ ¡Al menos una configuración funcionó!</span>\n' + 
+                                         JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.innerHTML = '<span class="error">❌ Todas las configuraciones fallaron:</span>\n' + 
+                                         JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = 
+                    `<span class="error">❌ Error de conexión:</span> ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+[
+  {
+    "id": "email001",
+    "from": "proveedor@florista.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Presupuesto de flores para boda",
+    "body": "<p>Estimada María,</p><p>Adjunto el presupuesto para las flores de tu boda.</p><p>Saludos cordiales,<br/>Floristas Bella</p>",
+    "attachments": [
+      {
+        "name": "presupuesto.pdf",
+        "url": "https://example.com/presupuesto.pdf",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-10T14:32:15.000Z",
+    "read": false,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1"]
+  },
+  {
+    "id": "email002",
+    "from": "fotografia@capturamos.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Catálogo de fotos",
+    "body": "<p>Hola María,</p><p>Te enviamos nuestro catálogo de fotografías.</p>",
+    "attachments": [],
+    "timestamp": "2025-07-09T10:15:30.000Z",
+    "read": true,
+    "starred": true,
+    "folder": "inbox",
+    "tags": ["tag2"]
+  },
+  {
+    "id": "email003",
+    "from": "catering@delicioso.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Menús disponibles",
+    "body": "<p>Buenas tardes,</p><p>Te adjunto los diferentes menús disponibles para tu evento.</p>",
+    "attachments": [
+      {
+        "name": "menu-bodas-2025.pdf",
+        "url": "https://example.com/menus.pdf",
+        "size": 2048
+      },
+      {
+        "name": "opciones-vegetarianas.docx",
+        "url": "https://example.com/vegetarianas.docx",
+        "size": 1536
+      }
+    ],
+    "timestamp": "2025-07-08T16:45:22.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1", "tag3"]
+  },
+  {
+    "id": "email004",
+    "from": "vestidos@elegancia.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Confirmación de cita para prueba",
+    "body": "<p>Estimada María:</p><p>Te confirmamos la cita para la prueba del vestido el día 20 de julio a las 16:00h.</p>",
+    "attachments": [],
+    "timestamp": "2025-07-07T09:30:10.000Z",
+    "read": false,
+    "starred": true,
+    "folder": "inbox",
+    "tags": []
+  },
+  {
+    "id": "email005",
+    "from": "local@jardines.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Presupuesto actualizado para reserva",
+    "body": "<p>Hola María,</p><p>Te enviamos el presupuesto actualizado para la reserva del jardín.</p>",
+    "attachments": [
+      {
+        "name": "presupuesto-jardin.pdf",
+        "url": "https://example.com/jardin.pdf",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-06T11:20:45.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1"]
+  },
+  {
+    "id": "email006",
+    "from": "eventos@coordinacion.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Planificación de eventos - Confirmación",
+    "body": "<p>Estimados novios:</p><p>Les confirmamos la recepción del pago inicial para la coordinación del evento.</p>",
+    "attachments": [
+      {
+        "name": "recibo-pago.pdf",
+        "url": "https://example.com/recibo.pdf",
+        "size": 512
+      }
+    ],
+    "timestamp": "2025-07-05T15:10:30.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag2"]
+  },
+  {
+    "id": "email007",
+    "from": "invitaciones@papeleria.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Diseños personalizados para invitaciones",
+    "body": "<p>Buenas tardes María,</p><p>Te adjunto los diseños personalizados para las invitaciones que solicitaste.</p>",
+    "attachments": [
+      {
+        "name": "diseño1.jpg",
+        "url": "https://example.com/diseno1.jpg",
+        "size": 2048
+      },
+      {
+        "name": "diseño2.jpg",
+        "url": "https://example.com/diseno2.jpg",
+        "size": 2048
+      },
+      {
+        "name": "diseño3.jpg",
+        "url": "https://example.com/diseno3.jpg",
+        "size": 2048
+      }
+    ],
+    "timestamp": "2025-07-04T14:25:40.000Z",
+    "read": false,
+    "starred": true,
+    "folder": "inbox",
+    "tags": ["tag3"]
+  },
+  {
+    "id": "email008",
+    "from": "musica@melodias.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Lista de canciones propuestas",
+    "body": "<p>Hola María y Juan,</p><p>Les envío la lista de canciones propuestas para su evento basada en sus preferencias.</p>",
+    "attachments": [
+      {
+        "name": "repertorio-bodas.xlsx",
+        "url": "https://example.com/repertorio.xlsx",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-03T18:50:15.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "inbox",
+    "tags": []
+  },
+  {
+    "id": "email009",
+    "from": "transporte@viajes.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Confirmación de reserva de transporte",
+    "body": "<p>Estimada María:</p><p>Le confirmamos la reserva de los vehículos para el transporte de invitados.</p>",
+    "attachments": [],
+    "timestamp": "2025-07-02T10:35:20.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag2"]
+  },
+  {
+    "id": "email010",
+    "from": "alojamiento@hotel.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Bloque de habitaciones reservado",
+    "body": "<p>Buenas tardes,</p><p>Le informamos que el bloque de habitaciones para sus invitados ha sido reservado correctamente.</p>",
+    "attachments": [
+      {
+        "name": "confirmacion-reserva.pdf",
+        "url": "https://example.com/reserva-hotel.pdf",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-01T12:40:55.000Z",
+    "read": false,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1"]
+  }
+]

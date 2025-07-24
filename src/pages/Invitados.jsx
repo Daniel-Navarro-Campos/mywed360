@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Mail, Edit2, Trash2, RefreshCcw, Plus, User, Phone, Cloud, CloudOff, RefreshCw } from 'lucide-react';
-import Card from '../components/Card';
-import Button from '../components/Button';
-import Input from '../components/Input';
+import { Card } from '../components/ui';
+import { Button } from '../components/ui';
+import { Input } from '../components/ui';
 import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 

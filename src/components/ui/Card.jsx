@@ -1,13 +1,17 @@
 import React from 'react';
-export function Card({ children, className = '', ...props }) {
+
+function Card({ children, className = '', ...props }) {
   // Estilo unificado: fondo semitransparente y blur de fondo
 
     return (
     <div
-      className={`bg-white/70 backdrop-blur-md rounded-2xl shadow-md ${className}`}
+      className={`bg-white rounded-xl shadow-md border border-gray-200 p-6 ${className}`}
       {...props}
     >
       {children}
     </div>
   );
 }
+
+export default Card;
+export { Card };

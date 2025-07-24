@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Directa de Email - Lovenda</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        pre {
+            background: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+        }
+        .tab.active {
+            background-color: #fff;
+            border-bottom-color: #fff;
+        }
+        .tab-content {
+            display: none;
+            border: 1px solid #ccc;
+            padding: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .info-box {
+            background-color: #e2f3f8;
+            border: 1px solid #b8daff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .version {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Prueba Directa de Email</h1>
+
+    <div class="info-box">
+        <h3>Información importante</h3>
+        <p>Esta herramienta te permite probar el envío de correos electrónicos a través de diferentes configuraciones:</p>
+        <ul>
+            <li><strong>Servidor local:</strong> Envío a través de nuestro backend (puerto configurable)</li>
+            <li><strong>Sandbox:</strong> Envío usando dominio sandbox de Mailgun (no requiere verificación DNS)</li>
+            <li><strong>Dominio personalizado:</strong> Envío usando tu dominio personalizado (requiere verificación DNS)</li>
+        </ul>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('tab-local')">Servidor Local</div>
+        <div class="tab" onclick="showTab('tab-sandbox')">Sandbox Mailgun</div>
+        <div class="tab" onclick="showTab('tab-custom')">Dominio Personalizado</div>
+    </div>
+
+    <div id="tab-local" class="tab-content active">
+        <div class="container">
+            <h2>Prueba con Servidor Local</h2>
+
+            <div class="form-group">
+                <label for="localPort">Puerto del servidor:</label>
+                <select id="localPort">
+                    <option value="4005" selected>4005 (Nueva prueba)</option>
+                    <option value="4004">4004 (Original)</option>
+                    <option value="3000">3000</option>
+                    <option value="3001">3001</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="localFrom">Remitente:</label>
+                <input type="text" id="localFrom" value="danielnavarrocampos@mywed360.com">
+            </div>
+
+            <div class="form-group">
+                <label for="localTo">Destinatario:</label>
+                <input type="text" id="localTo" value="danielnavarrocampos@icloud.com">
+            </div>
+
+            <div class="form-group">
+                <label for="localSubject">Asunto:</label>
+                <input type="text" id="localSubject" value="Prueba desde servidor local">
+            </div>
+
+            <div class="form-group">
+                <label for="localMessage">Mensaje:</label>
+                <textarea id="localMessage">Este es un mensaje de prueba enviado desde el servidor local.</textarea>
+            </div>
+
+            <button onclick="testLocalServer()">Enviar Email (Servidor Local)</button>
+        </div>
+
+        <div id="localResult" class="result"></div>
+    </div>
+
+    <div id="tab-sandbox" class="tab-content">
+        <div class="container">
+            <h2>Prueba con Sandbox Mailgun</h2>
+            <p><em>Nota: Los dominios sandbox solo permiten enviar a destinatarios autorizados previamente.</em></p>
+
+            <div class="form-group">
+                <label for="sandboxApiKey">API Key:</label>
+                <input type="password" id="sandboxApiKey" value="a42e6604fb3e4b737f281cd3dbc6309a-0ce15100-24828154">
+            </div>
+
+            <div class="form-group">
+                <label for="sandboxDomain">Dominio Sandbox:</label>
+                <input type="text" id="sandboxDomain" value="sandbox68219bb264b3429fa0d50e9b20f55af8.mailgun.org">
+            </div>
+
+            <div class="form-group">
+                <label for="sandboxFrom">Remitente:</label>
+                <input type="text" id="sandboxFrom" value="mailgun@sandbox68219bb264b3429fa0d50e9b20f55af8.mailgun.org">
+            </div>
+
+            <div class="form-group">
+                <label for="sandboxTo">Destinatario autorizado:</label>
+                <input type="text" id="sandboxTo" value="danielnavarrocampos@icloud.com">
+            </div>
+
+            <div class="form-group">
+                <label for="sandboxSubject">Asunto:</label>
+                <input type="text" id="sandboxSubject" value="Prueba desde sandbox Mailgun">
+            </div>
+
+            <div class="form-group">
+                <label for="sandboxMessage">Mensaje:</label>
+                <textarea id="sandboxMessage">Este es un mensaje de prueba enviado desde el dominio sandbox de Mailgun.</textarea>
+            </div>
+
+            <button onclick="testSandbox()">Enviar Email (Sandbox)</button>
+        </div>
+
+        <div id="sandboxResult" class="result"></div>
+    </div>
+
+    <div id="tab-custom" class="tab-content">
+        <div class="container">
+            <h2>Prueba con Dominio Personalizado</h2>
+            <p><em>Nota: El dominio debe estar completamente verificado en Mailgun.</em></p>
+
+            <div class="form-group">
+                <label for="customApiKey">API Key:</label>
+                <input type="password" id="customApiKey" value="a42e6604fb3e4b737f281cd3dbc6309a-0ce15100-24828154">
+            </div>
+
+            <div class="form-group">
+                <label for="customDomain">Dominio:</label>
+                <input type="text" id="customDomain" value="mg.mywed360.com">
+            </div>
+
+            <div class="form-group">
+                <label for="customFrom">Remitente:</label>
+                <input type="text" id="customFrom" value="danielnavarrocampos@mywed360.com">
+            </div>
+
+            <div class="form-group">
+                <label for="customTo">Destinatario:</label>
+                <input type="text" id="customTo" value="danielnavarrocampos@icloud.com">
+            </div>
+
+            <div class="form-group">
+                <label for="customSubject">Asunto:</label>
+                <input type="text" id="customSubject" value="Prueba desde dominio personalizado">
+            </div>
+
+            <div class="form-group">
+                <label for="customMessage">Mensaje:</label>
+                <textarea id="customMessage">Este es un mensaje de prueba enviado desde el dominio personalizado.</textarea>
+            </div>
+
+            <button onclick="testCustomDomain()">Enviar Email (Dominio Personalizado)</button>
+        </div>
+
+        <div id="customResult" class="result"></div>
+    </div>
+
+    <div class="version">
+        <p>Herramienta de diagnóstico v1.0 - Lovenda Email</p>
+    </div>
+
+    <script>
+        // Función para mostrar una pestaña y ocultar las demás
+        function showTab(tabId) {
+            // Ocultar todas las pestañas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar la pestaña seleccionada
+            document.getElementById(tabId).classList.add('active');
+            
+            // Actualizar clases activas en los botones de pestañas
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            event.currentTarget.classList.add('active');
+        }
+
+        // Test con servidor local
+        async function testLocalServer() {
+            const resultElement = document.getElementById('localResult');
+            resultElement.innerHTML = '<p>Enviando solicitud al servidor local...</p>';
+            resultElement.className = 'result';
+            
+            const port = document.getElementById('localPort').value;
+            const from = document.getElementById('localFrom').value;
+            const to = document.getElementById('localTo').value;
+            const subject = document.getElementById('localSubject').value;
+            const message = document.getElementById('localMessage').value;
+            
+            try {
+                const backendUrl = `http://localhost:${port}/api/mail/test-personal-email`;
+                
+                const response = await fetch(backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        from,
+                        to,
+                        subject,
+                        message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultElement.innerHTML = `
+                        <h3>✅ Solicitud enviada con éxito</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result success';
+                } else {
+                    resultElement.innerHTML = `
+                        <h3>⚠️ Error en la solicitud (${response.status})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result error';
+                }
+            } catch (error) {
+                resultElement.innerHTML = `
+                    <h3>❌ Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <p>Posibles causas:</p>
+                    <ul>
+                        <li>El servidor no está ejecutándose en el puerto ${port}</li>
+                        <li>Hay un problema de CORS en el backend</li>
+                        <li>La ruta /api/mail/test-personal-email no existe</li>
+                    </ul>
+                `;
+                resultElement.className = 'result error';
+            }
+        }
+        
+        // Test con sandbox Mailgun
+        async function testSandbox() {
+            const resultElement = document.getElementById('sandboxResult');
+            resultElement.innerHTML = '<p>Enviando solicitud a través del proxy CORS...</p>';
+            resultElement.className = 'result';
+            
+            const apiKey = document.getElementById('sandboxApiKey').value;
+            const domain = document.getElementById('sandboxDomain').value;
+            const from = document.getElementById('sandboxFrom').value;
+            const to = document.getElementById('sandboxTo').value;
+            const subject = document.getElementById('sandboxSubject').value;
+            const message = document.getElementById('sandboxMessage').value;
+            
+            try {
+                // Crear FormData para la solicitud
+                const formData = new FormData();
+                formData.append('from', from);
+                formData.append('to', to);
+                formData.append('subject', subject);
+                formData.append('text', message);
+                
+                // Usar un proxy CORS
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const apiUrl = `https://api.eu.mailgun.net/v3/${domain}/messages`;
+                
+                const response = await fetch(proxyUrl + apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('api:' + apiKey)
+                    },
+                    body: formData
+                });
+                
+                let responseData;
+                try {
+                    responseData = await response.json();
+                } catch (e) {
+                    responseData = await response.text();
+                }
+                
+                if (response.ok) {
+                    resultElement.innerHTML = `
+                        <h3>✅ Correo enviado con éxito</h3>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result success';
+                } else {
+                    resultElement.innerHTML = `
+                        <h3>⚠️ Error al enviar correo (${response.status})</h3>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result error';
+                }
+            } catch (error) {
+                resultElement.innerHTML = `
+                    <h3>❌ Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <p>Posibles causas:</p>
+                    <ul>
+                        <li>El proxy CORS no está disponible o ha rechazado la solicitud</li>
+                        <li>La API key de Mailgun es incorrecta</li>
+                        <li>El dominio sandbox no existe o no es válido</li>
+                        <li>El destinatario no está autorizado en el sandbox</li>
+                    </ul>
+                    <p>Nota: Para usar el proxy CORS por primera vez, visita <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank">https://cors-anywhere.herokuapp.com/corsdemo</a> y solicita acceso temporal.</p>
+                `;
+                resultElement.className = 'result error';
+            }
+        }
+        
+        // Test con dominio personalizado
+        async function testCustomDomain() {
+            const resultElement = document.getElementById('customResult');
+            resultElement.innerHTML = '<p>Enviando solicitud a través del proxy CORS...</p>';
+            resultElement.className = 'result';
+            
+            const apiKey = document.getElementById('customApiKey').value;
+            const domain = document.getElementById('customDomain').value;
+            const from = document.getElementById('customFrom').value;
+            const to = document.getElementById('customTo').value;
+            const subject = document.getElementById('customSubject').value;
+            const message = document.getElementById('customMessage').value;
+            
+            try {
+                // Crear FormData para la solicitud
+                const formData = new FormData();
+                formData.append('from', from);
+                formData.append('to', to);
+                formData.append('subject', subject);
+                formData.append('text', message);
+                
+                // Usar un proxy CORS
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const apiUrl = `https://api.eu.mailgun.net/v3/${domain}/messages`;
+                
+                const response = await fetch(proxyUrl + apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('api:' + apiKey)
+                    },
+                    body: formData
+                });
+                
+                let responseData;
+                try {
+                    responseData = await response.json();
+                } catch (e) {
+                    responseData = await response.text();
+                }
+                
+                if (response.ok) {
+                    resultElement.innerHTML = `
+                        <h3>✅ Correo enviado con éxito</h3>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result success';
+                } else {
+                    resultElement.innerHTML = `
+                        <h3>⚠️ Error al enviar correo (${response.status})</h3>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result error';
+                }
+            } catch (error) {
+                resultElement.innerHTML = `
+                    <h3>❌ Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <p>Posibles causas:</p>
+                    <ul>
+                        <li>El proxy CORS no está disponible o ha rechazado la solicitud</li>
+                        <li>La API key de Mailgun es incorrecta</li>
+                        <li>El dominio no está verificado en Mailgun</li>
+                        <li>Los registros DNS no están configurados correctamente</li>
+                    </ul>
+                    <p>Nota: Para usar el proxy CORS por primera vez, visita <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank">https://cors-anywhere.herokuapp.com/corsdemo</a> y solicita acceso temporal.</p>
+                `;
+                resultElement.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+name: Pruebas del Sistema de Correo
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'src/components/email/**'
+      - 'src/services/EmailService.js'
+      - 'src/services/TagService.js'
+      - 'src/test/components/email/**'
+      - 'src/test/integration/**'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'src/components/email/**'
+      - 'src/services/EmailService.js'
+      - 'src/services/TagService.js'
+      - 'src/test/components/email/**'
+      - 'src/test/integration/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Configurar Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Instalar dependencias
+      run: npm ci
+      
+    - name: Ejecutar pruebas unitarias
+      run: npm run test:run
+      
+    - name: Generar informe de cobertura
+      run: npm run test:coverage
+      
+    - name: Subir informe de cobertura como artefacto
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage/
+        
+    - name: Comentar la cobertura en el PR
+      if: github.event_name == 'pull_request'
+      run: |
+        TOTAL=$(grep -A 5 "All files" coverage/coverage-summary.txt | grep "Lines" | awk '{print $3}')
+        COMMENT="### Cobertura de pruebas: $TOTAL\n\n"
+        COMMENT+="| Componente | Líneas | Funciones | Declaraciones | Branches |\n"
+        COMMENT+="| --- | --- | --- | --- | --- |\n"
+        
+        grep -A 1 "email/" coverage/coverage-summary.txt | grep -v "email/" | while read line; do
+          COMPONENT=$(echo $line | awk '{print $1}')
+          STATEMENTS=$(echo $line | awk '{print $2}')
+          BRANCHES=$(echo $line | awk '{print $3}')
+          FUNCTIONS=$(echo $line | awk '{print $4}')
+          LINES=$(echo $line | awk '{print $5}')
+          COMMENT+="| $COMPONENT | $LINES | $FUNCTIONS | $STATEMENTS | $BRANCHES |\n"
+        done
+        
+        echo -e "$COMMENT" > coverage-comment.md
+        
+    - name: Publicar comentario en el PR
+      if: github.event_name == 'pull_request'
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        path: coverage-comment.md

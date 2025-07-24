@@ -1,0 +1,59 @@
+[
+  {
+    "id": "email001",
+    "from": "proveedor@florista.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Presupuesto de flores para boda",
+    "body": "<p>Estimada María,</p><p>Adjunto el presupuesto para las flores de tu boda.</p><p>Saludos cordiales,<br/>Floristas Bella</p>",
+    "attachments": [
+      {
+        "name": "presupuesto.pdf",
+        "url": "https://example.com/presupuesto.pdf",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-10T14:32:15.000Z",
+    "read": false,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1"]
+  },
+  {
+    "id": "email005",
+    "from": "local@jardines.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Presupuesto actualizado para reserva",
+    "body": "<p>Hola María,</p><p>Te enviamos el presupuesto actualizado para la reserva del jardín.</p>",
+    "attachments": [
+      {
+        "name": "presupuesto-jardin.pdf",
+        "url": "https://example.com/jardin.pdf",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-06T11:20:45.000Z",
+    "read": true,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1"]
+  },
+  {
+    "id": "email010",
+    "from": "alojamiento@hotel.com",
+    "to": "maria.garcia@lovenda.com",
+    "subject": "Presupuesto de habitaciones para invitados",
+    "body": "<p>Buenas tardes,</p><p>Le adjuntamos el presupuesto para el bloque de habitaciones reservado para sus invitados.</p>",
+    "attachments": [
+      {
+        "name": "presupuesto-hotel.pdf",
+        "url": "https://example.com/reserva-hotel.pdf",
+        "size": 1024
+      }
+    ],
+    "timestamp": "2025-07-01T12:40:55.000Z",
+    "read": false,
+    "starred": false,
+    "folder": "inbox",
+    "tags": ["tag1"]
+  }
+]

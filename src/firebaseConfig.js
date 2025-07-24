@@ -52,10 +52,19 @@ const probarConexionFirestore = async (maxReintentos = 2) => {
 /**
  * Configura el listener de estado de conexión
  */
+// Configura el listener de estado de conexión (solo si se habilita explícitamente)
 const configurarListenerConexion = () => {
   if (typeof window === 'undefined') return;
 
+  // Si la variable de entorno VITE_ENABLE_REALTIME_DB no está en 'true', omitimos
+  if (import.meta.env.VITE_ENABLE_REALTIME_DB !== 'true') {
+    console.log('Realtime Database deshabilitada – no se configurará listener de conexión');
+    return;
+  }
+  if (typeof window === 'undefined') return;
+
   try {
+        // Se asume que Realtime Database está correctamente configurada en el proyecto
     const dbRealtime = getDatabase();
     const estadoConexion = ref(dbRealtime, '.info/connected');
     

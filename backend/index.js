@@ -4,17 +4,31 @@
 //   Health check at /
 
 import dotenv from 'dotenv';
+// Cargar variables de entorno lo antes posible, antes de importar cualquier módulo que las use
+dotenv.config();
 import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import mailRouter from './routes/mail.js';
 import aiRouter from './routes/ai.js';
+import aiImageRouter from './routes/ai-image.js';
+import emailInsightsRouter from './routes/email-insights.js';
 import notificationsRouter from './routes/notifications.js';
+import mailgunDebugRoutes from './routes/mailgun-debug.js';
+import mailgunInboundRouter from './routes/mailgun-inbound.js';
+import mailgunEventsRouter from './routes/mailgun-events.js';
+import logger from './logger.js';
 
 // Load environment variables (root .env)
-const envPath = path.resolve(process.cwd(), '../.env');
-const result = dotenv.config({ path: envPath });
+const envPath = path.resolve(process.cwd(), '.env');
+let result = dotenv.config({ path: envPath });
+
+// Si no se encuentra en la ruta actual, intentar buscar en el directorio padre
+if (result.error) {
+  const parentEnvPath = path.resolve(process.cwd(), '../.env');
+  result = dotenv.config({ path: parentEnvPath });
+}
 if (result.error) {
   console.warn('⚠️  .env file not found at', envPath);
 } else {
@@ -24,14 +38,35 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn('⚠️  OPENAI_API_KEY not set. Chat AI endpoints will return 500.');
 }
 
-const PORT = process.env.PORT || 3001;
+const PORT = 4004; // Forzar puerto 4004 para pruebas
 
 const app = express();
-app.use(cors());
+
+// Configurar CORS para permitir credenciales y origen específico
+app.use(cors({
+  origin: 'http://localhost:5173',  // Origen específico en lugar de wildcard (*)
+  credentials: true,                // Permitir credenciales (cookies, headers de autenticación)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Middleware para registrar cada petición entrante
+app.use((req, _res, next) => {
+  logger.info(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Para que Mailgun (form-urlencoded) sea aceptado
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use('/api/mail', mailRouter);
+app.use('/api/mailgun-debug', mailgunDebugRoutes);
+app.use('/api/mailgun/events', mailgunEventsRouter);
+app.use('/api/inbound/mailgun', mailgunInboundRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/ai-image', aiImageRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/email-insights', emailInsightsRouter);
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });
@@ -88,6 +123,20 @@ app.get('/api/transactions', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Error fetching transactions' });
   }
+});
+
+// Middleware de manejo de errores
+app.use((err, _req, res, _next) => {
+  logger.error(err.stack || err);
+  res.status(500).json({ error: 'Internal server error' });
+});
+
+// Captura de errores globales para que se muestren en CMD
+process.on('unhandledRejection', (reason) => {
+  logger.error('UnhandledRejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  logger.error('UncaughtException:', err);
 });
 
 app.listen(PORT, () => {

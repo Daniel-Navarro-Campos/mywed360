@@ -1,0 +1,26 @@
+[
+  {
+    "id": "attach001",
+    "name": "presupuesto.pdf",
+    "url": "https://example.com/presupuesto.pdf",
+    "size": 1024,
+    "emailId": "email001",
+    "type": "application/pdf"
+  },
+  {
+    "id": "attach002",
+    "name": "catalogo-fotos-2025.pdf",
+    "url": "https://example.com/catalogo.pdf",
+    "size": 5120,
+    "emailId": "email001",
+    "type": "application/pdf"
+  },
+  {
+    "id": "attach003",
+    "name": "muestras-flores.jpg",
+    "url": "https://example.com/muestras-flores.jpg",
+    "size": 2048,
+    "emailId": "email001",
+    "type": "image/jpeg"
+  }
+]

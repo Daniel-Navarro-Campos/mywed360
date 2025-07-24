@@ -1,5 +1,6 @@
 export default {
-  darkMode: 'media',
+  // Estrategia de modo oscuro por clase
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   // Using class strategy for dark mode
   theme: {

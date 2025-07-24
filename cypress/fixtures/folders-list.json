@@ -1,0 +1,44 @@
+[
+  {
+    "id": "inbox",
+    "name": "Bandeja de entrada",
+    "systemFolder": true,
+    "count": 10
+  },
+  {
+    "id": "sent",
+    "name": "Enviados",
+    "systemFolder": true,
+    "count": 5
+  },
+  {
+    "id": "trash",
+    "name": "Papelera",
+    "systemFolder": true,
+    "count": 3
+  },
+  {
+    "id": "drafts",
+    "name": "Borradores",
+    "systemFolder": true,
+    "count": 2
+  },
+  {
+    "id": "proveedores",
+    "name": "Proveedores",
+    "systemFolder": false,
+    "count": 7
+  },
+  {
+    "id": "importante",
+    "name": "Importante",
+    "systemFolder": false,
+    "count": 4
+  },
+  {
+    "id": "invitados",
+    "name": "Invitados",
+    "systemFolder": false,
+    "count": 3
+  }
+]

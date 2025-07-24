@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple de Mailgun</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+            color: #a94442;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ccc;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab.active {
+            background-color: #fff;
+            border-bottom: 1px solid white;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Simple de Mailgun</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('tab1')">Test de Backend (Puerto 4005)</div>
+        <div class="tab" onclick="showTab('tab2')">Test Directo a Mailgun</div>
+    </div>
+    
+    <div id="tab1" class="tab-content active">
+        <div class="container">
+            <h2>Test de Servidor Backend</h2>
+            <p>Esta prueba enviará una solicitud al servidor local en el puerto 4005 para validar la conectividad y diagnóstico de Mailgun.</p>
+            
+            <div class="form-group">
+                <label for="backendPort">Puerto del servidor:</label>
+                <select id="backendPort">
+                    <option value="4005" selected>4005 (Nuevo)</option>
+                    <option value="4004">4004 (Original)</option>
+                    <option value="3000">3000</option>
+                    <option value="3001">3001</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="backendEndpoint">Endpoint de prueba:</label>
+                <select id="backendEndpoint">
+                    <option value="/api/mail/test-personal-email" selected>Test de Email Personalizado</option>
+                    <option value="/api/mailgun-debug/environment">Diagnóstico: Variables de Entorno</option>
+                    <option value="/api/mailgun-debug/test-domains">Diagnóstico: Listar Dominios</option>
+                    <option value="/">Prueba Básica (Ping)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="backendFrom">Remitente:</label>
+                <input type="text" id="backendFrom" value="danielnavarrocampos@mywed360.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="backendTo">Destinatario:</label>
+                <input type="text" id="backendTo" value="danielnavarrocampos@icloud.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="backendSubject">Asunto:</label>
+                <input type="text" id="backendSubject" value="Prueba de correo desde MyWed360">
+            </div>
+            
+            <div class="form-group">
+                <label for="backendMessage">Mensaje:</label>
+                <textarea id="backendMessage" rows="4">Este es un mensaje de prueba enviado desde el sistema de correo personalizado de MyWed360.</textarea>
+            </div>
+            
+            <button onclick="testBackend()">Probar Conexión con Backend</button>
+        </div>
+        
+        <div id="backendResult" class="result"></div>
+    </div>
+    
+    <div id="tab2" class="tab-content">
+        <div class="container">
+            <h2>Test Directo a Mailgun</h2>
+            <p>Esta prueba enviará una solicitud directa a la API de Mailgun (requiere un proxy CORS como cors-anywhere).</p>
+            
+            <div class="form-group">
+                <label for="region">Región:</label>
+                <select id="region">
+                    <option value="eu" selected>Europa (EU)</option>
+                    <option value="us">Estados Unidos (US)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="apiKey">API Key de Mailgun:</label>
+                <input type="text" id="apiKey" value="a42e6604fb3e4b737f281cd3dbc6309a-0ce15100-24828154">
+            </div>
+            
+            <div class="form-group">
+                <label for="domain">Dominio:</label>
+                <input type="text" id="domain" value="mywed360.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="directFrom">Remitente:</label>
+                <input type="text" id="directFrom" value="danielnavarrocampos@mywed360.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="directTo">Destinatario:</label>
+                <input type="text" id="directTo" value="danielnavarrocampos@icloud.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="directSubject">Asunto:</label>
+                <input type="text" id="directSubject" value="Prueba directa Mailgun">
+            </div>
+            
+            <div class="form-group">
+                <label for="directMessage">Mensaje:</label>
+                <textarea id="directMessage" rows="4">Este es un mensaje de prueba directo a Mailgun.</textarea>
+            </div>
+            
+            <button onclick="testDirectMailgun()">Probar Conexión Directa con Mailgun</button>
+        </div>
+        
+        <div id="directResult" class="result"></div>
+    </div>
+    
+    <script>
+        function showTab(tabId) {
+            // Ocultar todos los tab-contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Desactivar todos los tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Mostrar el tab seleccionado
+            document.getElementById(tabId).classList.add('active');
+            
+            // Activar el botón del tab
+            event.currentTarget.classList.add('active');
+        }
+        
+        async function testBackend() {
+            const resultElement = document.getElementById('backendResult');
+            resultElement.innerHTML = '<p>Enviando solicitud al backend...</p>';
+            resultElement.className = 'result';
+            
+            const port = document.getElementById('backendPort').value;
+            const endpoint = document.getElementById('backendEndpoint').value;
+            const from = document.getElementById('backendFrom').value;
+            const to = document.getElementById('backendTo').value;
+            const subject = document.getElementById('backendSubject').value;
+            const message = document.getElementById('backendMessage').value;
+            
+            try {
+                // Construir la URL del backend
+                const backendUrl = `http://localhost:${port}${endpoint}`;
+                
+                // Preparar los datos según el endpoint
+                let response;
+                
+                if (endpoint === '/' || endpoint.includes('environment') || endpoint.includes('test-domains')) {
+                    // Para endpoints de diagnóstico o ping, usar GET
+                    response = await fetch(backendUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                } else {
+                    // Para el endpoint de email, usar POST con datos
+                    response = await fetch(backendUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            from,
+                            to,
+                            subject,
+                            message
+                        })
+                    });
+                }
+                
+                // Procesar la respuesta
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultElement.innerHTML = `
+                        <h3>✅ Conexión exitosa (${response.status})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result success';
+                } else {
+                    resultElement.innerHTML = `
+                        <h3>⚠️ Respuesta con error (${response.status})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result error';
+                }
+            } catch (error) {
+                resultElement.innerHTML = `
+                    <h3>❌ Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <p>Posibles causas:</p>
+                    <ul>
+                        <li>El servidor no está ejecutándose en el puerto ${port}</li>
+                        <li>Hay un problema de CORS en el backend</li>
+                        <li>El endpoint ${endpoint} no existe o no está configurado correctamente</li>
+                    </ul>
+                `;
+                resultElement.className = 'result error';
+            }
+        }
+        
+        async function testDirectMailgun() {
+            const resultElement = document.getElementById('directResult');
+            resultElement.innerHTML = '<p>Enviando solicitud directa a Mailgun...</p>';
+            resultElement.className = 'result';
+            
+            const region = document.getElementById('region').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const domain = document.getElementById('domain').value;
+            const from = document.getElementById('directFrom').value;
+            const to = document.getElementById('directTo').value;
+            const subject = document.getElementById('directSubject').value;
+            const message = document.getElementById('directMessage').value;
+            
+            try {
+                // Usar un proxy CORS para evitar problemas de CORS
+                const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+                const apiUrl = region === 'eu' 
+                    ? `https://api.eu.mailgun.net/v3/${domain}/messages` 
+                    : `https://api.mailgun.net/v3/${domain}/messages`;
+                
+                // Crear FormData para la solicitud
+                const formData = new FormData();
+                formData.append('from', from);
+                formData.append('to', to);
+                formData.append('subject', subject);
+                formData.append('text', message);
+                
+                // Realizar la solicitud
+                const response = await fetch(proxyUrl + apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa('api:' + apiKey)
+                    },
+                    body: formData
+                });
+                
+                // Procesar la respuesta
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultElement.innerHTML = `
+                        <h3>✅ Correo enviado con éxito (${response.status})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result success';
+                } else {
+                    resultElement.innerHTML = `
+                        <h3>⚠️ Error al enviar correo (${response.status})</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    resultElement.className = 'result error';
+                }
+            } catch (error) {
+                resultElement.innerHTML = `
+                    <h3>❌ Error de conexión</h3>
+                    <p>${error.message}</p>
+                    <p>Posibles causas:</p>
+                    <ul>
+                        <li>El proxy CORS no está disponible</li>
+                        <li>API Key o dominio incorrectos</li>
+                        <li>Problemas de red o conectividad con Mailgun</li>
+                    </ul>
+                `;
+                resultElement.className = 'result error';
+            }
+        }
+    </script>
+</body>
+</html>

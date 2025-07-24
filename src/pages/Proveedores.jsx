@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Spinner from '../components/Spinner';
-import Toast from '../components/Toast';
-import { Search, RefreshCcw, Plus, Eye, Edit2, Trash2, Calendar, Download, Cpu, Star, MapPin, Cloud, CloudOff, Clock, AlertTriangle } from 'lucide-react';
-import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
-import { createTrackingRecord, TRACKING_STATUS, EMAIL_TAGS, loadTrackingRecords, updateTrackingStatus } from '../services/EmailTrackingService';
-import PageWrapper from '../components/PageWrapper';
+import MainLayout from '../components/layout/MainLayout';
 import Card from '../components/Card';
 import Button from '../components/Button';
 

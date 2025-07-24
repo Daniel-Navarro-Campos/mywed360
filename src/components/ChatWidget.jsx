@@ -5,9 +5,19 @@ import { MessageSquare } from 'lucide-react';
 import Spinner from './Spinner';
 import { toast } from 'react-toastify';
 
+// --- Modo debug opcional ---
+// Actívalo desde la consola con: window.lovendaDebug = true
+const chatDebug = (...args) => {
+  if (typeof window !== 'undefined' && window.lovendaDebug) {
+    // eslint-disable-next-line no-console
+    console.debug('[ChatWidget]', ...args);
+  }
+};
+
 // --- Configuración de memoria conversacional ---
 const MAX_MESSAGES = 50;        // Cuántos mensajes “frescos” mantener en memoria corta
-const SHORT_HISTORY = 20;       // Cuántos mensajes recientes se envían a la IA junto al resumen
+const SHORT_HISTORY = 6;        // Cuántos mensajes recientes se envían a la IA
+
 // Función para normalizar texto de categoría: elimina acentos y convierte a mayúsculas
 const normalizeCategory = (cat = 'OTROS') => cat.normalize('NFD').replace(/[^\w\s]|_/g, '').replace(/\s+/g, '').toUpperCase();
 // Intenta adivinar la categoría en base al título/descripcion de la tarea
@@ -270,7 +280,7 @@ const applyCommands = async (commands = []) => {
         const query = payload.query || payload.q || payload.keyword || payload.term || '';
         if (query) {
           try {
-            const apiBase = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
+            const apiBase = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.lovenda.app');
             const resp = await fetch(`${apiBase}/api/ai/search-suppliers?q=${encodeURIComponent(query)}`);
             const dataS = await resp.json();
             if (dataS.results) {
@@ -328,15 +338,58 @@ const sendMessage = async () => {
     setMessages(currentMsgs);
     setInput('');
     setLoading(true);
+    let timeoutId;
     try {
-      const apiBase = import.meta.env.VITE_BACKEND_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : '');
+      // Determinar dinámicamente la URL base del backend
+      const getApiBase = () => {
+        // 1. Variable de entorno proporcionada en tiempo de build
+        const envBase = import.meta.env.VITE_BACKEND_BASE;
+        if (envBase) return envBase.replace(/\/$/, '');
+
+        // 2. Si estamos en desarrollo (frontend :5173) asumimos backend :4004
+        const { origin } = window.location;
+        if (origin.includes(':5173')) return origin.replace(':5173', ':4004');
+
+        // 3. En producción usamos mismo origen
+        return origin;
+      };
+      const apiBase = getApiBase();
+      chatDebug('Usando backend en:', apiBase);
+      
+      
+      const endpoint = `${apiBase.replace(/\/$/, '')}/api/ai/parse-dialog`;
+      chatDebug('Llamando a la API IA en:', endpoint);
+      toast.info('Conectando con IA...', { autoClose: 2000 });
+      const fetchStart = performance.now();
+      
       const recent = currentMsgs.slice(-SHORT_HISTORY).map(m => ({ role: m.from === 'user' ? 'user' : 'assistant', content: m.text }));
       const history = summary ? [{ role: 'system', content: summary }, ...recent] : recent;
-      const response = await fetch(`${apiBase}/api/ai/parse-dialog`, {
+      
+      // Implementar timeout para evitar esperas indefinidas
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => {
+        controller.abort();
+        console.error('Timeout en la llamada a la API de IA');
+        toast.error('La IA está tardando demasiado. Reintentando con respuesta local...');
+      }, 30000); // 30 segundos máximo para mejor UX
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: input, history })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ text: input, history }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
+      chatDebug('Duración petición IA:', (performance.now() - fetchStart).toFixed(0), 'ms');
+      
+      if (!response.ok) {
+        throw new Error(`Error de API: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
 
       // --- Procesar comandos si existen ---
@@ -447,9 +500,33 @@ const sendMessage = async () => {
       }
       const botMsg = { from: 'bot', text };
       setMessages(prev => compactMessages([...prev, botMsg]));
-    } catch (err) {
-      setMessages(prev => [...prev, { from: 'bot', text: 'Error al llamar a la API de IA' }]);
+    } catch (error) {
+      console.error('Error en chat de IA:', error);
+      // Respuesta de emergencia local cuando falla la conexión con el backend
+      let errMsg;
+      if (error.name === 'AbortError' || error.message.includes('Timeout') || error.message.includes('abort')) {
+        console.error('Timeout en la llamada a la API de IA:', error.message);
+        errMsg = { 
+          from: 'assistant', 
+          text: 'Parece que hay problemas de conexión con el servidor. Puedo ayudarte con consultas básicas sobre tu boda mientras se restablece la conexión. ¿Qué deseas saber?' 
+        };
+        toast.error('Tiempo de espera agotado', { autoClose: 3000 });
+      } else if (error.message.includes('fetch') || error.message.includes('network')) {
+        console.error('Error de red en la llamada a la API de IA:', error.message);
+        errMsg = { 
+          from: 'system', 
+          text: `No se pudo conectar con el servidor de IA. Por favor, verifica tu conexión y vuelve a intentarlo.` 
+        };
+        toast.error('Error de conexión', { autoClose: 3000 });
+      } else {
+        console.error('Error genérico en la API de IA:', error.message);
+        errMsg = { from: 'system', text: `Ha ocurrido un error: ${error.message}` };
+        toast.error('Error en la comunicación', { autoClose: 3000 });
+      }
+      
+      setMessages(prev => [...prev, errMsg]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
     

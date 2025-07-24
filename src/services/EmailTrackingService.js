@@ -21,6 +21,7 @@ export const EMAIL_TAGS = {
   QUESTION: 'question',       // Consulta o pregunta
   OFFER: 'offer',             // Oferta o promoción
   APPOINTMENT: 'appointment', // Cita o reunión
+  AI_GENERATED: 'ai-generado' // Correo generado por AI
 };
 
 // Estructura de un registro de seguimiento
@@ -39,6 +40,8 @@ export const EMAIL_TAGS = {
 //   thread: [                // Hilo de correos relacionados
 //     { emailId, direction, date, subject, snippet }
 //   ]
+//   isAIGenerated: boolean,  // Si el correo fue generado por AI
+//   aiTrackingId: string,    // ID de seguimiento de actividad AI (si aplica)
 // }
 
 // Cargar registros de seguimiento
@@ -52,7 +55,7 @@ export function saveTrackingRecords(records) {
 }
 
 // Crear un nuevo registro de seguimiento para un correo a un proveedor
-export function createTrackingRecord(email, provider) {
+export function createTrackingRecord(email, provider, options = {}) {
   const trackingRecords = loadTrackingRecords();
   
   // Verificar si ya existe un registro para este proveedor
@@ -106,7 +109,9 @@ export function createTrackingRecord(email, provider) {
         date: new Date(),
         subject: email.subject,
         snippet: email.body.substring(0, 100) + (email.body.length > 100 ? '...' : '')
-      }]
+      }],
+      isAIGenerated: options.isAIGenerated || false,
+      aiTrackingId: options.aiTrackingId || null
     };
     
     // Añadir etiquetas adicionales basadas en el asunto y contenido
@@ -125,6 +130,10 @@ export function createTrackingRecord(email, provider) {
         email.subject.toLowerCase().includes('reunión') || 
         email.body.toLowerCase().includes('reunión')) {
       newRecord.tags.push(EMAIL_TAGS.APPOINTMENT);
+    }
+    
+    if (options.isAIGenerated) {
+      newRecord.tags.push(EMAIL_TAGS.AI_GENERATED);
     }
     
     // Añadir el nuevo registro

@@ -142,6 +142,18 @@ export default function DisenoWeb() {
       `;
       
       // Solicitud a la API
+      // Verificar que exista la clave de OpenAI
+      const OPENAI_KEY = import.meta.env.VITE_OPENAI_KEY;
+      if(!OPENAI_KEY){
+        alert('Configura la variable de entorno VITE_OPENAI_KEY con tu clave de OpenAI.');
+        setError('Falta clave OpenAI – define VITE_OPENAI_KEY en tu .env');
+        setLoading(false);
+        return;
+      }
+
+      console.log('DEBUG OpenAI_KEY length:', OPENAI_KEY?.length || 'undefined');
+      const modelName = import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o';
+
       const messages = [
         { role: 'system', content: sys },
         { role: 'user', content: userMessage }
@@ -151,15 +163,19 @@ export default function DisenoWeb() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_KEY}` 
+          'Authorization': `Bearer ${OPENAI_KEY}` 
         },
         body: JSON.stringify({ 
-          model: 'gpt-4o', // Usando un modelo más potente para mejor HTML/CSS
+          model: modelName, // Modelo configurable vía VITE_OPENAI_MODEL
           messages, 
           temperature: 0.7 
         })
       });
       
+      if(response.status === 401){
+        throw new Error('Clave OpenAI inválida o no autorizada (401). Comprueba VITE_OPENAI_KEY');
+      }
+
       const data = await response.json();
       
       if (data.error) {

@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "source": "functions"
+  },
   "emulators": {
     "hub": {
       "port": 4403

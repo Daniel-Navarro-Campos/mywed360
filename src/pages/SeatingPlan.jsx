@@ -25,6 +25,12 @@ import jsPDF from 'jspdf';
 import PageWrapper from '../components/PageWrapper';
 import Card from '../components/Card';
 
+// Utilidad para normalizar IDs de mesas (convierte a número si es posible)
+export const normalizeId = (id) => {
+  const num = parseInt(id, 10);
+  return !isNaN(num) ? num : id;
+};
+
 // Clean rebuilt SeatingPlan page (v2)
 export default function SeatingPlan() {
   const [tab, setTab] = useState('ceremony');
@@ -158,7 +164,7 @@ export default function SeatingPlan() {
       .map(v => String(v).trim());
 
     if (idsFromGuests.length === 0) {
-      setTablesCeremony([]);
+      // Si ningún invitado referencia mesas, conservamos las mesas existentes añadidas manualmente
       return;
     }
 
@@ -217,8 +223,76 @@ export default function SeatingPlan() {
         };
       });
 
-      // Ya no necesitamos eliminar mesas, pues solo incluimos las referenciadas
-      return updated;
+      // Combinar con mesas existentes no referenciadas por invitados (p.ej. añadidas manualmente)
+      const extras = prev.filter(t => {
+        const norm = normalizeId(t.id);
+        return !uniqueNormalizedIds.some(id => id == norm);
+      });
+      return [...extras, ...updated];
+    });
+  }, [guests]);
+
+  // Sincronizar mesas de BANQUETE con la gestión de invitados
+  useEffect(() => {
+    // Reunir identificadores de mesa referenciados por los invitados
+    const idsFromGuests = guests
+      .map(g => g.tableId ?? g.table)
+      .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
+      .map(v => String(v).trim());
+
+    if (idsFromGuests.length === 0) {
+      return; // nada que sincronizar si ningún invitado tiene mesa asignada
+    }
+
+    // Agrupar IDs normalizados para evitar duplicados ("1" y 1)
+    const groupedIds = {};
+    idsFromGuests.forEach(idStr => {
+      const normalizedId = normalizeId(idStr);
+      if (!groupedIds[normalizedId]) groupedIds[normalizedId] = idStr;
+    });
+
+    setTablesBanquet(prev => {
+      const uniqueNormalizedIds = Object.keys(groupedIds);
+      const byId = new Map(prev.map(t => [normalizeId(t.id), t]));
+      const byName = new Map(prev.filter(t => t.name).map(t => [normalizeId(t.name), t]));
+
+      // Crear/actualizar mesas
+      const updated = uniqueNormalizedIds.map(normalizedId => {
+        const idStr = groupedIds[normalizedId];
+        const existing = byId.get(normalizedId) || byName.get(normalizedId);
+
+        // Invitados que deberían estar sentados en esta mesa
+        const guestsForTable = guests.filter(g => String(g.tableId ?? g.table).trim() === idStr);
+
+        if (existing) {
+          return {
+            ...existing,
+            name: idStr,
+            assignedGuests: guestsForTable.slice(0, existing.seats || 8),
+          };
+        }
+
+        // Crear nueva mesa con posición aleatoria dentro del lienzo
+        const idVal = typeof normalizedId === 'number' ? normalizedId : idStr;
+        return {
+          id: idVal,
+          name: idStr,
+          x: 120 + Math.random() * 200,
+          y: 120 + Math.random() * 200,
+          shape: 'circle',
+          seats: 8,
+          assignedGuests: guestsForTable.slice(0, 8),
+          enabled: true,
+        };
+      });
+
+      // Conservar mesas no referenciadas por los invitados (añadidas manualmente)
+      const extras = prev.filter(t => {
+        const norm = normalizeId(t.id);
+        return !uniqueNormalizedIds.some(id => id == norm);
+      });
+
+      return [...extras, ...updated];
     });
   }, [guests]);
 /*
@@ -281,7 +355,7 @@ export default function SeatingPlan() {
        }
        if(!Array.isArray(got) || got.length===0){
          try{ 
-           got = loadData('lovendaGuests', { 
+           got = await loadData('lovendaGuests', { 
              defaultValue: [], 
              collection: 'userGuests'
            }); 
@@ -317,9 +391,9 @@ export default function SeatingPlan() {
      };
      loadGuests();
      // suscribirse a cambios en SyncService y otros eventos
-     const handleGuestsChange = ()=>{
+     const handleGuestsChange = async ()=>{
        try{ 
-         const g = loadData('lovendaGuests', { defaultValue: [], collection: 'userGuests' });
+         const g = await loadData('lovendaGuests', { defaultValue: [], collection: 'userGuests' });
          let norm = g.map(item=>{
           const t = item.tableId ?? item.table;
           if(t===undefined || t===null || String(t).trim()===''){ 

@@ -22,7 +22,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-pastel-yellow">
+    <div className="flex items-center justify-center h-screen bg-[var(--color-bg)]">
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-md">
         <h2 className="text-2xl mb-4">Iniciar sesión</h2>
         <input
@@ -52,11 +52,11 @@ export default function Login() {
           </div>
           <button
           type="submit"
-          className="bg-pastel-blue text-white px-4 py-2 rounded w-full hover:bg-pastel-green transition-colors"
+          className="bg-[var(--color-primary)] text-[color:var(--color-surface)] px-4 py-2 rounded w-full hover:bg-[var(--color-accent)] transition-colors"
         >
           Entrar
         </button>
-        <p className="mt-4 text-sm">¿No tienes cuenta? <Link to="/signup" className="text-pastel-blue hover:underline">Regístrate</Link></p>
+        <p className="mt-4 text-sm">¿No tienes cuenta? <Link to="/signup" className="text-[var(--color-primary)] hover:underline">Regístrate</Link></p>
       </form>
     </div>
   );
