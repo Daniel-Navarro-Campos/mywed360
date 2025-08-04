@@ -14,6 +14,8 @@ import mailRouter from './routes/mail.js';
 import aiRouter from './routes/ai.js';
 import aiImageRouter from './routes/ai-image.js';
 import emailInsightsRouter from './routes/email-insights.js';
+import instagramWallRouter from './routes/instagram-wall.js';
+import imageProxyRouter from './routes/image-proxy.js';
 import notificationsRouter from './routes/notifications.js';
 import guestsRouter from './routes/guests.js';
 import rolesRouter from './routes/roles.js';
@@ -73,6 +75,8 @@ app.use('/api/roles', rolesRouter);
 app.use('/api/ai-image', aiImageRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/email-insights', emailInsightsRouter);
+app.use('/api/instagram/wall', instagramWallRouter);
+app.use('/api/image-proxy', imageProxyRouter);
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });

@@ -4,6 +4,7 @@ import { useUserContext } from '../context/UserContext';
 import { Card } from './ui/Card';
 import { Progress } from './ui/Progress';
 import Nav from './Nav';
+import { Link } from 'react-router-dom';
 
 import { User, DollarSign, Calendar, Users, ChevronLeft, ChevronRight, Plus, Phone } from 'lucide-react';
 import Input from './Input';
@@ -189,7 +190,11 @@ export default function HomePage() {
         {/* Inspiration Gallery */}
         <section className="z-10 p-6 pb-12 relative">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-[var(--color-text)]">Inspiración para tu boda</h2>
+            <Link to="/inspiracion">
+              <button className="text-xl font-bold text-[var(--color-text)] hover:text-[var(--color-primary)]">
+                Inspiración para tu boda
+              </button>
+            </Link>
             <div className="flex space-x-2">
               <button onClick={scrollPrev} className="p-2 rounded-full bg-[var(--color-surface)]/80 backdrop-blur-md">
                 <ChevronLeft className="text-[var(--color-primary)]" />

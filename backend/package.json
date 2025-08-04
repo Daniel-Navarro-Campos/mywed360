@@ -20,6 +20,8 @@
     "imagetracerjs": "^1.2.6",
     "ngrok": "^5.0.0-beta.2",
     "openai": "^4.104.0",
+    "@myno_21/pinterest-scraper": "^1.0.4",
+    "cheerio": "1.0.0-rc.12",
     "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
