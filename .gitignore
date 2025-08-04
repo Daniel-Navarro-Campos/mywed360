@@ -4,6 +4,7 @@ dist/
 
 # Environment variables
 .env
+.env.local
 
 # macOS metadata
 .DS_Store

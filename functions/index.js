@@ -261,6 +261,40 @@ exports.aggregateDailyMetrics = functions.pubsub
   });
 
 // Función para validar correo electrónico
+// ------------------------------
+// Cloud Function: inicializar subcolecciones al crear una boda
+// ------------------------------
+exports.initWeddingSubcollections = functions.firestore
+  .document('weddings/{weddingId}')
+  .onCreate(async (snap, context) => {
+    const weddingId = context.params.weddingId;
+    const subCollections = [
+      'guests',
+      'seatingPlan',
+      'designs',
+      'suppliers',
+      'momentosEspeciales',
+      'timing',
+      'checklist',
+      'ayudaCeremonia',
+      'disenoWeb',
+      'ideas'
+    ];
+
+    const batch = db.batch();
+    subCollections.forEach((sub) => {
+      const ref = db
+        .collection('weddings')
+        .doc(weddingId)
+        .collection(sub)
+        .doc('_placeholder');
+      batch.set(ref, { createdAt: admin.firestore.FieldValue.serverTimestamp() });
+    });
+
+    await batch.commit();
+    console.log(`Subcolecciones iniciales creadas para boda ${weddingId}`);
+  });
+
 exports.validateEmail = functions.https.onRequest((request, response) => {
   cors(request, response, async () => {
     try {

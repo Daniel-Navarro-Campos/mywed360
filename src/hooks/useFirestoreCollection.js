@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
+import useWeddingCollection from './useWeddingCollection';
+import { useWedding } from '../context/WeddingContext';
 import { auth, db } from '../lib/firebase';
 import {
   collection,
@@ -6,6 +8,7 @@ import {
   query,
   orderBy,
 } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   addItem as addItemFS,
   updateItem as updateItemFS,
@@ -33,29 +36,64 @@ const lsSet = (name, data) => {
  * Returns { data, loading, addItem, updateItem, deleteItem }
  */
 export const useFirestoreCollection = (collectionName, fallback = []) => {
+  const { activeWedding } = useWedding();
+  // Si hay boda activa, delegamos a useWeddingCollection (ruta nueva)
+  if (activeWedding) {
+    return useWeddingCollection(collectionName, activeWedding, fallback);
+  }
   const [data, setData] = useState(() => lsGet(collectionName, fallback));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubFS = null;
+    // Función para inicializar listener Firestore cuando tengamos UID
+    const initFirestoreListener = (uid) => {
+      const q = query(collection(db, 'users', uid, collectionName), orderBy('createdAt', 'asc'));
+      unsubFS = onSnapshot(q,
+        (snap) => {
+          const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setData(arr);
+          lsSet(collectionName, arr);
+          setLoading(false);
+        },
+        (error) => {
+          console.error(`Error escuchando colección ${collectionName}:`, error);
+          setData(lsGet(collectionName, fallback));
+          setLoading(false);
+        }
+      );
+    };
+
     const uid = auth.currentUser?.uid;
-    if (!uid) {
-      // Not logged → keep LocalStorage, listen for manual events
-      const handler = () => setData(lsGet(collectionName, fallback));
-      window.addEventListener(`lovenda-${collectionName}`, handler);
+    if (uid) {
+      initFirestoreListener(uid);
+      return () => {
+        if (typeof unsubFS === 'function') unsubFS();
+      };
+    } else {
+      // No autenticado todavía → usar LocalStorage y esperar al login
+      const handlerLS = () => setData(lsGet(collectionName, fallback));
+      window.addEventListener(`lovenda-${collectionName}`, handlerLS);
       setLoading(false);
-      return () => window.removeEventListener(`lovenda-${collectionName}`, handler);
+
+      // Esperamos a que el usuario inicie sesión para sincronizar datos
+      const unsubAuth = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          initFirestoreListener(user.uid);
+          // Sincronizar datos locales pendientes
+          if (Array.isArray(data) && data.length) {
+            data.forEach((item) => addItemFS(collectionName, item).catch(()=>{}));
+          }
+        }
+      });
+
+      return () => {
+        window.removeEventListener(`lovenda-${collectionName}`, handlerLS);
+        unsubAuth();
+        if (typeof unsubFS === 'function') unsubFS();
+      };
     }
 
-    // Logged → real-time Firestore listener
-    const q = query(collection(db, 'users', uid, collectionName), orderBy('createdAt', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setData(arr);
-      // cache to LocalStorage for quicker next load
-      lsSet(collectionName, arr);
-      setLoading(false);
-    });
-    return () => unsub();
   }, [collectionName, fallback]);
 
   const addItem = useCallback(async (item) => {

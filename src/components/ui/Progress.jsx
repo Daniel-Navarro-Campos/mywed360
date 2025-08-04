@@ -1,5 +1,5 @@
 import React from 'react';
-export function Progress({ value, max=100, variant='primary', className }) {
+function Progress({ value, max=100, variant='primary', className = '' }) {
   const getColor = () => {
     switch(variant) {
       case 'success': return 'bg-pastel-green';
@@ -14,3 +14,6 @@ export function Progress({ value, max=100, variant='primary', className }) {
     </div>
   );
 }
+
+export { Progress };
+export default Progress;

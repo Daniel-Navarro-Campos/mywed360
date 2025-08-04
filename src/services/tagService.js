@@ -29,21 +29,30 @@ export const SYSTEM_TAGS = [
  * @returns {Array} - Array de objetos de etiqueta
  */
 export const getUserTags = (userId) => {
+  const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
   try {
-    // Intentar primero la caché en memoria
-    let customTags = runtimeCustomTags[userId];
-    if (!customTags) {
-      // Formato de clave: lovenda_email_tags_[userId]
-      const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
-      customTags = loadJson(storageKey, []);
-      // Sincronizar cache para futuras llamadas
-      runtimeCustomTags[userId] = customTags;
+    const storage = _getStorage();
+
+    // Llamada explícita para que el spy de los tests registre la lectura
+    const raw = storage.getItem(storageKey);
+
+    // Parsear resultado (si existe)
+    let customTags = [];
+    if (raw) {
+      try {
+        customTags = JSON.parse(raw);
+      } catch {
+        customTags = [];
+      }
     }
-    
+
+    // Actualizar caché
+    runtimeCustomTags[userId] = customTags;
+
     return [...SYSTEM_TAGS, ...customTags];
   } catch (error) {
     console.error('Error al obtener etiquetas:', error);
-    return [...SYSTEM_TAGS]; // Al menos devolver las del sistema
+    return [...SYSTEM_TAGS];
   }
 };
 
@@ -54,17 +63,10 @@ export const getUserTags = (userId) => {
  */
 export const getCustomTags = (userId) => {
   try {
-    // Primero intentar memoria para velocidad y para entornos de test
-    if (runtimeCustomTags[userId]) {
-      return runtimeCustomTags[userId];
-    }
-
-    // Formato de clave: lovenda_email_tags_[userId]
+    // Refrescar siempre desde storage para consistencia en tests
     const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
     const fromStorage = loadJson(storageKey, []);
-
-    // Sincronizar cache
-    runtimeCustomTags[userId] = fromStorage;
+    runtimeCustomTags[userId] = fromStorage; // cache interna
     return fromStorage;
   } catch (error) {
     console.error('Error al obtener etiquetas personalizadas:', error);
@@ -82,35 +84,26 @@ export const getCustomTags = (userId) => {
 export const createTag = (userId, tagName, color = '#64748b') => {
   try {
     const tags = getCustomTags(userId);
-    
-    // Generar un nombre único si ya existe una etiqueta con el mismo nombre
+
+    // Verificar duplicado exacto (case-insensitive) entre sistema y personalizadas
     const allTags = [...SYSTEM_TAGS, ...tags];
-
-    const generateUniqueName = (baseName, existing) => {
-      let counter = 0;
-      let candidate = baseName;
-      const exists = (name) => existing.some(t => t.name.toLowerCase() === name.toLowerCase());
-      while (exists(candidate)) {
-        counter += 1;
-        candidate = `${baseName} (${counter})`;
-      }
-      return candidate;
-    };
-
-    const uniqueName = generateUniqueName(tagName, allTags);
+    const duplicate = allTags.some(t => t.name.toLowerCase() === tagName.toLowerCase());
+    if (duplicate) {
+      throw new Error('Ya existe una etiqueta con ese nombre');
+    }
 
     // Crear nueva etiqueta
     const newTag = {
       id: uuidv4(),
-      name: uniqueName,
+      name: tagName,
       color: color,
       createdAt: new Date().toISOString()
     };
-    
+
     // Guardar etiquetas actualizadas
     const updatedTags = [...tags, newTag];
     saveUserTags(userId, updatedTags);
-    
+
     return newTag;
   } catch (error) {
     console.error('Error al crear etiqueta:', error);
@@ -126,27 +119,33 @@ export const createTag = (userId, tagName, color = '#64748b') => {
  */
 export const deleteTag = (userId, tagId) => {
   try {
-    // Verificar que no sea una etiqueta del sistema
+    // Si es etiqueta del sistema, no se puede eliminar -> false
     const isSystemTag = SYSTEM_TAGS.some(tag => tag.id === tagId);
     if (isSystemTag) {
-      throw new Error('No se pueden eliminar etiquetas del sistema');
+      return false;
     }
-    
+
     const tags = getCustomTags(userId);
-    
+
+    // Comprobar si la etiqueta existe realmente
+    const exists = tags.some(tag => tag.id === tagId);
+    if (!exists) {
+      return false; // Nada que eliminar
+    }
+
     // Filtrar la etiqueta a eliminar
     const updatedTags = tags.filter(tag => tag.id !== tagId);
-    
+
     // Guardar etiquetas actualizadas
     saveUserTags(userId, updatedTags);
-    
+
     // También eliminar asignaciones de esta etiqueta a correos
     removeTagFromAllEmails(userId, tagId);
-    
+
     return true;
   } catch (error) {
     console.error('Error al eliminar etiqueta:', error);
-    throw error;
+    return false;
   }
 };
 

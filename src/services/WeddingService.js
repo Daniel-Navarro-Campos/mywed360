@@ -24,6 +24,8 @@ import {
 } from 'firebase/firestore';
 
 import { v4 as uuidv4 } from 'uuid';
+import { query, where, getDocs, limit } from 'firebase/firestore';
+
 
 /**
  * Crea una nueva boda y asigna al usuario como propietario principal.
@@ -104,4 +106,43 @@ export async function acceptInvitation(code, uid) {
   // eliminar invitación o marcar como aceptada
   await setDoc(invRef, { acceptedAt: Timestamp.now() }, { merge: true });
   return weddingId;
+}
+
+/**
+ * Conecta directamente la cuenta de un Wedding Planner con la boda indicada (sin invitación).
+ * Solo debe ser usada por el propietario de la boda o un administrador.
+ * @param {string} weddingId
+ * @param {string} plannerUid
+ */
+/**
+ * Devuelve el primer weddingId donde el usuario es owner.
+ * @param {string} uid
+ * @returns {Promise<string|null>}
+ */
+export async function getWeddingIdForOwner(uid) {
+  const q = query(collection(db, 'weddings'), where('ownerIds', 'array-contains', uid), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  return snap.docs[0].id;
+}
+
+/**
+ * Devuelve todas las bodas donde el plannerUid figura en plannerIds.
+ * @param {string} plannerUid
+ * @returns {Promise<Array<{id:string,name:string,weddingDate?:string,location?:string,progress?:number}>>}
+ */
+export async function getWeddingsForPlanner(plannerUid) {
+  if (!plannerUid) return [];
+  const q = query(collection(db, 'weddings'), where('plannerIds', 'array-contains', plannerUid));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function addPlannerToWedding(weddingId, plannerUid) {
+  if (!weddingId || !plannerUid) throw new Error('parámetros requeridos');
+  const wedRef = doc(db, 'weddings', weddingId);
+  await updateDoc(wedRef, { plannerIds: arrayUnion(plannerUid) });
+  // Opcional: guardar referencia de bodas que gestiona el planner
+  await updateDoc(doc(db, 'users', plannerUid), { plannerWeddingIds: arrayUnion(weddingId) });
+  return true;
 }

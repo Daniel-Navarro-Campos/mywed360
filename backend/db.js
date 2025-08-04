@@ -5,6 +5,13 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '../.env' });
 
+// Deshabilitar el uso del emulador salvo que se indique explícitamente
+// Esto evita errores de conexión (ECONNREFUSED) cuando el emulador no está arrancado.
+if (process.env.FIRESTORE_EMULATOR_HOST && process.env.USE_FIRESTORE_EMULATOR !== 'true') {
+  console.warn('⚠️  FIRESTORE_EMULATOR_HOST está definido pero USE_FIRESTORE_EMULATOR no es "true". Usando Firestore real.');
+  delete process.env.FIRESTORE_EMULATOR_HOST;
+}
+
 // Detect whether we're in local dev with Firestore emulator or production with service account.
 // If GOOGLE_APPLICATION_CREDENTIALS is provided and the file exists, use it. Otherwise allow
 // Firebase Admin to fall back to application default credentials. When FIRESTORE_EMULATOR_HOST

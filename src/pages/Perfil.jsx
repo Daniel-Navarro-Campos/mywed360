@@ -5,7 +5,12 @@ import { Button } from '../components/ui';
 import { Input } from '../components/ui';
 import { useUserContext } from '../context/UserContext';
 import { toast } from 'react-toastify';
+import useRoles from '../hooks/useRoles';
+import { Users, X } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { auth } from '../firebaseConfig'; // respaldo para UID
 import 'react-toastify/dist/ReactToastify.css';
+import { invitePlanner, getWeddingIdForOwner } from '../services/WeddingService';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 
 // ---------------------- NUEVO PERFIL -----------------------
@@ -30,6 +35,9 @@ function Perfil() {
   // Campo de texto amplio para notas importantes de la boda
   const [importantInfo, setImportantInfo] = useState('');
   const [syncStatus, setSyncStatus] = useState(getSyncState());
+  const [plannerEmail, setPlannerEmail] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   // Sincronizar número de invitados automáticamente
   // Escucha cambios en la lista de invitados en tiempo real
@@ -73,9 +81,52 @@ function Perfil() {
     dni: '',
   });
 
+  const { userProfile, user: authUser } = useAuth();
+  // UID de respaldo usando Firebase Auth (en caso de que useAuth no tenga usuario)
+  const fallbackUid = authUser?.uid || auth.currentUser?.uid || null;
+  const weddingId = userProfile?.weddingId || '';
+  const { roles: collaborators, loading: rolesLoading, assignRole, removeRole } = useRoles(weddingId);
+
   const handleAccountChange = (e) => setAccount({ ...account, [e.target.name]: e.target.value });
   const handleWeddingChange = (e) => setWeddingInfo({ ...weddingInfo, [e.target.name]: e.target.value });
   const handleBillingChange = (e) => setBilling({ ...billing, [e.target.name]: e.target.value });
+
+  const handleCreateInvite = async () => {
+
+    if (!plannerEmail) return;
+    let wid = weddingId;
+    const effectiveUid = fallbackUid;
+  if (!wid && !effectiveUid) {
+      toast.error('Tu sesión aún no está lista. Espera unos segundos e inténtalo de nuevo.');
+      return;
+    }
+    if (!wid) {
+      // intentar obtener la boda directamente de Firestore por owner
+      wid = await getWeddingIdForOwner(effectiveUid);
+      if (!wid) {
+        toast.error('No se encontró tu boda. Completa el tutorial o contacta soporte.');
+        return;
+      }
+    }
+    try {
+      setInviteLoading(true);
+      const code = await invitePlanner(wid, plannerEmail.trim().toLowerCase());
+      const link = `${window.location.origin}/invitation/${code}`;
+      setInviteLink(link);
+      try {
+        await navigator.clipboard.writeText(link);
+        toast.success('Enlace copiado al portapapeles');
+      } catch {
+        toast.success('Enlace generado');
+      }
+      setPlannerEmail('');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error creando invitación');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
 
   const saveProfile = async () => {
     const data = {subscription, account, weddingInfo, billing, importantInfo};
@@ -201,6 +252,66 @@ function Perfil() {
         <div className="text-right">
           <Button onClick={saveProfile}>Guardar</Button>
         </div>
+      </Card>
+
+      {/* Colaboradores */}
+      <Card className="space-y-4">
+        <h2 className="text-lg font-medium flex items-center"><Users className="w-5 h-5 mr-2" />Colaboradores</h2>
+          {/* Invitación a wedding planner */}
+          <div className="flex flex-col sm:flex-row items-center gap-2 mb-4">
+            <Input
+              placeholder="Email del planner"
+              value={plannerEmail}
+              onChange={(e)=>setPlannerEmail(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleCreateInvite} disabled={inviteLoading || !plannerEmail}>
+              {inviteLoading ? 'Creando...' : 'Crear enlace'}
+            </Button>
+          </div>
+          {inviteLink && (
+            <p className="text-sm text-green-700 break-all mb-4 select-all">
+              Enlace generado: <span className="underline">{inviteLink}</span>
+            </p>
+          )}
+        {rolesLoading ? (
+          <p>Cargando...</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Usuario</th>
+                <th className="text-left p-2">Rol</th>
+                <th className="p-2 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {collaborators.map(c => (
+                <tr key={c.uid} className="border-b">
+                  <td className="p-2">{c.email || c.uid}</td>
+                  <td className="p-2">
+                    <select
+                      value={c.role}
+                      onChange={(e)=>assignRole(c.uid, e.target.value)}
+                      disabled={c.role==='owner'}
+                      className="border rounded px-2 py-1 text-sm">
+                      <option value="owner">Pareja</option>
+                      <option value="planner">Wedding Planner</option>
+                      <option value="helper">Ayudante</option>
+                    </select>
+                  </td>
+                  <td className="p-2 text-center">
+                    {c.role!=='owner' && (
+                      <button onClick={()=>removeRole(c.uid)} className="text-red-500 hover:text-red-700">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       {/* Datos de facturación */}

@@ -15,6 +15,9 @@ import aiRouter from './routes/ai.js';
 import aiImageRouter from './routes/ai-image.js';
 import emailInsightsRouter from './routes/email-insights.js';
 import notificationsRouter from './routes/notifications.js';
+import guestsRouter from './routes/guests.js';
+import rolesRouter from './routes/roles.js';
+import eventsRouter from './routes/events.js';
 import mailgunDebugRoutes from './routes/mailgun-debug.js';
 import mailgunInboundRouter from './routes/mailgun-inbound.js';
 import mailgunEventsRouter from './routes/mailgun-events.js';
@@ -64,6 +67,9 @@ app.use('/api/mailgun-debug', mailgunDebugRoutes);
 app.use('/api/mailgun/events', mailgunEventsRouter);
 app.use('/api/inbound/mailgun', mailgunInboundRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/guests', guestsRouter);
+app.use('/api/events', eventsRouter);
+app.use('/api/roles', rolesRouter);
 app.use('/api/ai-image', aiImageRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/email-insights', emailInsightsRouter);
@@ -139,6 +145,10 @@ process.on('uncaughtException', (err) => {
   logger.error('UncaughtException:', err);
 });
 
-app.listen(PORT, () => {
-  console.log(`Lovenda backend up on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Lovenda backend up on http://localhost:${PORT}`);
+  });
+}
+
+export default app;

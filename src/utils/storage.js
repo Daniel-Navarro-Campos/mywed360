@@ -7,9 +7,33 @@
  * @param {*} defaultValue - Valor por defecto si la clave no existe o falla el parseo.
  * @returns {*} Valor almacenado o defaultValue.
  */
+// Detectar implementación de localStorage disponible
+const _getStorage = () => {
+  /*
+   * Prioridad:
+   * 1. Si existe window.localStorage (ambiente navegador o jsdom en tests), usar ese.
+   * 2. Si existe globalThis.localStorage (algunos entornos de test lo definen ahí), usarlo.
+   * 3. Fallback: mock vacío para evitar ReferenceError.
+   */
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage;
+  }
+  if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
+    return globalThis.localStorage;
+  }
+  return {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {}
+  };
+};
+
+// Nota: No almacenamos la referencia; en entornos de test `localStorage` puede definirse *después* de importar el módulo.
+// Por ello, siempre llamaremos _getStorage() dinámicamente dentro de cada función para asegurar que usamos la versión correcta.
+
 export const loadJson = (key, defaultValue = null) => {
   try {
-    const raw = localStorage.getItem(key);
+    const raw = _getStorage().getItem(key);
     if (!raw) return defaultValue;
     return JSON.parse(raw);
   } catch (error) {
@@ -26,7 +50,7 @@ export const loadJson = (key, defaultValue = null) => {
  */
 export const saveJson = (key, value) => {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    _getStorage().setItem(key, JSON.stringify(value));
     return true;
   } catch (error) {
     console.error(`storage.saveJson error for key ${key}:`, error);
@@ -40,7 +64,7 @@ export const saveJson = (key, value) => {
  */
 export const removeKey = (key) => {
   try {
-    localStorage.removeItem(key);
+    _getStorage().removeItem(key);
   } catch (error) {
     console.error(`storage.removeKey error for key ${key}:`, error);
   }

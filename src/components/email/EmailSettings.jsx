@@ -3,7 +3,7 @@ import { Check, AlertTriangle } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
 import { createEmailAlias, initEmailService } from '../../services/emailService';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../context/AuthContext';
 import TagsManager from './TagsManager';
 import WeddingAccountLink from '../settings/WeddingAccountLink';
 

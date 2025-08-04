@@ -102,6 +102,7 @@ const inicializarFirebase = async () => {
     try {
       auth = getAuth(app);
       auth.languageCode = 'es';
+      if (typeof window !== 'undefined') window.auth = auth;
       console.log('✅ Autenticación de Firebase inicializada');
     } catch (authError) {
       console.error('❌ Error al inicializar Firebase Auth:', authError);

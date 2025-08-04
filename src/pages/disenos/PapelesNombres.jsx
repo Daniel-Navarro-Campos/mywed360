@@ -1,6 +1,8 @@
 import React from 'react';
 import Card from '../../components/Card';
-import { saveData, loadData } from '../../services/SyncService';
+import { loadData } from '../../services/SyncService';
+import { useWedding } from '../../context/WeddingContext';
+import useWeddingCollection from '../../hooks/useWeddingCollection';
 import ImageGeneratorAI from '../../components/ImageGeneratorAI';
 
 // Plantillas predefinidas para marcadores de mesa y papelitos con nombres
@@ -33,10 +35,12 @@ const nameCardsTemplates = [
 ];
 
 export default function PapelesNombres() {
+  const { activeWedding } = useWedding();
+  const { data: dbGuests } = useWeddingCollection('guests', activeWedding, []);
   // Obtener información de invitados si está disponible
   const getGuestsInfo = () => {
     try {
-      const guests = loadData('lovendaGuests', { defaultValue: [], collection: 'userGuests' });
+      const guests = dbGuests;
       
       // Si no hay suficientes invitados, devolver cadena vacía
       if (guests.length < 5) return '';

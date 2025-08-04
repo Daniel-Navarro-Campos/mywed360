@@ -3,7 +3,8 @@ import { X, Paperclip, ChevronDown, AlertCircle } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
 import * as EmailService from '../../services/EmailService';
-import { useAuth } from '../../hooks/useAuth';
+import * as AuthModule from '../../hooks/useAuth';
+const useAuth = AuthModule.useAuth || AuthModule.default || AuthModule;
 
 /**
  * Componente para redactar y enviar nuevos emails desde la dirección personalizada del usuario
@@ -82,7 +83,10 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
     }))]);
     
     // Limpiar input para permitir seleccionar el mismo archivo de nuevo
-    event.target.value = null;
+    if (event.target) {
+      // Reiniciar el valor para permitir volver a seleccionar el mismo archivo
+      event.target.value = '';
+    }
   };
   
   // Eliminar un adjunto

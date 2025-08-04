@@ -13,6 +13,8 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
+import { useWedding } from '../context/WeddingContext';
+import useWeddingCollection from '../hooks/useWeddingCollection';
 
 
 
@@ -112,7 +114,15 @@ export default function SeatingPlan() {
   };
 
   // Guests from backend
+  const { activeWedding } = useWedding();
+  // Invitados en tiempo real desde Firestore
+  const { data: dbGuests } = useWeddingCollection('guests', activeWedding, []);
   const [guests, setGuests] = useState([]);
+
+  // Mantener estado local basado en Firestore
+  useEffect(() => {
+    setGuests(dbGuests);
+  }, [dbGuests]);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [selectedSeatId, setSelectedSeatId] = useState(null);
   const [online, setOnline] = useState(1);
@@ -383,11 +393,7 @@ export default function SeatingPlan() {
           return {...g, tableId: idNum, table: idNum};
         });
         setGuests(got);
-       // Guardar invitados usando SyncService
-       saveData('lovendaGuests', got, {
-         collection: 'userGuests',
-         showNotification: false
-       });
+        localStorage.setItem('lovendaGuests', JSON.stringify(got));
      };
      loadGuests();
      // suscribirse a cambios en SyncService y otros eventos

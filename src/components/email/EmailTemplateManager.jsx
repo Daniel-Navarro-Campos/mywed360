@@ -415,7 +415,7 @@ const EmailTemplateManager = ({ onSelectTemplate, onClose }) => {
     }
     
     // Agrupar plantillas por categoría
-    const groupedTemplates = {};
+    var groupedTemplates = {};
     categories.forEach(category => {
       groupedTemplates[category] = templates.filter(t => t.category === category);
     });
@@ -462,7 +462,7 @@ const EmailTemplateManager = ({ onSelectTemplate, onClose }) => {
   }
   
   // Agrupar plantillas por categoría
-  const groupedTemplates = {};
+  var groupedTemplates = {};
   categories.forEach(category => {
     groupedTemplates[category] = templates.filter(t => t.category === category);
   });

@@ -3,16 +3,145 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const navItems = [
-  { path: '/home', label: 'Inicio' },
-  { path: '/tasks', label: 'Tareas' },
-  { path: '/finance', label: 'Finanzas' },
-  { path: '/more', label: 'Más' },
-];
+import { useUserContext } from '../context/UserContext';
 
-export default function Nav() {
+// Devuelve los ítems de navegación según rol
+function getNavItems(role) {
+  const roleMap = {
+    'pareja': 'owner',
+    'wedding-planner': 'planner',
+    'planner': 'planner',
+    'ayudante': 'assistant'
+  };
+  const rawRole = (role || '').toString().trim().toLowerCase();
+  const normalizedRole = roleMap[rawRole] || 'owner';
+
+  switch (normalizedRole) {
+    case 'owner':
+      return [
+        { path: '/home', label: 'Inicio' },
+        { path: '/tasks', label: 'Tareas' },
+        { path: '/finance', label: 'Finanzas' },
+        { path: '/more', label: 'Más' },
+      ];
+    case 'planner':
+      return [
+        { path: '/home', label: 'Inicio' },
+        { path: '/tasks', label: 'Tareas' },
+        { path: '/bodas', label: 'Bodas' },
+        { path: '/more', label: 'Más' },
+      ];
+    case 'assistant':
+      return [
+        { path: '/tasks', label: 'Tareas' },
+        { path: '/protocolo', label: 'Protocolo' },
+        { path: '/more', label: 'Más' },
+      ];
+    default:
+      return [
+        { path: '/home', label: 'Inicio' },
+        { path: '/tasks', label: 'Tareas' },
+        { path: '/more', label: 'Más' },
+      ];
+  }
+}
+/*
+  // Normalizar nombres de roles provenientes de Firestore
+  const roleMap = {
+    'pareja': 'owner',
+    'wedding-planner': 'planner',
+    'planner': 'planner',
+    'ayudante': 'assistant'
+  };
+  const normalizedRole = roleMap[role] || role;
+
+  if (normalizedRole === 'owner') {
+    return [
+      { path: '/home', label: 'Inicio' },
+      { path: '/tasks', label: 'Tareas' },
+      { path: '/finance', label: 'Finanzas' },
+      { path: '/more', label: 'Más' },
+    ];
+  }
+
+  if (normalizedRole === 'planner') {
+    return [
+      { path: '/home', label: 'Inicio' },
+      { path: '/tasks', label: 'Tareas' },
+      { path: '/protocolo', label: 'Protocolo' },
+      { path: '/more', label: 'Más' },
+    ];
+  }
+
+  if (normalizedRole === 'assistant') {
+    return [
+      { path: '/tasks', label: 'Tareas' },
+      { path: '/protocolo', label: 'Protocolo' },
+      { path: '/more', label: 'Más' },
+    ];
+  }
+
+  // Fallback (rol no reconocido)
+  return [
+    { path: '/home', label: 'Inicio' },
+    { path: '/tasks', label: 'Tareas' },
+    { path: '/more', label: 'Más' },
+  ];
+  // Normalizar nombres de roles provenientes de Firestore
+  const roleMap = {
+    'pareja': 'owner',
+    'wedding-planner': 'planner',
+    'planner': 'planner',
+    'ayudante': 'assistant'
+  };
+  const normalizedRole = roleMap[role] || role;
+  const common = [
+    { path: '/home', label: 'Inicio' },
+    { path: '/tasks', label: 'Tareas' },
+    { path: '/protocolo', label: 'Protocolo' },
+    { path: '/more', label: 'Más' },
+  ];
+
+  if (normalizedRole === 'owner') {
+    return [
+      { path: '/home', label: 'Inicio' },
+      { path: '/tasks', label: 'Tareas' },
+      { path: '/finance', label: 'Finanzas' },
+      { path: '/more', label: 'Más' },
+    ];
+  }
+  if (normalizedRole === 'planner') {
+    // Planner no ve finanzas, pero puede tener otras secciones específicas
+    return [
+      { path: '/home', label: 'Inicio' },
+      { path: '/tasks', label: 'Tareas' },
+      { path: '/protocolo', label: 'Protocolo' },
+      { path: '/more', label: 'Más' },
+    ];
+  }
+  if (normalizedRole === 'assistant') {
+    // Asistente: solo tareas y protocolo (más se mantiene)
+    return [
+      { path: '/tasks', label: 'Tareas' },
+      { path: '/protocolo', label: 'Protocolo' },
+      { path: '/more', label: 'Más' },
+    ];
+
+  }
+  // Fallback
+  return common;
+}
+
+*/
+function Nav() {
+  const { user } = useUserContext();
+  const role = user?.role || 'owner';
+  const navItems = React.useMemo(() => getNavItems(role), [role]);
+  
+
   const navigate = useNavigate();
   const location = useLocation();
+
   return (
     <nav className='fixed bottom-0 w-full bg-[var(--color-primary)] text-[color:var(--color-text)] shadow-md flex justify-around p-3 z-50'>
       {navItems.map(({ path, label }, idx) => {
@@ -43,3 +172,5 @@ export default function Nav() {
     </nav>
   );
 }
+
+export default Nav;

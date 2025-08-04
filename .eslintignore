@@ -1,0 +1,13 @@
+# Archivos legacy o copias de seguridad que no se van a mantener
+**/*Legacy.jsx
+**/*.old.jsx
+**/*_backup.jsx
+src/pages/Buzon_fixed_complete.jsx
+src/pages/Timing.jsx
+src/pages/SeatingPlanLegacy.jsx
+src/pages/MomentosEspeciales.old.jsx
+
+# Directorios innecesarios para ESLint
+dist/
+build/
+logs/

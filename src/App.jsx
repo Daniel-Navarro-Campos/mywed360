@@ -10,6 +10,8 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Home from './pages/Home';
 import Tasks from './pages/Tasks';
+import Bodas from './pages/Bodas';
+import BodaDetalle from './pages/BodaDetalle';
 import Finance from './pages/Finance';
 import More from './pages/More';
 import Invitados from './pages/Invitados';
@@ -41,9 +43,13 @@ import SeatingPlanPost from './pages/disenos/SeatingPlanPost';
 import MenuCatering from './pages/disenos/MenuCatering';
 import PapelesNombres from './pages/disenos/PapelesNombres';
 import Ideas from './pages/Ideas';
+import Inspiration from './pages/Inspiration';
+import Blog from './pages/Blog';
 
 import Notificaciones from './pages/Notificaciones';
 import WeddingSite from './pages/WeddingSite';
+import RSVPConfirm from './pages/RSVPConfirm';
+import AcceptInvitation from './pages/AcceptInvitation';
 
 function ProtectedRoute() {
   const { isAuthenticated } = useUserContext();
@@ -80,11 +86,15 @@ function App() {
           <Route path="/" element={<Login />} />
           {/* Web pública de cada boda */}
           <Route path="w/:uid" element={<WeddingSite />} />
+          <Route path="invitation/:code" element={<AcceptInvitation />} />
+          <Route path="rsvp/:token" element={<RSVPConfirm />} />
             <Route path="/signup" element={<Signup />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="home" element={<Home />} />
               <Route path="tasks" element={<Tasks />} />
+              <Route path="bodas" element={<Bodas />} />
+              <Route path="bodas/:id" element={<BodaDetalle />} />
               <Route path="finance" element={<Finance />} />
               <Route path="invitados" element={<Invitados />} />
               <Route path="invitados/seating" element={<SeatingPlan />} />
@@ -106,6 +116,8 @@ function App() {
                <Route path="diseno-web" element={<DisenoWeb />} />
               <Route path="web" element={<WebEditor />} />
                <Route path="ideas" element={<Ideas />} />
+              <Route path="inspiracion" element={<Inspiration />} />
+              <Route path="blog" element={<Blog />} />
 
                {/* Panel de administración con monitoreo de caché */}
                <Route path="admin/*" element={<AdminRoutes />} />
@@ -136,7 +148,7 @@ function App() {
                 <Route path="metrics" element={<MetricsDashboard />} />
               </Route>
   
-              <Route path="*" element={<Navigate to="home" replace />} />
+              <Route path="*" element={<Navigate to="/home" replace />} />
             </Route>
           </Route>
         </Routes>

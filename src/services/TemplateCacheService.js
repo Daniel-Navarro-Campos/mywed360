@@ -633,7 +633,7 @@ setInterval(cleanupCache, 60 * 60 * 1000); // Cada hora
 // Inicializar caché al cargar
 initCache();
 
-export default {
+const templateCache = {
   initCache,
   cacheAllTemplates,
   cacheTemplate,
@@ -647,3 +647,6 @@ export default {
   getMostUsedCategories,
   preloadPopularTemplates
 };
+
+export { templateCache };
+export default templateCache;

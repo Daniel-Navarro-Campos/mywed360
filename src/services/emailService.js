@@ -882,3 +882,26 @@ export async function resetPredefinedTemplates() {
     throw new Error('No se pudieron restaurar las plantillas predefinidas');
   }
 }
+
+// =======================
+// Exportación por defecto
+// =======================
+const EmailService = {
+  initEmailService,
+  getUserEmailAddress,
+  getMails,
+  getMail,
+  sendMail,
+  sendEmail,
+  sendMailWithMailgun,
+  deleteMail,
+  markAsRead,
+  createEmailAlias,
+  getEmailTemplates,
+  getEmailTemplateById,
+  saveEmailTemplate,
+  deleteEmailTemplate,
+  resetPredefinedTemplates
+};
+
+export default EmailService;

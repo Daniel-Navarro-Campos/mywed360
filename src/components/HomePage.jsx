@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 import { useUserContext } from '../context/UserContext';
 import { Card } from './ui/Card';
 import { Progress } from './ui/Progress';
@@ -13,14 +14,36 @@ import inspo2 from '../assets/inspo2.jpg';
 import inspo3 from '../assets/inspo3.jpg';
 import inspo4 from '../assets/inspo4.jpg';
 
+import PlannerDashboard from './PlannerDashboard';
+
 export default function HomePage() {
   // Todo se maneja con modales locales
   const [noteText, setNoteText] = useState('');
   const [guest, setGuest] = useState({name: '', side: 'novia', contact: ''});
   const [newMovement, setNewMovement] = useState({concept: '', amount: 0, date: '', type: 'expense'});
   const [activeModal, setActiveModal] = useState(null);
-  const { role, userName, weddingName, progress, logoUrl } = useUserContext();
+  const { user, role, userName, weddingName, progress, logoUrl } = useUserContext();
+
+  // Si el usuario es Wedding Planner mostramos dashboard específico
+  if (role === 'planner') {
+    return <PlannerDashboard />;
+  }
   const galleryRef = useRef(null);
+
+  const handleRedoTutorial = async () => {
+    if (!confirm('Esto eliminará datos locales y creará una nueva boda de prueba. ¿Continuar?')) return;
+    try {
+      // 1. Limpiar almacenamiento y marcar flag para mostrar tutorial
+      localStorage.clear();
+      localStorage.setItem('forceOnboarding', '1');
+
+      toast.success('Tutorial reiniciado: recargando...');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      console.error(err);
+      toast.error('No se pudo reiniciar el tutorial');
+    }
+  };
   const scrollAmount = 300;
 
   const scrollPrev = () => {
@@ -71,6 +94,15 @@ export default function HomePage() {
 
   return (
     <React.Fragment>
+      {/* Botón solo visible en desarrollo */}
+      {true && (
+        <button
+          onClick={handleRedoTutorial}
+          className="fixed top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-full shadow-lg z-[100]"
+        >
+          Rehacer tutorial
+        </button>
+      )}
       <div className="relative flex flex-col h-full bg-[var(--color-bg)] pb-16">
         {/* Decorative background circle */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-accent)] rounded-full opacity-20 transform translate-x-1/2 -translate-y-1/2" />

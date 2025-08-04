@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useUserContext } from '../../context/UserContext';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { createWedding, getWeddingIdForOwner } from '../../services/WeddingService';
+import { googleCalendarService } from '../../services/GoogleCalendarService';
 import { db } from '../../firebaseConfig';
 import { ChevronRight, ChevronLeft, Check, Calendar, Users, ShoppingBag, Settings, Image } from 'lucide-react';
 
@@ -329,6 +331,40 @@ const OnboardingTutorial = ({ onComplete }) => {
         });
       }
       
+      // Asegurar que el usuario tenga una boda creada
+      let wid = await getWeddingIdForOwner(user.uid);
+      if (!wid) {
+        wid = await createWedding(user.uid, {
+          name: profileData.nombres || 'Mi Boda',
+          weddingDate: profileData.fecha || undefined,
+        });
+      }
+
+      // Crear evento en calendario si hay fecha de boda
+      if (profileData.fecha) {
+        try {
+          // Asegurar autenticación con Google; si el usuario no concede, se ignora
+          await googleCalendarService.loadClient().catch(() => {});
+          if (!googleCalendarService.isAuthenticated()) {
+            await googleCalendarService.signIn().catch(() => {});
+          }
+          if (googleCalendarService.isAuthenticated()) {
+            const startDate = new Date(profileData.fecha + 'T12:00:00');
+            const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+            await googleCalendarService.createEvent({
+              title: 'Boda',
+              desc: 'Fecha de la boda planificada en Lovenda',
+              start: startDate,
+              end: endDate,
+              location: profileData.lugar || undefined,
+              category: 'LUGAR'
+            });
+          }
+        } catch (calErr) {
+          console.error('No se pudo crear evento en el calendario:', calErr);
+        }
+      }
+
       // Llamar al callback cuando se completa
       onComplete && onComplete();
     } catch (error) {

@@ -13,13 +13,28 @@ import { useUserContext } from '../context/UserContext';
  */
 export const useOnboarding = () => {
   const { user } = useUserContext();
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // Si existe flag en localStorage, mostramos onboarding sí o sí
+  const forceFlag = typeof window !== 'undefined' ? localStorage.getItem('forceOnboarding') === '1' : false;
+  const [showOnboarding, setShowOnboarding] = useState(forceFlag);
+  // No eliminamos el flag aquí; se quitará cuando se complete el tutorial.
+  
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Verificar si el usuario ya completó el onboarding
   useEffect(() => {
     const checkOnboardingStatus = async () => {
+      if (user?.role && ['planner', 'assistant'].includes(user.role)) {
+        // No mostrar tutorial para wedding planners ni ayudantes
+        setShowOnboarding(false);
+        setOnboardingCompleted(true);
+        setLoading(false);
+        return;
+      }
+      if (forceFlag) {
+        setLoading(false);
+        return;
+      }
       if (!user?.uid) {
         setLoading(false);
         return;
@@ -47,15 +62,14 @@ export const useOnboarding = () => {
       }
     };
 
-    if (user) {
-      checkOnboardingStatus();
-    }
-  }, [user]);
+    checkOnboardingStatus();
+  }, [user, forceFlag]);
 
   // Función para marcar el onboarding como completado
   const completeOnboarding = () => {
     setShowOnboarding(false);
     setOnboardingCompleted(true);
+    localStorage.removeItem('forceOnboarding');
   };
 
   return {

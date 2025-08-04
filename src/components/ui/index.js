@@ -10,3 +10,9 @@ export { default as Button } from './Button';
 export { default as Spinner } from './Spinner';
 export { default as Alert } from './Alert';
 export { default as Badge } from './Badge';
+
+// Exportar componente de progreso
+export { default as Progress } from './Progress';
+
+// Exportar componentes de Tabs simples (implementación interna)
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';

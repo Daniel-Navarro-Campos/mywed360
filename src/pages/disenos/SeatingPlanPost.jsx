@@ -1,6 +1,8 @@
 import React from 'react';
 import Card from '../../components/Card';
-import { saveData, loadData } from '../../services/SyncService';
+import { loadData } from '../../services/SyncService';
+import { useWedding } from '../../context/WeddingContext';
+import useWeddingCollection from '../../hooks/useWeddingCollection';
 import ImageGeneratorAI from '../../components/ImageGeneratorAI';
 
 // Plantillas predefinidas para carteles de seating plan
@@ -34,13 +36,16 @@ const seatingPlanTemplates = [
 
 export default function SeatingPlanPost() {
   // Obtener información de invitados y mesas si está disponible
+  const { activeWedding } = useWedding();
+  const { data: dbGuests } = useWeddingCollection('guests', activeWedding, []);
+
   const getSeatingInfo = () => {
     try {
-      const guests = loadData('lovendaGuests', { defaultValue: [], collection: 'userGuests' });
+      const guests = dbGuests;
       const tables = loadData('lovendaTables', { defaultValue: [], collection: 'userTables' });
       
       // Si no hay datos suficientes, devolver cadena vacía
-      if (!guests.length || !tables.length) return '';
+      if (!Array.isArray(guests) || guests.length===0 || !tables.length) return '';
       
       // Agrupar invitados por mesa
       const guestsByTable = {};

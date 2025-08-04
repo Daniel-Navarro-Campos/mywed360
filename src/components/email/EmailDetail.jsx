@@ -84,6 +84,14 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
     return emailAddress.split('@')[0].replace(/[.]/g, ' ');
   };
 
+  // Extraer dirección de correo del remitente
+  const getSenderEmail = (emailAddress) => {
+    if (!emailAddress) return '';
+    const match = emailAddress.match(/<([^>]+)>/);
+    if (match) return match[1];
+    return emailAddress;
+  };
+
   // Manejar eventos de teclado para navegación
   const handleKeyDown = (e) => {
     // ESC para volver a la lista de correos
@@ -104,7 +112,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
       aria-label="Detalle del correo electrónico"
     >
       {/* Cabecera - Adaptativa para móvil */}
-      <header className="mb-3 sm:mb-4 pb-2 border-b border-gray-200">
+      <header className="mb-3 sm:mb-4 pb-2 border-b border-gray-200" role="header">
         <div className={`flex items-center ${isSmallScreen ? 'flex-col items-start' : 'justify-between'} mb-3 sm:mb-4`}>
           <Button 
             variant="ghost" 
@@ -122,6 +130,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
               size={isSmallScreen ? "xs" : "sm"} 
               onClick={onReply} 
               title="Responder"
+              aria-label="Responder"
               className="flex items-center"
             >
               <Reply size={isSmallScreen ? 14 : 16} />
@@ -133,6 +142,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
                 size={isSmallScreen ? "xs" : "sm"} 
                 onClick={() => setIsFolderModalOpen(true)}
                 title="Mover a carpeta"
+                aria-label="Mover a carpeta"
                 className="flex items-center"
               >
                 <FolderMove size={isSmallScreen ? 14 : 16} />
@@ -175,7 +185,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
             <div className={`${isSmallScreen ? 'flex flex-col' : 'flex items-baseline justify-between'}`}>
               <div>
                 <p className="font-medium text-sm sm:text-base" id="sender-name">{getSenderName(email.from)}</p>
-                <p className="text-xs text-gray-700 break-all" id="sender-email" aria-label="Dirección de correo del remitente">{email.from}</p>
+                <p className="text-xs text-gray-700 break-all" id="sender-email" aria-label="Dirección de correo del remitente">{getSenderEmail(email.from)}</p>
               </div>
               <p className="text-xs text-gray-700 mt-1 sm:mt-0" aria-label="Fecha de envío">{formatFullDate(email.date)}</p>
             </div>
@@ -222,7 +232,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
       {email.attachments && email.attachments.length > 0 && (
         <section 
           className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-200"
-          aria-label="Archivos adjuntos"
+          role="group"
         >
           <h3 className="text-xs sm:text-sm font-medium mb-2 flex items-center" id="attachments-heading">
             <Paperclip size={isSmallScreen ? 14 : 16} className="mr-1" aria-hidden="true" /> 

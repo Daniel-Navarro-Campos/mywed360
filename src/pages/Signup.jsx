@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('particular');
   const [error, setError] = useState('');
   const { signup } = useUserContext();
   const navigate = useNavigate();
@@ -13,7 +14,7 @@ export default function Signup() {
     e.preventDefault();
     setError('');
     try {
-      await signup(email, password);
+      await signup(email, password, role);
       navigate('/home');
     } catch (err) {
       setError(err.message);
@@ -38,6 +39,15 @@ export default function Signup() {
           onChange={(e) => setPassword(e.target.value)}
           className="border p-2 w-full mb-4"
         />
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          className="border p-2 w-full mb-4"
+        >
+          <option value="particular">Particular</option>
+          <option value="planner">Wedding Planner</option>
+          <option value="assistant">Ayudante</option>
+        </select>
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
         <button
           type="submit"

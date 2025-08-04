@@ -3,7 +3,8 @@ import { Search, Mail, Edit2, Trash2, RefreshCcw, Plus, User, Phone, Cloud, Clou
 import { Card } from '../components/ui';
 import { Button } from '../components/ui';
 import { Input } from '../components/ui';
-import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
+import useWeddingCollection from '../hooks/useWeddingCollection';
+import { useWedding } from '../context/WeddingContext';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 
 // ---------------- NUEVO COMPONENTE INVITADOS ----------------
@@ -14,24 +15,38 @@ function Invitados() {
     { id: 1, name: 'Ana García', phone: '123456789', address: 'Calle Sol 1', companion: 1, table: '5', response: 'Sí' },
     { id: 2, name: 'Luis Martínez', phone: '987654321', address: 'Av. Luna 3', companion: 0, table: '', response: 'Pendiente' },
   ];
-  const { data: guests, addItem, updateItem, deleteItem } = useFirestoreCollection('guests', sampleGuests);
+  const { activeWedding } = useWedding();
+  const { data: guests, addItem, updateItem, deleteItem } = useWeddingCollection('guests', activeWedding, sampleGuests);
 
   // --- Utilidades duplicados ---
+  const getStatusLabel = (guest) => {
+    if (guest.status) {
+      if (guest.status === 'accepted') return 'Sí';
+      if (guest.status === 'rejected') return 'No';
+      return 'Pendiente';
+    }
+    return guest.response || 'Pendiente';
+  };
   const normalize = (str = '') => str.trim().toLowerCase();
   const phoneClean = (str = '') => str.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
 
-  // --- Funciones para enviar invitaciones ---
-  const bulkInvite = () => {
-    // recoger todos los invitados con email o teléfono
-    const mails = guests.filter(g=>g.email).map(g=>g.email).join(',');
-    if (mails) {
-      const subject = encodeURIComponent('Invitación a nuestra boda');
-      const body = encodeURIComponent('¡Hola! Nos encantaría contar contigo en nuestra boda. Por favor confirma tu asistencia.');
-      window.open(`mailto:${mails}?subject=${subject}&body=${body}`);
-    } else {
-      alert('No hay emails de invitados disponibles');
+  // --- Enviar invitaciones vía WhatsApp con enlace RSVP ---
+  const bulkInvite = async () => {
+    if (!window.confirm('Se abrirá WhatsApp en una pestaña por invitado con número. ¿Continuar?')) return;
+    for (const guest of guests) {
+      const phone = phoneClean(guest.phone);
+      if (!phone) continue; // saltar invitados sin teléfono
+      try {
+        const resp = await fetch(`/api/guests/id/${guest.id}/rsvp-link`, { method: 'POST' });
+        const { link } = await resp.json();
+        const txt = encodeURIComponent(`¡Hola ${guest.name}! Estamos encantados de invitarte a nuestra boda. Por favor confirma tu asistencia y alérgenos aquí: ${link}`);
+        window.open(`https://wa.me/${phone}?text=${txt}`, '_blank');
+      } catch (err) {
+        console.error('Error generando enlace RSVP', err);
+      }
     }
   };
+
   const inviteWhatsApp = (guest) => {
     const phone = phoneClean(guest.phone);
     if(!phone){ alert('Invitado sin teléfono'); return; }
@@ -55,10 +70,9 @@ function Invitados() {
   useEffect(() => {
     try {
       // Usar SyncService para persistencia híbrida
-      saveData('lovendaGuests', guests, {
-        collection: 'userGuests',
-        showNotification: false // No mostrar notificación cada vez
-      });
+      // Guardar solo en localStorage para compatibilidad con componentes antiguos
+      localStorage.setItem('lovendaGuests', JSON.stringify(guests));
+      // (El guardado en Firestore se hace automáticamente mediante useWeddingCollection)
       
       // Mantener compatibilidad con componentes que usan localStorage directamente
       window.dispatchEvent(new Event('lovenda-guests'));
@@ -161,10 +175,11 @@ function Invitados() {
   };
 
   const filtered = guests.filter(g => {
+    const name = (g.name || '').toLowerCase();
     return (
-      g.name.toLowerCase().includes(search.toLowerCase()) &&
-      (filterResponse ? g.response === filterResponse : true) &&
-      (filterTable ? String(g.table) === filterTable : true)
+      name.includes(search.toLowerCase()) &&
+      (filterResponse ? getStatusLabel(g) === filterResponse : true) &&
+      (filterTable ? String(g.table || '') === filterTable : true)
     );
   });
 
@@ -218,7 +233,7 @@ function Invitados() {
                 <tr key={g.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => { setEditingGuest({ ...g }); setModalOpen(true); }}>
                   <td className="p-2 flex items-center"><User size={16} className="mr-2 text-gray-600" />{g.name}</td>
                   <td className="p-2">{g.phone}</td>
-                  <td className="p-2">{g.response}</td>
+                  <td className="p-2">{getStatusLabel(g)}</td>
                   <td className="p-2">{g.companion}</td>
                   <td className="p-2" title={getTooltipForTable(g.table)}>{g.table || '-'}</td>
                 </tr>
@@ -276,7 +291,20 @@ function Invitados() {
               <Input label="Mesa (número o apodo)" value={editingGuest.table} onChange={e => setEditingGuest({ ...editingGuest, table: e.target.value })} />
             </div>
             <div className="flex justify-between gap-2 pt-2">
-              {editingGuest?.id && <Button variant="outline" className="text-red-600" onClick={() => { if(window.confirm('¿Eliminar invitado?')) { setGuests(prev=>prev.filter(g=>g.id!==editingGuest.id)); setModalOpen(false); } }}>Eliminar</Button>}
+              {editingGuest?.id && (
+                <Button
+                  variant="outline"
+                  className="text-red-600"
+                  onClick={async () => {
+                    if (window.confirm('¿Eliminar invitado?')) {
+                      await deleteItem(editingGuest.id);
+                      setModalOpen(false);
+                    }
+                  }}
+                >
+                  Eliminar
+                </Button>
+              )}
               <Button variant="outline" onClick={() => { setModalOpen(false); setEditingGuest(null); }}>Cancelar</Button>
               <Button onClick={handleSave}>Guardar</Button>
             </div>
