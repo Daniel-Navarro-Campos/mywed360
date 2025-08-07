@@ -155,7 +155,7 @@ export default function HomePage() {
         </section>
 
         {/* Quick Actions */}
-        <section className="z-10 p-6 flex flex-nowrap gap-4 w-full">
+        <section className="z-10 p-6 flex flex-wrap gap-4 w-full">
           {[
             { key: 'proveedor', label: 'Buscar proveedor', icon: User },
             { key: 'invitado', label: 'Añadir invitado', icon: Users },
