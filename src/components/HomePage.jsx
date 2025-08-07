@@ -155,7 +155,7 @@ export default function HomePage() {
         </section>
 
         {/* Quick Actions */}
-        <section className="z-10 p-6 flex flex-wrap gap-4 w-full">
+        <section className="z-10 p-6 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
           {[
             { key: 'proveedor', label: 'Buscar proveedor', icon: User },
             { key: 'invitado', label: 'Añadir invitado', icon: Users },
@@ -168,7 +168,7 @@ export default function HomePage() {
                 key={idx}
                 role="button"
                 onClick={() => setActiveModal(action.key)}
-                className="flex-1 flex items-center justify-between p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
+                className="flex items-center justify-between p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="text-[var(--color-primary)]" />
