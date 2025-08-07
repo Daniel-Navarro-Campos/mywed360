@@ -20,18 +20,34 @@ const API_KEY = import.meta.env.VITE_NEWSAPI_KEY;
 
 export async function fetchWeddingNews(page = 1, pageSize = 10, language = 'es') {
   if (!API_KEY) {
-    // Demo sin clave
-    return [
-      {
-        id: 'demo_1',
-        title: 'Ideas de decoración para tu boda en 2025',
-        description: 'Tendencias frescas en flores, iluminación y mesas para sorprender a tus invitados.',
-        url: 'https://example.com/boda-decoracion-2025',
-        image: 'https://images.unsplash.com/photo-1529634896862-08db0e0ea1cf?w=600',
-        source: 'Demo News',
-        published: new Date().toISOString(),
-      },
+    // Fallback: parse RSS feeds de noticias de bodas
+    const RSS_URLS = [
+      'https://www.hola.com/novias/rss/',
+      'https://www.zankyou.es/p/actualidad/feed',
+      'https://feeds.feedburner.com/bodasnet',
     ];
+    const fetchRss = async (url)=>{
+      try{
+        const resp = await axios.get(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+        const xml = resp.data;
+        const dom = new DOMParser().parseFromString(xml,'text/xml');
+        const items = Array.from(dom.querySelectorAll('item')).slice(0,pageSize);
+        return items.map(it=>({
+          id: it.querySelector('guid')?.textContent || it.querySelector('link')?.textContent,
+          title: it.querySelector('title')?.textContent,
+          description: it.querySelector('description')?.textContent.replace(/<[^>]+>/g,'').trim(),
+          url: it.querySelector('link')?.textContent,
+          image: it.querySelector('enclosure')?.getAttribute('url') || null,
+          source: (new URL(url)).hostname.replace('www.',''),
+          published: it.querySelector('pubDate') ? new Date(it.querySelector('pubDate').textContent).toISOString() : new Date().toISOString(),
+        }));
+      }catch(e){console.error('RSS error',e);return[];}
+    };
+
+    const allPosts = (await Promise.all(RSS_URLS.map(fetchRss))).flat();
+    // Ordenar por fecha desc
+    allPosts.sort((a,b)=> new Date(b.published)-new Date(a.published));
+    return allPosts.slice(0,pageSize);
   }
 
   const res = await axios.get('https://newsapi.org/v2/everything', {
