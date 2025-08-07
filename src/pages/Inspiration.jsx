@@ -15,7 +15,7 @@ export default function Inspiration() {
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState('wedding');
   const [selectedTag, setSelectedTag] = useState('all');
-  const [prefTags, setPrefTags] = useState([]);
+  const [prefTags, setPrefTags] = useState([]); // top tags del usuario
   const observer = useRef();
   const lastItemRef = useCallback((node) => {
     if (loading) return;
@@ -30,29 +30,15 @@ export default function Inspiration() {
 
   // Obtener tags preferidos basados en favoritos guardados
   useEffect(() => {
-    try {
-      let stored = [];
-      try {
-        const raw = localStorage.getItem('ideasPhotos');
-        if (raw) stored = JSON.parse(raw);
-      } catch(e){
-        console.warn('ideasPhotos parse error', e);
-        localStorage.removeItem('ideasPhotos'); // Reset corrupt data
+    (async () => {
+      const favs = await loadData('ideasPhotos', { firestore: false, fallbackToLocal: true });
+      if(Array.isArray(favs)){
+        const counts = {};
+        favs.forEach(p => (p.tags||[]).forEach(t => {counts[t]=(counts[t]||0)+1;}));
+        const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([t])=>t);
+        setPrefTags(sorted.slice(0,5));
       }
-      const tagCount = {};
-      stored.forEach(p => {
-        (p.categories || []).forEach(t => {
-          tagCount[t] = (tagCount[t] || 0) + 1;
-        });
-      });
-      const topTags = Object.entries(tagCount)
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,5)
-        .map(([t])=>t);
-      setPrefTags(topTags);
-    } catch(e){
-      console.warn('Pref tags error', e);
-    }
+    })();
   }, []);
 
   useEffect(() => {
@@ -62,7 +48,7 @@ export default function Inspiration() {
       setItems((prev) => {
         const merged = [...prev, ...newItems];
         // Personalización: boost posts que incluyan tags preferidos
-        const score = (item)=> (item.categories||[]).some(t=>prefTags.includes(t)) ? 1 : 0;
+        const score = (item)=> (item.tags||[]).some(t=>prefTags.includes(t)) ? 1 : 0;
         return merged.sort((a,b)=> score(b)-score(a));
       });
       setLoading(false);
@@ -74,6 +60,11 @@ export default function Inspiration() {
     saveData('ideasPhotos', (prev) => {
       const arr = Array.isArray(prev) ? prev : [];
       if (!arr.some((p) => p.id === item.id)) arr.push(item);
+      // actualizar prefTags en memoria
+      const newTags = (item.tags||[]).filter(t=>!prefTags.includes(t));
+      if(newTags.length){
+        setPrefTags([...prefTags, ...newTags].slice(0,5));
+      }
       return arr;
     }, { collection: 'userIdeas', showNotification: true });
     trackInteraction(userId, item, 0, true);
