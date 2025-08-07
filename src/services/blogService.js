@@ -1,56 +1,57 @@
-// Servicio de Blog
-// Carga noticias del sector bodas usando NewsAPI.org.
-// La clave se leerá de VITE_NEWSAPI_KEY; si no existe, se devolverán artículos de ejemplo.
-
+// blogService.js - noticias de bodas
 import axios from 'axios';
 import { translateText } from './translationService.js';
 
+// Usa variable de entorno Vite; si no existe, usa clave proporcionada explícitamente.
+const API_KEY = import.meta.env.VITE_NEWSAPI_KEY || 'f7579ee601634944822b313e268a9357';
+
 /**
  * @typedef {Object} BlogPost
- * @property {string} id         - identificador único
- * @property {string} title      - título del artículo
- * @property {string} description- descripción breve
- * @property {string} url        - enlace original
- * @property {string} image      - URL de imagen de portada (puede ser null)
- * @property {string} source     - medio
- * @property {string} published  - fecha ISO
+ * @property {string} id          Identificador único
+ * @property {string} title       Título
+ * @property {string} description Descripción
+ * @property {string} url         Enlace original
+ * @property {string|null} image  URL de la imagen
+ * @property {string} source      Fuente
+ * @property {string} published   ISODate de publicación
  */
 
-const API_KEY = import.meta.env.VITE_NEWSAPI_KEY;
-
+/**
+ * Obtiene titulares de bodas.
+ * Con API_KEY → NewsAPI.org; sin API_KEY → proxy RSS backend.
+ * @param {number} [page=1]
+ * @param {number} [pageSize=10]
+ * @param {string} [language='es'] ISO 639-1
+ * @returns {Promise<BlogPost[]>}
+ */
 export async function fetchWeddingNews(page = 1, pageSize = 10, language = 'es') {
   if (!API_KEY) {
-    // Fallback: parse RSS feeds de noticias de bodas
-    const RSS_URLS = [
-      'https://www.hola.com/novias/rss/',
-      'https://www.zankyou.es/p/actualidad/feed',
-      'https://feeds.feedburner.com/bodasnet',
-    ];
-    const fetchRss = async (url)=>{
-      try{
-        const resp = await axios.get(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-        const xml = resp.data;
-        const dom = new DOMParser().parseFromString(xml,'text/xml');
-        const items = Array.from(dom.querySelectorAll('item')).slice(0,pageSize);
-        return items.map(it=>({
-          id: it.querySelector('guid')?.textContent || it.querySelector('link')?.textContent,
-          title: it.querySelector('title')?.textContent,
-          description: it.querySelector('description')?.textContent.replace(/<[^>]+>/g,'').trim(),
-          url: it.querySelector('link')?.textContent,
-          image: it.querySelector('enclosure')?.getAttribute('url') || null,
-          source: (new URL(url)).hostname.replace('www.',''),
-          published: it.querySelector('pubDate') ? new Date(it.querySelector('pubDate').textContent).toISOString() : new Date().toISOString(),
-        }));
-      }catch(e){console.error('RSS error',e);return[];}
-    };
-
-    const allPosts = (await Promise.all(RSS_URLS.map(fetchRss))).flat();
-    // Ordenar por fecha desc
-    allPosts.sort((a,b)=> new Date(b.published)-new Date(a.published));
-    return allPosts.slice(0,pageSize);
+    // Fallback RSS proxy (backend) para evitar CORS
+    const { data } = await axios.get('/api/wedding-news', {
+      params: { page, pageSize },
+      timeout: 8000,
+    });
+    
+    let posts = data;
+    if (language && language !== 'en') {
+      for (const p of posts) {
+        p.title = await translateText(p.title, language, '');
+        p.description = await translateText(p.description, language, '');
+      }
+    }
+    return posts;
   }
 
-  const res = await axios.get('https://newsapi.org/v2/everything', {
+    // NewsAPI sólo permite 100 resultados y rate-limit estricto.
+  // Para páginas >1 recurrimos al backend RSS proxy para continuar con variedad.
+  if (page > 1) {
+    const { data } = await axios.get('/api/wedding-news', {
+      params: { page, pageSize, lang: language },
+      timeout: 8000,
+    });
+    return data;
+  }
+  const endpointOpts = {
     params: {
       q: 'wedding OR boda',
       language,
@@ -58,12 +59,23 @@ export async function fetchWeddingNews(page = 1, pageSize = 10, language = 'es')
       pageSize,
       page,
     },
-    headers: {
-      'X-Api-Key': API_KEY,
-    },
-  });
+    headers: { 'X-Api-Key': API_KEY },
+    timeout: 8000,
+  };
 
-  const mapped = res.data.articles.map((a, idx) => ({
+  let data;
+  try {
+    const resp = await axios.get('https://newsapi.org/v2/everything', endpointOpts);
+    data = resp.data;
+  } catch (err) {
+    if (err.response && err.response.status === 426) {
+      console.warn('NewsAPI 426 Upgrade Required – plan gratuito limitado a primera página.');
+      return [];
+    }
+    throw err;
+  }
+
+  const posts = data.articles.map((a, idx) => ({
     id: `${page}_${idx}_${a.url}`,
     title: a.title,
     description: a.description,
@@ -73,12 +85,13 @@ export async function fetchWeddingNews(page = 1, pageSize = 10, language = 'es')
     published: a.publishedAt,
   }));
 
-  // Traducción si es necesario y hay API Key de traducción
-  if (language !== 'en') {
-    for (const post of mapped) {
-      post.title = await translateText(post.title, language, '');
-      post.description = await translateText(post.description, language, '');
+  if (language && language !== 'en') {
+    for (const p of posts) {
+      p.title = await translateText(p.title, language, '');
+      p.description = await translateText(p.description, language, '');
     }
   }
-  return mapped;
+
+  return posts;
 }
+// Fin de archivo

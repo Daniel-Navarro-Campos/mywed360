@@ -20,8 +20,49 @@ export default function Blog() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const data = await fetchWeddingNews(page, 10, 'es');
-      setPosts((prev) => [...prev, ...data]);
+      let newPosts = [...posts];
+      const targetLength = Math.ceil((newPosts.length + 1) / 10) * 10; // siguiente múltiplo de 10
+      const domainCounts = {};
+      const windowStart = Math.floor(newPosts.length / 10) * 10;
+      for (let i = windowStart; i < newPosts.length; i++) {
+        const d = (()=>{try{return (new URL(newPosts[i].url)).hostname.replace(/^www\./,'');}catch{return 'unk';}})();
+        domainCounts[d] = (domainCounts[d] || 0) + 1;
+      }
+
+      let fetchPage = page;
+      while (newPosts.length < targetLength && fetchPage < page + 60) {
+        const batch = await fetchWeddingNews(fetchPage, 50, 'es');
+        fetchPage++;
+        for (const p of batch) {
+          if (!p.url) continue;
+          if (newPosts.some(x => x.url === p.url || x.id === p.id)) continue;
+          const dom = (()=>{try{return (new URL(p.url)).hostname.replace(/^www\./,'');}catch{return 'unk';}})();
+          if ((domainCounts[dom] || 0) >= 3) continue;
+          domainCounts[dom] = (domainCounts[dom] || 0) + 1;
+          newPosts.push(p);
+          if (newPosts.length >= targetLength) break;
+        }
+      }
+
+      // Fallback: si tras buscar no llenamos el bloque, relajamos dominio y buscamos en inglés
+      if (newPosts.length < targetLength) {
+        fetchPage = 1;
+        while (newPosts.length < targetLength && fetchPage <= 30) {
+          const batch = await fetchWeddingNews(fetchPage, 50, 'en');
+          fetchPage++;
+          for (const p of batch) {
+            if (!p.url) continue;
+            if (newPosts.some(x => x.url === p.url || x.id === p.id)) continue;
+            const dom = (()=>{try{return (new URL(p.url)).hostname.replace(/^www\./,'');}catch{return 'unk';}})();
+            if ((domainCounts[dom] || 0) >= 3) continue;
+            domainCounts[dom] = (domainCounts[dom] || 0) + 1;
+            newPosts.push(p);
+            if (newPosts.length >= targetLength) break;
+          }
+        }
+      }
+
+      setPosts(newPosts);
       setLoading(false);
     }
     load();
@@ -31,7 +72,7 @@ export default function Blog() {
     <div className="p-4 md:p-6 space-y-6">
       <h1 className="text-2xl font-bold">Blog</h1>
       {posts.map((p, idx) => (
-        <ArticleCard key={p.id} post={p} ref={idx === posts.length - 1 ? lastRef : null} />
+        <ArticleCard key={p.url || p.id || idx} post={p} ref={idx === posts.length - 1 ? lastRef : null} />
       ))}
       {loading && <div className="flex justify-center my-6"><Spinner /></div>}
     </div>

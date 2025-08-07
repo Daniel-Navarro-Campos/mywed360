@@ -11,6 +11,7 @@ import Input from './Input';
 import ProviderSearchModal from './ProviderSearchModal';
 
 import { fetchWall } from '../services/wallService';
+import { fetchWeddingNews } from '../services/blogService';
 
 import PlannerDashboard from './PlannerDashboard';
 
@@ -27,6 +28,7 @@ export default function HomePage() {
     return <PlannerDashboard />;
   }
   const galleryRef = useRef(null);
+  const [newsPosts, setNewsPosts] = useState([]);
   const [categoryImages, setCategoryImages] = useState([]);
 
   // Cargar primera imagen de cada categoría
@@ -40,6 +42,56 @@ export default function HomePage() {
       }).filter(Boolean);
       setCategoryImages(imgs);
     }).catch(console.error);
+  }, []);
+
+  // Cargar últimas noticias (máx 3 por dominio y 4 con imagen)
+  useEffect(() => {
+    const loadNews = async () => {
+      try {
+        const desired = 4;
+        let page = 1;
+        const results = [];
+        const domainCounts = {};
+        while (results.length < desired && page <= 20) {
+          const batch = await fetchWeddingNews(page, 50, 'es');
+          for (const post of batch) {
+            if (!post.image) continue;
+            const domain = (() => {
+              try {
+                return new URL(post.url).hostname.replace(/^www\./, '');
+              } catch {
+                return 'unknown';
+              }
+            })();
+            if ((domainCounts[domain] || 0) >= 3) continue;
+            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+            results.push(post);
+            if (results.length >= desired) break;
+          }
+          page++;
+        }
+
+        // fallback: si aún faltan, relajamos límite de dominio
+        if (results.length < desired) {
+          page = 1;
+          while (results.length < desired && page <= 20) {
+            const batch = await fetchWeddingNews(page, 50, 'es');
+            for (const post of batch) {
+              if (!post.image) continue;
+              if (results.some(x => x.url === post.url)) continue;
+              results.push(post);
+              if (results.length >= desired) break;
+            }
+            page++;
+          }
+        }
+
+        setNewsPosts(results.slice(0, desired));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadNews();
   }, []);
 
   const handleRedoTutorial = async () => {
@@ -243,31 +295,21 @@ export default function HomePage() {
               </button>
             </Link>
           </div>
-        </section>
-
-        {/* Artículos de Inspiración */}
-        <section className="z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 p-6">
-          {[
-            { title: "10 ideas para personalizar tu boda", source: "Blog de Bodas", url: "#" },
-            { title: "Tendencias en decoración para este año", source: "Revista Novias", url: "#" },
-            { title: "Guía de planificación paso a paso", source: "Lovenda", url: "#" },
-            { title: "Consejos para elegir proveedores", source: "Expertos en Bodas", url: "#" }
-          ].map((article, idx) => (
-            <Card key={idx} className="p-4 hover:shadow-lg transition">
-              <p className="text-lg font-medium text-[var(--color-text)]">
-                {article.title}
-              </p>
-              <p className="text-sm text-[color:var(--color-text)] mt-1">
-                {article.source}
-              </p>
-              <a
-                href={article.url}
-                className="inline-flex items-center text-[var(--color-primary)] mt-2"
-              >
-                Leer más
-              </a>
-            </Card>
-          ))}
+        {newsPosts.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {newsPosts.map((post) => (
+                <Card key={post.id} onClick={() => window.open(post.url, '_blank')} className="cursor-pointer p-0 overflow-hidden bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition">
+                  {post.image && (
+                    <img src={post.image} alt={post.title} className="w-full h-40 object-cover" />
+                  )}
+                  <div className="p-4 space-y-1">
+                    <h3 className="font-semibold text-[color:var(--color-text)] line-clamp-2">{post.title}</h3>
+                    <p className="text-sm text-[var(--color-text)]/70 line-clamp-2">{post.description}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
 
         <Nav active="home" />

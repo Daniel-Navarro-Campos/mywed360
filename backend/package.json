@@ -10,8 +10,10 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@myno_21/pinterest-scraper": "^1.0.4",
     "axios": "^1.6.0",
     "canvas": "^3.1.2",
+    "cheerio": "1.0.0-rc.12",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.19.2",
@@ -20,8 +22,7 @@
     "imagetracerjs": "^1.2.6",
     "ngrok": "^5.0.0-beta.2",
     "openai": "^4.104.0",
-    "@myno_21/pinterest-scraper": "^1.0.4",
-    "cheerio": "1.0.0-rc.12",
+    "rss-parser": "^3.13.0",
     "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
