@@ -1,16 +1,24 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Star, StarOff, X } from 'lucide-react';
 
 // Ejemplo estático: en producción vendrá de API o CMS
-const BASE_TAGS = ['ceremonia','decoración','cóctel','banquete','disco','flores','vestido','pastel','fotografía','inspiration'];
+const BASE_TAGS = ['favs','ceremonia','decoración','cóctel','banquete','disco','flores','vestido','pastel','fotografía','inspiration'];
 
 
 const DEFAULT_IMAGES = [];
 
 export default function InspirationGallery({ images = [], onSave = () => {}, onView = () => {}, lastItemRef = null, onTagClick = () => {}, activeTag = 'all' }) {
   const [filter, setFilter] = useState(activeTag);
-  const [favorites, setFavorites] = useState([]);
+  const [favorites, setFavorites] = useState([]); // ids de favoritos
   const [lightbox, setLightbox] = useState(null); // id
+
+  // Cargar favoritos de localStorage/Sync al montar
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('ideasPhotos')||'[]');
+      setFavorites(stored.map(p=>p.id));
+    } catch(e){console.warn('No favs yet');}
+  }, []);
 
   const DATA = images.length ? images : DEFAULT_IMAGES;
 
@@ -22,8 +30,9 @@ export default function InspirationGallery({ images = [], onSave = () => {}, onV
 
   const filtered = useMemo(() => {
     if (filter === 'all') return DATA;
+    if (filter === 'favs') return DATA.filter(img => favorites.includes(img.id));
     return DATA.filter(img => img.tags.includes(filter));
-  }, [filter, DATA]);
+  }, [filter, DATA, favorites]);
 
   const toggleFav = id => {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { trackInteraction } from '../services/inspirationService';
 import { fetchWall } from '../services/wallService';
-import { saveData } from '../services/SyncService';
+import { saveData, loadData } from '../services/SyncService';
 import { useUserContext } from '../context/UserContext';
 import Spinner from '../components/Spinner';
 import InspirationGallery from '../components/gallery/InspirationGallery';
@@ -91,8 +91,14 @@ export default function Inspiration() {
     setSelectedTag('all');
   };
 
-  const handleTag = (tag)=>{
+  const handleTag = async (tag)=>{
     setSelectedTag(tag);
+    if(tag==='favs'){
+      const favs = await loadData('ideasPhotos', { firestore: false, fallbackToLocal: true });
+      setItems(Array.isArray(favs)?favs:[]);
+      setPage(1);
+      return;
+    }
     setItems([]);
     setPage(1);
     setQuery(tag==='all'?'wedding':tag);
