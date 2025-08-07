@@ -234,6 +234,17 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Blog Section */}
+        <section className="z-10 p-6 pb-2">
+          <div className="flex justify-between items-center mb-4">
+            <Link to="/blog">
+              <button className="text-xl font-bold text-[var(--color-text)] hover:text-[var(--color-primary)]">
+                Blog
+              </button>
+            </Link>
+          </div>
+        </section>
+
         {/* Artículos de Inspiración */}
         <section className="z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 p-6">
           {[
