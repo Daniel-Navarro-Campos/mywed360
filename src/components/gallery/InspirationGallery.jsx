@@ -51,12 +51,12 @@ export default function InspirationGallery({ images = [], onSave = () => {}, onV
           <div className="w-full flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div></div>
         )}
         {DATA.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {filtered.map((img, idx) => (
           <div key={`${img.id}_${idx}`} ref={idx===filtered.length-1 ? lastItemRef : null} className="relative group cursor-pointer" onClick={()=>{setLightbox(img.id); onView(img);}}>
             <img src={img.url}
                  alt="inspiration"
-                 className="w-full h-32 object-cover rounded"
+                 className="w-full aspect-square object-cover rounded-lg"
                  loading="lazy"
                  referrerPolicy="no-referrer" />
             <button
