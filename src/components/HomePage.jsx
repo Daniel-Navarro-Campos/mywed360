@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useUserContext } from '../context/UserContext';
 import { Card } from './ui/Card';
@@ -10,10 +10,7 @@ import { User, DollarSign, Calendar, Users, ChevronLeft, ChevronRight, Plus, Pho
 import Input from './Input';
 import ProviderSearchModal from './ProviderSearchModal';
 
-import inspo1 from '../assets/inspo1.jpg';
-import inspo2 from '../assets/inspo2.jpg';
-import inspo3 from '../assets/inspo3.jpg';
-import inspo4 from '../assets/inspo4.jpg';
+import { fetchWall } from '../services/wallService';
 
 import PlannerDashboard from './PlannerDashboard';
 
@@ -30,6 +27,20 @@ export default function HomePage() {
     return <PlannerDashboard />;
   }
   const galleryRef = useRef(null);
+  const [categoryImages, setCategoryImages] = useState([]);
+
+  // Cargar primera imagen de cada categoría
+  useEffect(() => {
+    const categories = ['decoración','cóctel','banquete','ceremonia'];
+    Promise.all(categories.map(cat=>fetchWall(1, cat))).then(results=>{
+      const imgs = results.map((arr,i)=>{
+        const first = arr[0];
+        if(first) return { src: first.url, alt: categories[i] };
+        return null;
+      }).filter(Boolean);
+      setCategoryImages(imgs);
+    }).catch(console.error);
+  }, []);
 
   const handleRedoTutorial = async () => {
     if (!confirm('Esto eliminará datos locales y creará una nueva boda de prueba. ¿Continuar?')) return;
@@ -208,12 +219,7 @@ export default function HomePage() {
             ref={galleryRef} 
             className="flex space-x-4 overflow-x-auto pb-4 snap-x scrollbar-hide"
           >
-            {[
-              { src: inspo1, alt: "Decoración floral" },
-              { src: inspo2, alt: "Mesa de banquete" },
-              { src: inspo3, alt: "Pastel de bodas" },
-              { src: inspo4, alt: "Ceremonia al aire libre" }
-            ].map((img, idx) => (
+            {categoryImages.map((img, idx) => (
               <div key={idx} className="snap-start flex-shrink-0 w-64 h-64 relative rounded-lg overflow-hidden">
                 <img 
                   src={img.src} 
