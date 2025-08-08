@@ -75,7 +75,11 @@ export async function fetchWeddingNews(page = 1, pageSize = 10, language = 'es')
     throw err;
   }
 
-  const posts = data.articles.map((a, idx) => ({
+  // Filtrado estricto: sólo artículos con palabras clave de bodas
+  const KEYWORDS = /\b(wedding|boda|bridal|novi[ao]s?|matrimonio|enlace nupcial|banquete de bodas)\b/i;
+  let posts = data.articles
+    .filter(a => KEYWORDS.test(a.title) || KEYWORDS.test(a.description || ''))
+    .map((a, idx) => ({
     id: `${page}_${idx}_${a.url}`,
     title: a.title,
     description: a.description,
