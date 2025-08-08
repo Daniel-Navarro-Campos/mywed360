@@ -18,10 +18,10 @@ export default defineConfig({
     ],
     exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: {
-      provider: 'istanbul', // provider por defecto, genera coverage-final.json compatible
+      provider: 'istanbul', // provider por defecto
       reporter: ['text', 'json', 'html'],
-      reportsDirectory: './coverage', // asegura ./coverage/coverage-final.json
-      all: true, // genera cobertura para todos los archivos fuente
+      reportsDirectory: './coverage',
+      all: true,
       exclude: ['**/node_modules/**', '**/dist/**', '**/test/**']
     }
   },
