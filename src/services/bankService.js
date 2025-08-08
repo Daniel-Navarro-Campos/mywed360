@@ -1,8 +1,9 @@
 // Llama a backend Express local (mismo host) que integra Tink/Nordigen
-const BASE = '/api';
+const BACKEND = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4004';
+const BASE = `${BACKEND}/api`;
 
 export async function createBankLink() {
-  const res = await fetch(`${BASE}/bank/create-link`);
+  const res = await fetch(`${BASE}/bank/create-link`, { credentials: 'include' });
   if (!res.ok) throw new Error('Error generando enlace bancario');
   const { link } = await res.json();
   return link;
@@ -14,7 +15,7 @@ export async function getTransactions({ bankId, from, to } = {}) {
   if (bankId) params.append('bankId', bankId);
   if (from) params.append('from', from);
   if (to) params.append('to', to);
-  const res = await fetch(`${BASE}/transactions?${params.toString()}`);
+  const res = await fetch(`${BASE}/bank/transactions?${params.toString()}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Error fetching transactions');
   return res.json();
 }
