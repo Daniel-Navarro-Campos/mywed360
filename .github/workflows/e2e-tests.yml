@@ -21,14 +21,17 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+
       - name: Start dev server and run Cypress tests
         uses: cypress-io/github-action@v5
         env:
           NODE_OPTIONS: "--experimental-vm-modules"
+          NODE_PATH: "${{ github.workspace }}/node_modules"
         with:
           start: npm run dev
           wait-on: 'http://localhost:5173'
           wait-on-timeout: 120
+
           browser: chrome
           record: false
           spec: cypress/e2e/email/*.cy.js
