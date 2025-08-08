@@ -4,7 +4,7 @@ import { Spinner } from '../components/ui';
 import Pagination from '../components/Pagination';
 import Toast from '../components/Toast';
 import { saveAs } from 'file-saver';
-import { getTransactions } from '../services/bankService';
+import { getTransactions, createBankLink } from '../services/bankService';
 import { Plus, Link2, Edit3, AlertCircle, Clock, CheckCircle, AlertTriangle, Download, Upload, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -35,6 +35,7 @@ function Finance() {
 
   // Balance se calcula dinámicamente a partir de todas las transacciones (movimientos manuales + IA + banco)
   const [manualOpen, setManualOpen] = useState(false);
+  const [linking, setLinking] = useState(false);
 
   // Estado de sincronización
   const [syncStatus, setSyncStatus] = useState(getSyncState());
@@ -191,7 +192,18 @@ const loadStoredMovements = () => {
         ))}
       </div>
       <div className="flex flex-wrap gap-2 my-4">
-        <Button leftIcon={<Link2 size={18} />} onClick={() => alert('Función de vincular banco próximamente')}>Vincular banco</Button>
+        <Button leftIcon={<Link2 size={18} />} disabled={linking} onClick={async () => {
+            try {
+              setLinking(true);
+              const link = await createBankLink();
+              window.location.href = link; // redirige a Tink Link
+            } catch(err) {
+              console.error(err);
+              alert('Error generando enlace bancario');
+            } finally {
+              setLinking(false);
+            }
+          }}>{linking ? 'Cargando...' : 'Vincular banco'}</Button>
         <Button leftIcon={<Edit3 size={18} />} onClick={() => setManualOpen(true)}>Añadir movimiento</Button>
         {/* Botón de configuración eliminado */}
         

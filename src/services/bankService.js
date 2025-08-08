@@ -1,19 +1,20 @@
-// Servicio para obtener transacciones desde un backend que integra un agregador bancario
+// Llama a backend Express local (mismo host) que integra Tink/Nordigen
+const BASE = '/api';
+
+export async function createBankLink() {
+  const res = await fetch(`${BASE}/bank/create-link`);
+  if (!res.ok) throw new Error('Error generando enlace bancario');
+  const { link } = await res.json();
+  return link;
+}
+
+// Obtener transacciones consolidadas desde backend
 export async function getTransactions({ bankId, from, to } = {}) {
-  if (!import.meta.env.VITE_BANK_API_BASE_URL || !import.meta.env.VITE_BANK_API_KEY) {
-    console.warn('Bank API configuration missing; returning empty transaction list');
-    return [];
-  }
   const params = new URLSearchParams();
   if (bankId) params.append('bankId', bankId);
   if (from) params.append('from', from);
   if (to) params.append('to', to);
-  const url = `${import.meta.env.VITE_BANK_API_BASE_URL}/transactions?${params.toString()}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${import.meta.env.VITE_BANK_API_KEY}`
-    }
-  });
+  const res = await fetch(`${BASE}/transactions?${params.toString()}`);
   if (!res.ok) throw new Error('Error fetching transactions');
   return res.json();
 }
