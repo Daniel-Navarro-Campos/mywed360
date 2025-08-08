@@ -75,10 +75,15 @@ export async function fetchWeddingNews(page = 1, pageSize = 10, language = 'es')
     throw err;
   }
 
-  // Filtrado estricto: sólo artículos con palabras clave de bodas
-  const KEYWORDS = /\b(wedding|boda|bridal|novi[ao]s?|matrimonio|enlace nupcial|banquete de bodas)\b/i;
+  // Filtrado más robusto: incluir términos nupciales y excluir noticias accidentales.
+  const POSITIVE = /\b(wedding|boda|bridal|novi[ao]s?|matrimonio|enlace\s+nupcial|banquete\s+de\s+bodas|compromiso|engagement|bride|groom|casamiento|honeymoon|vestido\s+de\s+novia)\b/i;
+  const NEGATIVE = /\b(crash|crashes|crashed|shooting|murder|killed|kill|war|tragedy|accident|injured|dead|death)\b/i;
+
   let posts = data.articles
-    .filter(a => KEYWORDS.test(a.title) || KEYWORDS.test(a.description || ''))
+    .filter((a) => {
+      const text = `${a.title} ${a.description || ''}`;
+      return POSITIVE.test(text) && !NEGATIVE.test(text);
+    })
     .map((a, idx) => ({
     id: `${page}_${idx}_${a.url}`,
     title: a.title,
