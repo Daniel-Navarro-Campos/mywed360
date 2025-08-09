@@ -4,6 +4,7 @@ import Loader from '../components/ui/Loader';
 
 // Páginas de usuario
 import EmailInbox from '../components/email/EmailInbox';
+import ComposeEmail from '../components/email/ComposeEmail';
 import EmailStatistics from '../pages/user/EmailStatistics';
 import GestionProveedores from '../pages/GestionProveedores';
 import EmailSetup from '../pages/EmailSetup';
@@ -30,7 +31,9 @@ const UserRoutes = () => {
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
         <Route path="/" element={<Navigate to="/user/dashboard" replace />} />
-        <Route path="/email" element={<EmailInbox />} />
+        <Route path="/email/inbox" element={<EmailInbox />} />
+        <Route path="/email" element={<Navigate to="/email/inbox" replace />} />
+        <Route path="/email/compose" element={<ComposeEmail />} />
         <Route path="/email/stats" element={<EmailStatistics />} />
         <Route path="/email/setup" element={<EmailSetup />} />
         <Route path="/proveedores/*" element={<GestionProveedores />} />

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getMails, deleteMail } from '../../services/EmailService';
 import EmailDetail from './EmailDetail';
 
@@ -8,6 +9,7 @@ import EmailDetail from './EmailDetail';
  * definidos en los propios tests para EmailService y useAuth.
  */
 export default function EmailInbox() {
+  const navigate = useNavigate();
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -79,10 +81,21 @@ export default function EmailInbox() {
 
   return (
     <div>
+            <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold" data-testid="email-title">Bandeja de entrada</h1>
+        <button
+          data-testid="compose-button"
+          className="px-3 py-1 bg-blue-600 text-white rounded-md"
+          onClick={() => navigate('/email/compose')}
+        >
+          Redactar
+        </button>
+      </div>
+
       {/* Carpeta selector */}
       <div className="mb-2 space-x-2">
-        <button onClick={() => setFolder('inbox')}>Recibidos</button>
-        <button onClick={() => setFolder('sent')}>Enviados</button>
+        <button data-testid="folder-inbox" onClick={() => setFolder('inbox')}>Recibidos</button>
+        <button data-testid="folder-sent" onClick={() => setFolder('sent')}>Enviados</button>
       </div>
 
       {/* Barra de acciones */}
@@ -98,7 +111,7 @@ export default function EmailInbox() {
       {loading ? (
         <div>Cargando...</div>
       ) : (
-        <table>
+        <table data-testid="email-list">
           <thead>
             <tr>
               <th>
