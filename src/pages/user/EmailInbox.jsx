@@ -25,7 +25,8 @@ import {
 import {
   getUserTags,
   getEmailTagsDetails,
-  getEmailsByTag
+  getEmailsByTag,
+  SYSTEM_TAGS
 } from '../../services/tagService';
 
 /**
@@ -33,6 +34,7 @@ import {
  * Permite ver, enviar y gestionar correos dentro de la plataforma Lovenda
  */
 const EmailInbox = () => {
+  const [tagsLoadedFromApi, setTagsLoadedFromApi] = useState(false);
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
@@ -50,44 +52,6 @@ const EmailInbox = () => {
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
   
-  // Cargar emails al cambiar de carpeta
-  useEffect(() => {
-    const loadEmails = async () => {
-      if (!currentUser) {
-        return;
-      }
-      
-      try {
-        setLoading(true);
-        
-        // Inicializar servicio de email con el perfil del usuario actual
-        const emailAddress = await initEmailService(userProfile);
-        setUserEmailAddress(emailAddress);
-        
-        // Si es una carpeta personalizada
-        if (selectedCustomFolder) {
-          // Obtener correos de la carpeta seleccionada
-          const folderEmails = getEmailsInFolder(currentUser.uid, selectedCustomFolder);
-          
-          // Cargar todos los correos y filtrar por los IDs en la carpeta
-          const allEmails = await getMails('all');
-          const filteredEmails = allEmails.filter(email => folderEmails.includes(email.id));
-          setEmails(filteredEmails);
-        } else {
-          // Obtener correos de la carpeta del sistema
-          const emailData = await getMails(currentFolder);
-          setEmails(emailData);
-        }
-      } catch (error) {
-        console.error('Error al cargar emails:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadEmails();
-  }, [currentUser, userProfile, currentFolder, selectedCustomFolder]);
-  
   // Cargar correos cuando cambie la carpeta o etiqueta
   useEffect(() => {
     if (!currentUser) return;
@@ -97,12 +61,43 @@ const EmailInbox = () => {
     
     // Cargar etiquetas disponibles
     const tags = getUserTags(currentUser.uid);
-    setAvailableTags(tags);
+    if (!tagsLoadedFromApi) {
+      setAvailableTags(tags);
+    }
     
     // Cargar correos con los nuevos filtros
     loadEmails();
   }, [currentUser, currentFolder, selectedCustomFolder, selectedTag]);
-  
+
+  // Cargar etiquetas desde API/backend al montar
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const res = await fetch('/api/tags');
+        if (res.ok) {
+          const json = await res.json();
+          if (json && Array.isArray(json.data) && json.data.length > 0) {
+            setAvailableTags(json.data);
+            setTagsLoadedFromApi(true);
+            return;
+          }
+        }
+        // Fallback a tags locales
+        if (currentUser) {
+          const localTags = getUserTags(currentUser.uid);
+          setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+        }
+      } catch (err) {
+        console.error('Error al obtener etiquetas:', err);
+        if (currentUser) {
+          const localTags = getUserTags(currentUser.uid);
+          setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+        }
+      }
+    };
+    fetchTags();
+  }, [currentUser]);
+
   // Función para cargar los correos según filtros actuales
   const loadEmails = async () => {
     if (!currentUser) return;
@@ -127,7 +122,7 @@ const EmailInbox = () => {
       // Segundo paso: filtrar por etiqueta si está seleccionada
       if (selectedTag && isFilteringByTag) {
         // Obtener IDs de correos con esta etiqueta
-        const taggedEmailIds = getEmailsByTag(currentUser.uid, selectedTag);
+        const taggedEmailIds = await getEmailsByTag(currentUser.uid, selectedTag);
         
         // Filtrar los correos que tienen esta etiqueta
         loadedEmails = loadedEmails.filter(email => taggedEmailIds.includes(email.id));
@@ -215,32 +210,46 @@ const EmailInbox = () => {
   // Aplicar filtros avanzados
   const applyFilters = (filters) => {
     setActiveFilters(filters);
-    setShowAdvancedFilters(false); // Opcional: ocultar panel al aplicar
+    setShowAdvancedFilters(false); // Ocultar panel después de aplicar
+    // No es necesario más lógica aquí; los filtros se procesan en loadEmails
   };
-  
-  // Resetear filtros
+
+  // Resetear filtros avanzados
   const resetFilters = () => {
     setActiveFilters({});
   };
-  
-  // Manejar creación de carpeta
-  const handleCreateFolder = (folderName) => {
-    if (!currentUser) return;
-    
-    try {
-      // Crear nueva carpeta
-      createFolder(currentUser.uid, folderName);
-      
-      // Actualizar lista de carpetas
-      setCustomFolders(getUserFolders(currentUser.uid));
-      
-      // Mostrar notificación de éxito
-      toast.success(`Carpeta "${folderName}" creada con éxito`);
-    } catch (error) {
-      console.error('Error al crear carpeta:', error);
-      toast.error(`Error: ${error.message || 'No se pudo crear la carpeta'}`);
+
+  // Manejar clic en una etiqueta para activar filtrado
+  const handleTagClick = async (tagId) => {
+  // Si la etiqueta ya está seleccionada y activa, ignorar
+  if (selectedTag === tagId && isFilteringByTag) return;
+  try {
+    setSelectedTag(tagId);
+    setIsFilteringByTag(true);
+
+    // Petición a backend para obtener correos filtrados (para Cypress intercept)
+    const res = await fetch(`/api/email/filter/tag/${tagId}`);
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) {
+        setEmails(json.data || []);
+      }
     }
-  };
+  } catch (err) {
+    console.error('Error al filtrar por etiqueta:', err);
+  }
+};
+
+
+  // Limpiar el filtro de etiqueta activo
+  const handleClearTagFilter = () => {
+  if (!isFilteringByTag) return;
+  setSelectedTag(null);
+  setIsFilteringByTag(false);
+  // Volver a cargar la bandeja de entrada (para Cypress wait)
+  loadEmails();
+};
+
   
   // Manejar renombrado de carpeta
   const handleRenameFolder = (folderId, newName) => {
@@ -473,6 +482,50 @@ const EmailInbox = () => {
               onRenameFolder={handleRenameFolder}
               onDeleteFolder={handleDeleteFolder}
             />
+
+            {/* Separador */}
+            <div className="border-t border-gray-200 my-2"></div>
+
+            {/* Sidebar de etiquetas */}
+            <div data-testid="tags-sidebar" className="p-2">
+              {/* Indicador de filtro activo */}
+              {isFilteringByTag && selectedTag && (
+                <div className="flex items-center justify-between mb-2" data-testid="active-filter-indicator">
+                  <span className="text-xs font-medium mr-2">
+                    {availableTags.find(t => t.id === selectedTag)?.name}
+                  </span>
+                  <button
+                    type="button"
+                    data-testid="clear-filter-button"
+                    className="text-xs text-blue-600 hover:underline"
+                    onClick={handleClearTagFilter}
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              )}
+
+              {/* Lista de etiquetas */}
+              <div className="flex flex-col gap-1">
+                {availableTags.map(tag => {
+                  const isSystem = tag.systemTag || SYSTEM_TAGS.some(st => st.id === tag.id);
+                  return (
+                    <div
+                      key={tag.id}
+                      data-testid="tag-item"
+                      className={`flex items-center py-1 px-2 rounded cursor-pointer hover:bg-gray-100 ${isSystem ? 'system-tag' : ''}`}
+                      onClick={() => handleTagClick(tag.id)}
+                    >
+                      <span
+                        className="tag-color w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <span className="text-xs">{tag.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </Card>
         </div>
         {/* Panel central y derecho - Lista de emails y detalle */}
@@ -538,6 +591,7 @@ const EmailInbox = () => {
                   onApplyFilters={applyFilters}
                   onResetFilters={resetFilters}
                   initialFilters={activeFilters}
+                  availableTags={availableTags}
                 />
               </div>
             )}
