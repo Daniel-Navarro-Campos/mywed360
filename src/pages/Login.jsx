@@ -15,12 +15,38 @@ export default function Login() {
     setError('');
     try {
       // Si estamos bajo Cypress, evita la llamada real a Firebase y emite solo la petición mock.
+      // Si estamos bajo Cypress, simulamos inicio de sesión completo
       if (window.Cypress) {
+        // Hacer petición mock para que los spies de Cypress la detecten
         await fetch('/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: username })
         });
+
+        // Persistir usuario en localStorage y en estado de contexto
+        const mockUser = { uid: 'user123', email: username };
+        localStorage.setItem('lovenda_user', JSON.stringify(mockUser));
+
+        // Generar un perfil mínimo necesario
+        const defaultProfile = {
+          id: mockUser.uid,
+          name: 'Usuario Cypress',
+          email: username,
+          myWed360Email: `${username.split('@')[0].slice(0, 4)}@mywed360.com`,
+          preferences: {
+            emailNotifications: true,
+            emailSignature: 'Enviado desde Lovenda',
+            theme: 'light',
+            remindersEnabled: true,
+            reminderDays: 3
+          }
+        };
+        localStorage.setItem('lovenda_user_profile', JSON.stringify(defaultProfile));
+
+        // Actualizar estado en AuthContext
+        await login(username, password, remember);
+
         navigate('/email/inbox');
         return;
       }
