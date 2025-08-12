@@ -102,8 +102,7 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
 
   if (loading) {
     return (
-      <div 
-        className="flex items-center justify-center h-64"
+      <div data-testid="email-list" className="flex items-center justify-center h-64 w-full"
         role="status"
         aria-live="polite"
         aria-busy="true"
@@ -119,8 +118,7 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
   
   if (!emails.length) {
     return (
-      <div 
-        className="flex flex-col items-center justify-center h-64 text-gray-700"
+      <div data-testid="email-list" className="flex flex-col items-center justify-center h-64 text-gray-700 w-full"
         role="status"
         aria-live="polite"
       >
@@ -190,7 +188,8 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
   };
 
   return (
-    <List
+    <div data-testid="email-list" className="w-full">
+      <List
       height={height}
       width="100%"
       itemCount={emails.length}
@@ -204,6 +203,7 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
     >
       {Row}
     </List>
+    </div>
   );
 };
 
