@@ -118,7 +118,7 @@ const AIResultList = ({ results = [], isLoading, onSelect, query, error }) => {
   const displayResults = results.length > 0 ? results : demoResults;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="ai-results-list">
       {/* Resumen de la búsqueda */}
       <div className="mb-4">
         <p className="text-sm text-gray-500">

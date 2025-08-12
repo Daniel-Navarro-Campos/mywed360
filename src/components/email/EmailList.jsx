@@ -138,8 +138,9 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
     const email = emails[index];
     return (
       <div
-        style={style}
-        key={email.id}
+         style={style}
+         key={email.id}
+         data-testid="email-list-item"
         className={`py-3 px-2 cursor-pointer transition-colors hover:bg-gray-50 divide-y divide-gray-200 ${
           selectedEmailId === email.id ? 'bg-blue-50 ring-2 ring-blue-400' : ''
         } ${!email.read ? 'font-semibold' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500`}

@@ -100,7 +100,7 @@ const AISearchModal = ({ isOpen, onClose, onSearch, onSelect, isLoading }) => {
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" data-testid="ai-search-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold flex items-center">
@@ -121,6 +121,7 @@ const AISearchModal = ({ isOpen, onClose, onSearch, onSelect, isLoading }) => {
           <form onSubmit={handleSubmit} className="relative">
             <div className="relative">
               <input
+                data-testid="ai-search-input"
                 type="text"
                 value={query}
                 onChange={handleQueryChange}
@@ -130,6 +131,7 @@ const AISearchModal = ({ isOpen, onClose, onSearch, onSelect, isLoading }) => {
               />
               <Search className="absolute left-3 top-3 text-gray-400" size={20} />
               <Button
+                data-testid="ai-search-button"
                 type="submit"
                 className="absolute right-2 top-1.5"
                 size="sm"

@@ -11,6 +11,7 @@ import EmailList from '../../components/email/EmailList';
 import EmailDetail from '../../components/email/EmailDetail';
 import EmailFilters from '../../components/email/EmailFilters';
 import CustomFolders from '../../components/email/CustomFolders';
+import TagsManagerModal from '../../components/email/TagsManagerModal';
 import { useAuth } from '../../hooks/useAuth';
 import { 
   getUserFolders, 
@@ -37,6 +38,7 @@ const EmailInbox = () => {
   const [tagsLoadedFromApi, setTagsLoadedFromApi] = useState(false);
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [currentFolder, setCurrentFolder] = useState('inbox');
   const [isComposeOpen, setIsComposeOpen] = useState(false);
@@ -49,6 +51,7 @@ const EmailInbox = () => {
   const [availableTags, setAvailableTags] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
   const [isFilteringByTag, setIsFilteringByTag] = useState(false);
+  const [isTagsManagerOpen, setIsTagsManagerOpen] = useState(false);
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
   
@@ -59,43 +62,37 @@ const EmailInbox = () => {
     // Cargar carpetas personalizadas
     setCustomFolders(getUserFolders(currentUser.uid));
     
-    // Cargar etiquetas disponibles
-    const tags = getUserTags(currentUser.uid);
-    if (!tagsLoadedFromApi) {
-      setAvailableTags(tags);
-    }
+    // No pre-cargamos etiquetas locales; las obtendremos del backend para coincidir con los tests Cypress
     
     // Cargar correos con los nuevos filtros
     loadEmails();
   }, [currentUser, currentFolder, selectedCustomFolder, selectedTag]);
 
-  // Cargar etiquetas desde API/backend al montar
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const res = await fetch('/api/tags');
-        if (res.ok) {
-          const json = await res.json();
-          if (json && Array.isArray(json.data) && json.data.length > 0) {
-            setAvailableTags(json.data);
-            setTagsLoadedFromApi(true);
-            return;
-          }
-        }
-        // Fallback a tags locales
-        if (currentUser) {
-          const localTags = getUserTags(currentUser.uid);
-          setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
-        }
-      } catch (err) {
-        console.error('Error al obtener etiquetas:', err);
-        if (currentUser) {
-          const localTags = getUserTags(currentUser.uid);
-          setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+  // Método reutilizable para cargar etiquetas desde el backend
+  const fetchTagsFromApi = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await fetch('/api/tags');
+      if (res.ok) {
+        const json = await res.json();
+        if (json && Array.isArray(json.data) && json.data.length > 0) {
+          setAvailableTags(json.data);
+          setTagsLoadedFromApi(true);
+          return;
         }
       }
-    };
-    fetchTags();
+    } catch (err) {
+      console.error('Error al obtener etiquetas:', err);
+    }
+    // Fallback a tags locales
+    const localTags = getUserTags(currentUser.uid);
+    setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+  };
+
+  // Cargar etiquetas desde API/backend al montar
+  useEffect(() => {
+    fetchTagsFromApi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
   // Función para cargar los correos según filtros actuales
@@ -240,6 +237,21 @@ const EmailInbox = () => {
   }
 };
 
+
+  // Crear nueva etiqueta desde el modal
+  const handleCreateTag = async (tagPayload) => {
+    try {
+      await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(tagPayload),
+      });
+      // Una vez creada, refrescar lista de etiquetas
+      await fetchTagsFromApi();
+    } catch (err) {
+      console.error('Error al crear etiqueta:', err);
+    }
+  };
 
   // Limpiar el filtro de etiqueta activo
   const handleClearTagFilter = () => {
@@ -505,6 +517,16 @@ const EmailInbox = () => {
                 </div>
               )}
 
+              {/* Botón para gestionar etiquetas */}
+              <button
+                type="button"
+                data-testid="manage-tags-button"
+                onClick={() => setIsTagsManagerOpen(true)}
+                className="text-xs text-blue-600 hover:underline mb-2"
+              >
+                Gestionar etiquetas
+              </button>
+
               {/* Lista de etiquetas */}
               <div className="flex flex-col gap-1">
                 {availableTags.map(tag => {
@@ -528,7 +550,15 @@ const EmailInbox = () => {
             </div>
           </Card>
         </div>
-        {/* Panel central y derecho - Lista de emails y detalle */}
+
+          {/* Modal gestor de etiquetas */}
+          <TagsManagerModal
+            isOpen={isTagsManagerOpen}
+            onClose={() => setIsTagsManagerOpen(false)}
+            onCreateTag={handleCreateTag}
+          />
+
+          {/* Panel central y derecho - Lista de emails y detalle */}
         <div className="col-span-1 md:col-span-3">
           <div className="flex flex-col h-full">
             {/* Barra de búsqueda y acciones - Adaptable para móvil */}

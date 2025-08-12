@@ -6,7 +6,7 @@ import Button from '../Button';
  * Componente para filtros avanzados de correo electrónico
  * Permite filtrar por fecha, remitente, etiquetas, etc.
  */
-const EmailFilters = ({ onApplyFilters, onResetFilters, initialFilters = {} }) => {
+const EmailFilters = ({ onApplyFilters, onResetFilters, initialFilters = {}, availableTags = [] }) => {
   const [expanded, setExpanded] = useState(false);
   const [filters, setFilters] = useState({
     from: initialFilters.from || '',
@@ -20,13 +20,16 @@ const EmailFilters = ({ onApplyFilters, onResetFilters, initialFilters = {} }) =
   });
   
   // Etiquetas predefinidas para el filtrado
-  const availableLabels = [
-    { id: 'important', name: 'Importante', color: 'bg-red-500' },
-    { id: 'work', name: 'Trabajo', color: 'bg-blue-500' },
-    { id: 'personal', name: 'Personal', color: 'bg-green-500' },
-    { id: 'invitation', name: 'Invitación', color: 'bg-purple-500' },
-    { id: 'provider', name: 'Proveedor', color: 'bg-yellow-500' },
-  ];
+  // Si se proporcionan etiquetas externas, usarlas, en caso contrario usar un fallback estático
+  const availableLabels = availableTags.length > 0 ?
+    availableTags.map(t => ({ id: t.id, name: t.name, color: t.color })) :
+    [
+      { id: 'important', name: 'Importante', color: '#e53e3e' },
+      { id: 'work', name: 'Trabajo', color: '#3182ce' },
+      { id: 'personal', name: 'Personal', color: '#38a169' },
+      { id: 'invitation', name: 'Invitación', color: '#805ad5' },
+      { id: 'provider', name: 'Proveedor', color: '#dd6b20' },
+    ];
   
   // Manejar cambios en los filtros
   const handleFilterChange = (e) => {
@@ -208,13 +211,15 @@ const EmailFilters = ({ onApplyFilters, onResetFilters, initialFilters = {} }) =
                   <button
                     key={label.id}
                     type="button"
+                    data-testid="tag-option"
                     onClick={() => handleLabelToggle(label.id)}
                     className={`px-2 py-1 rounded-full text-xs flex items-center
                       ${filters.labels.includes(label.id) 
-                        ? `${label.color} text-white` 
+                        ? 'bg-blue-600 text-white' 
                         : 'bg-gray-100 text-gray-800'}`}
+                    style={{ backgroundColor: filters.labels.includes(label.id) ? label.color : undefined }}
                   >
-                    <span className={`w-2 h-2 rounded-full mr-1 ${filters.labels.includes(label.id) ? 'bg-white' : label.color}`}></span>
+                    <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: label.color }}></span>
                     {label.name}
                   </button>
                 ))}

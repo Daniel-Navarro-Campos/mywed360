@@ -27,7 +27,7 @@ Cypress.Commands.add('loginToLovenda', (email, password) => {
   cy.get('[data-testid="email-input"]').type(email);
   cy.get('[data-testid="password-input"]').type(password);
   cy.get('[data-testid="login-button"]').click();
-  // Esperar a que se complete el inicio de sesión
+  // Confirmar que la navegación salió de /login
   cy.url().should('not.include', '/login');
 });
 

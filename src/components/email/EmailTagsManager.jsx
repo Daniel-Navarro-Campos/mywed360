@@ -32,11 +32,19 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
   }, [currentUser, emailId]);
   
   // Añadir etiqueta al correo
-  const handleAddTag = (tagId) => {
+  const handleAddTag = async (tagId) => {
     if (!currentUser || !emailId) return;
     
     try {
       // Añadir etiqueta
+      // Llamada a backend para tests E2E
+      await fetch(`/api/email/${emailId}/tag`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tagId })
+      });
+
+      // Persistencia local (mock)
       addTagToEmail(currentUser.uid, emailId, tagId);
       
       // Actualizar etiquetas del correo
@@ -56,11 +64,17 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
   };
   
   // Quitar etiqueta del correo
-  const handleRemoveTag = (tagId) => {
+  const handleRemoveTag = async (tagId) => {
     if (!currentUser || !emailId) return;
     
     try {
       // Quitar etiqueta
+      await fetch(`/api/email/${emailId}/tag`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tagId })
+      });
+
       removeTagFromEmail(currentUser.uid, emailId, tagId);
       
       // Actualizar etiquetas del correo
@@ -83,6 +97,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         {tags.map((tag) => (
           <div 
             key={tag.id}
+            data-testid="email-tag"
             className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
             style={{ 
               backgroundColor: `${tag.color}20`,
@@ -93,8 +108,9 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
           >
             <span>{tag.name}</span>
             <button 
+              data-testid="remove-tag-button"
               onClick={() => handleRemoveTag(tag.id)}
-              className="ml-1 rounded-full hover:bg-opacity-20 hover:bg-gray-600"
+              className="ml-1 rounded-full hover:bg-opacity-20 hover:bg-gray-600 remove-tag-button"
             >
               <X size={12} />
             </button>
@@ -104,6 +120,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         {/* Botón para añadir etiqueta */}
         {!isSelectingTag ? (
           <button 
+            data-testid="tag-menu-button"
             onClick={() => setIsSelectingTag(true)}
             className="inline-flex items-center rounded-full border border-dashed border-gray-300 px-2.5 py-0.5 text-xs text-gray-500 hover:border-gray-400 hover:bg-gray-50"
           >
@@ -130,6 +147,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
               .map(tag => (
                 <div
                   key={tag.id}
+                  data-testid="tag-option"
                   onClick={() => handleAddTag(tag.id)}
                   className="flex items-center px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
                 >
