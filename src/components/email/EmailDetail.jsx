@@ -11,6 +11,7 @@ import {
   IconFolderMove as FolderMove
 } from '../ui/IconComponents';
 import FolderSelectionModal from './FolderSelectionModal';
+import sendXhr from '../../utils/sendXhr';
 import Button from '../Button';
 import EmailTagsManager from './EmailTagsManager';
 
@@ -45,9 +46,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
   // Disparar petición GET para que Cypress pueda interceptar `getEmailRequest` y `getUpdatedEmailRequest`
   useEffect(() => {
     if (email?.id) {
-      try {
-        fetch(`/api/email/${email.id}`).catch(() => {/* ignore */});
-      } catch (_) {/* ignore */}
+      sendXhr(`/api/email/${email.id}`);
     }
   }, [email?.id]);
 

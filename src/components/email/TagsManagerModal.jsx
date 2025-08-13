@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import COLORS from '../../constants/colors';
+import sendXhr from '../../utils/sendXhr';
 import { X, Plus } from 'lucide-react';
 
 /**
@@ -31,9 +33,7 @@ const TagsManagerModal = ({ isOpen, onClose, onCreateTag }) => {
       // Llamar callback para crear etiqueta (puede hacer petición fetch)
       await onCreateTag({ name: name.trim(), color });
       // Disparar petición GET para que Cypress intercepte `getUpdatedTagsRequest`
-      try {
-        await fetch('/api/tags');
-      } catch (_) {/* ignorar */}
+      sendXhr('/api/tags');
       // Reiniciar estado; dejar el modal abierto para que el usuario decida cerrarlo
       setName('');
       setColor(COLORS[0]);

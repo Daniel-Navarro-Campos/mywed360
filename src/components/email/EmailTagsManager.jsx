@@ -139,6 +139,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         return updatedTags;
       });
       
+      sendXhr(`/api/email/${emailId}`);
       // Notificar cambio
       if (onTagsChange) {
         onTagsChange(updatedTags);
@@ -190,6 +191,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         return updatedTags;
       });
       
+      sendXhr(`/api/email/${emailId}`);
       // Notificar cambio
       if (onTagsChange) {
         onTagsChange(updatedTags);
