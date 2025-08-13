@@ -99,6 +99,11 @@ class PerformanceMonitor {
       this.flushMetrics();
       this.scheduleReporting();
     }, this.config.reportInterval);
+
+    // No mantener el bucle activo en procesos de test/CI
+    if (typeof this.reportingTimer.unref === 'function') {
+      this.reportingTimer.unref();
+    }
   }
   
   /**
