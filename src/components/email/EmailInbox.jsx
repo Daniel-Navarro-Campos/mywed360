@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMails, deleteMail } from '../../services/EmailService';
+import { getMails, deleteMail } from '../../services/emailService';
 import EmailDetail from './EmailDetail';
 
 /**

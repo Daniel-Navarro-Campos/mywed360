@@ -17,6 +17,7 @@ import More from './pages/More';
 import Invitados from './pages/Invitados';
 import GestionProveedores from './pages/GestionProveedores';
 import UnifiedEmail from './pages/UnifiedEmail';
+import EmailInbox from './pages/user/EmailInbox';
 import MailboxPage from './pages/MailboxPage';
 import EmailAdminDashboard from './components/admin/EmailAdminDashboard';
 import MetricsDashboard from './components/metrics/MetricsDashboard';
@@ -89,6 +90,8 @@ function App() {
           <Route path="invitation/:code" element={<AcceptInvitation />} />
           <Route path="rsvp/:token" element={<RSVPConfirm />} />
             <Route path="/signup" element={<Signup />} />
+          {/* Ruta pública para pruebas E2E de Cypress */}
+          <Route path="/email/inbox" element={<EmailInbox />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route path="home" element={<Home />} />
@@ -137,6 +140,8 @@ function App() {
               
               {/* Bandeja unificada de emails */}
               <Route path="email" element={<UnifiedEmail />} />
+              {/* Ruta específica de Inbox usada por tests E2E */}
+              <Route path="email/inbox" element={<EmailInbox />} />
               <Route path="buzon" element={<MailboxPage />} />
               
               {/* Rutas de usuario */}

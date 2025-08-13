@@ -3,7 +3,7 @@ import sanitizeHtml from '../../utils/sanitizeHtml';
 import { ArrowLeft, Trash, Star, StarOff, Reply, Forward, Paperclip, Calendar, Download } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
-import * as EmailService from '../../services/EmailService';
+import * as EmailService from '../../services/emailService';
 
 /**
  * Componente para visualizar el contenido completo de un email

@@ -3,8 +3,8 @@ import { Mail } from 'lucide-react';
 import EmailInbox from './EmailInbox';
 import EmailViewer from './EmailViewer';
 import EmailComposer from './EmailComposer';
-import * as EmailService from '../../services/EmailService';
-import * as NotificationService from '../../services/NotificationService';
+import * as EmailService from '../../services/emailService';
+import * as NotificationService from '../../services/notificationService';
 
 /**
  * Componente principal que integra todos los elementos del sistema de emails personalizado de Lovenda

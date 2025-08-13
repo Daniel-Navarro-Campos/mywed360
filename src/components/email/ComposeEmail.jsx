@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AlertCircle, Paperclip } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
-import * as EmailService from '../../services/EmailService';
+import * as EmailService from '../../services/emailService';
 import useAuth from '../../hooks/useAuth';
 
 /**

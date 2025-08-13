@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Mail, Calendar, User, Trash, Check, AlertTriangle, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from './ui';
-import * as NotificationService from '../services/NotificationService';
+import * as NotificationService from '../services/notificationService';
 
 /**
  * Centro de notificaciones unificado para toda la aplicación
