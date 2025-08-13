@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
-import COLORS from '../../constants/colors';
+
 import sendXhr from '../../utils/sendXhr';
 import { X, Plus } from 'lucide-react';
 
