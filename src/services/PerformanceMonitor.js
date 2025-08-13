@@ -43,6 +43,12 @@ class PerformanceMonitor {
       ...CONFIG,
       ...config
     };
+
+    // Desactivar monitor en entornos de test (Vitest/CI) para evitar handles abiertos
+    const isTestEnv = (typeof process !== 'undefined' && process.env?.VITEST) || (import.meta.env?.MODE === 'test');
+    if (isTestEnv) {
+      this.config.enabled = false;
+    }
     
     this.metrics = {
       events: [],
