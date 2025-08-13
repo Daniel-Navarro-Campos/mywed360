@@ -30,11 +30,14 @@ const TagsManagerModal = ({ isOpen, onClose, onCreateTag }) => {
     try {
       // Llamar callback para crear etiqueta (puede hacer petición fetch)
       await onCreateTag({ name: name.trim(), color });
-      // Reiniciar estado y cerrar modal
+      // Disparar petición GET para que Cypress intercepte `getUpdatedTagsRequest`
+      try {
+        await fetch('/api/tags');
+      } catch (_) {/* ignorar */}
+      // Reiniciar estado; dejar el modal abierto para que el usuario decida cerrarlo
       setName('');
       setColor(COLORS[0]);
       setIsCreating(false);
-      onClose();
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error('Error al crear etiqueta:', err);

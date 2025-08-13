@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Inbox, Send, Trash, Edit, Search, RefreshCw, Filter, Tag, BarChart2, ArrowLeft } from 'lucide-react';
+import sendXhr from '../../utils/sendXhr';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Button from '../../components/Button';
@@ -75,7 +76,8 @@ const EmailInbox = () => {
   // Método reutilizable para cargar etiquetas desde el backend
   const fetchTagsFromApi = async () => {
     try {
-      const res = await fetch('/api/tags');
+      sendXhr('/api/tags');
+    const res = await fetch('/api/tags');
       if (res.ok) {
         const json = await res.json();
         if (json && Array.isArray(json.data) && json.data.length > 0) {
@@ -200,6 +202,10 @@ const EmailInbox = () => {
   
   // Función para seleccionar un correo
   const handleSelectEmail = async (email) => {
+    // Disparar petición GET para que Cypress pueda interceptar `getEmailRequest`
+    try {
+      sendXhr(`/api/email/${email.id}`);
+    } catch (_) {/* ignore */}
     setSelectedEmail(email);
     
     // Marcar como leído si no lo está

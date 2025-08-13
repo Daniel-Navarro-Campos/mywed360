@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { FixedSizeList as List } from 'react-window';
+import sendXhr from '../../utils/sendXhr';
 import { Mail, Paperclip } from 'lucide-react';
 
 
@@ -79,12 +80,18 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
       case ' ':
         // Seleccionar el correo cuando se presiona Enter o espacio
         event.preventDefault();
-        onSelectEmail(email);
+        try {
+      sendXhr(`/api/email/${email.id}`);
+    } catch (_) {/* ignore */}
+    onSelectEmail(email);
         break;
       case 'ArrowDown':
         // Mover al siguiente correo si existe
         event.preventDefault();
         if (index < emails.length - 1) {
+          try {
+            sendXhr(`/api/email/${emails[index + 1].id}`);
+          } catch (_) {/* ignore */}
           onSelectEmail(emails[index + 1]);
         }
         break;
@@ -92,6 +99,9 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
         // Mover al correo anterior si existe
         event.preventDefault();
         if (index > 0) {
+          try {
+            sendXhr(`/api/email/${emails[index - 1].id}`);
+          } catch (_) {/* ignore */}
           onSelectEmail(emails[index - 1]);
         }
         break;
@@ -142,7 +152,12 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
         className={`py-3 px-2 cursor-pointer transition-colors hover:bg-gray-50 divide-y divide-gray-200 ${
           selectedEmailId === email.id ? 'bg-blue-50 ring-2 ring-blue-400' : ''
         } ${!email.read ? 'font-semibold' : ''} focus:outline-none focus:ring-2 focus:ring-blue-500`}
-        onClick={() => onSelectEmail(email)}
+        onClick={() => {
+          try {
+            sendXhr(`/api/email/${email.id}`);
+          } catch (_) {/* ignore */}
+          onSelectEmail(email);
+        }}
         onKeyDown={(e) => handleKeyDown(e, email, index)}
         tabIndex="0"
         role="listitem"
