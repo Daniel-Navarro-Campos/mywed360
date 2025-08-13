@@ -274,13 +274,34 @@ const EmailInbox = () => {
   // Crear nueva etiqueta desde el modal
   const handleCreateTag = async (tagPayload) => {
     try {
-      await fetch('/api/tags', {
+      const res = await fetch('/api/tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tagPayload),
       });
-      // Una vez creada, refrescar lista de etiquetas
-      await fetchTagsFromApi();
+
+      if (res.ok) {
+        let createdTag;
+        try {
+          const json = await res.json();
+          if (json && json.success) {
+            createdTag = json.data || json.tag || json;
+          }
+        } catch (_) {
+          /* ignore parse error */
+        }
+
+        if (createdTag) {
+          setAvailableTags((prev) => {
+            if (prev.some((t) => t.id === createdTag.id)) return prev;
+            return [...prev, createdTag];
+          });
+        } else {
+          await fetchTagsFromApi();
+        }
+      } else {
+        await fetchTagsFromApi();
+      }
     } catch (err) {
       console.error('Error al crear etiqueta:', err);
     }

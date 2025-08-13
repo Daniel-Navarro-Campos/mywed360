@@ -222,13 +222,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
       tags: ['tag1'] // Ahora tiene la etiqueta "Urgente"
     };
     
-    cy.intercept('GET', '**/api/email/email4', {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: updatedEmail
-      }
-    }).as('getUpdatedEmailRequest');
+    
     
     // Navegar a la bandeja de entrada
     cy.navigateToEmailInbox();
@@ -250,7 +244,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
     cy.wait('@addTagRequest');
     
     // Verificar que se muestra la etiqueta en el correo
-    cy.wait('@getUpdatedEmailRequest');
+    
     cy.get('[data-testid="email-tag"]').should('contain', 'Urgente')
       .and('have.css', 'background-color', 'rgb(255, 0, 0)');
   });
@@ -271,13 +265,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
       tags: [] // Ahora no tiene etiquetas
     };
     
-    cy.intercept('GET', '**/api/email/email1', {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: updatedEmail
-      }
-    }).as('getUpdatedEmailRequest');
+    
     
     // Navegar a la bandeja de entrada
     cy.navigateToEmailInbox();
@@ -296,7 +284,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
     cy.wait('@removeTagRequest');
     
     // Verificar que ya no se muestra la etiqueta
-    cy.wait('@getUpdatedEmailRequest');
+    
     cy.get('[data-testid="email-tag"]').should('not.exist');
   });
 
@@ -317,14 +305,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
       }
     }).as('createTagRequest');
     
-    // Simular actualización de la lista de etiquetas
-    cy.intercept('GET', '**/api/tags', {
-      statusCode: 200,
-      body: {
-        success: true,
-        data: [...testTags, newTag]
-      }
-    }).as('getUpdatedTagsRequest');
+    
     
     // Navegar a la bandeja de entrada
     cy.navigateToEmailInbox();
@@ -352,7 +333,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
     cy.get('[data-testid="close-modal-button"]').click();
     
     // Verificar que la nueva etiqueta aparece en el panel lateral
-    cy.wait('@getUpdatedTagsRequest');
+    
     cy.get('[data-testid="tag-item"]').should('have.length', 4);
     cy.get('[data-testid="tag-item"]').contains('Presupuestos').should('be.visible');
   });

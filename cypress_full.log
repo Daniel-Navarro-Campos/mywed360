@@ -1,0 +1,177 @@
+
+> mywed360@0.1.0 test:e2e
+> start-server-and-test dev http://localhost:5173 cy:run-tags --reporter spec
+
+1: starting server using command "npm run dev"
+and when url "[ 'http://localhost:5173' ]" is responding with HTTP status code 200
+2: starting server using command "npm run cy:run-tags"
+and when url "[ '--reporter' ]" is responding with HTTP status code 200
+running tests using command "spec"
+
+
+> mywed360@0.1.0 dev
+> npx --no-install vite@4.5.14 --host
+
+
+  VITE v4.5.14  ready in 415 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.1.33:5173/
+
+> mywed360@0.1.0 cy:run-tags
+> bash -c 'unset ELECTRON_RUN_AS_NODE && cypress run --headless --browser electron --spec cypress/e2e/email/tags-filters.cy.js'
+
+
+DevTools listening on ws://127.0.0.1:51850/devtools/browser/de9031b0-1edd-4f06-8659-6685435501d4
+
+Opening `/dev/tty` failed (6): Device not configured
+resize:  can't open terminal /dev/tty
+================================================================================
+
+  (Run Starting)
+
+tput: No value for $TERM and no -T specified
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Cypress:        12.17.4                                                                        │
+  │ Browser:        Electron 106 (headless)                                                        │
+  │ Node Version:   v18.20.8 (/Users/dani/.nvm/versions/node/v18.20.8/bin/node)                    │
+  │ Specs:          1 found (tags-filters.cy.js)                                                   │
+  │ Searched:       cypress/e2e/email/tags-filters.cy.js                                           │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────
+                                                                                                    
+  Running:  tags-filters.cy.js                                                              (1 of 1)
+
+
+  Flujo de etiquetado y filtrado de correos
+    ✓ muestra correctamente las etiquetas disponibles (5720ms)
+    ✓ permite filtrar correos por etiqueta (4004ms)
+    1) permite agregar etiquetas a un correo
+    2) permite eliminar etiquetas de un correo
+    3) permite crear y aplicar nuevas etiquetas personalizadas
+
+
+  2 passing (37s)
+  3 failing
+
+  1) Flujo de etiquetado y filtrado de correos
+       permite agregar etiquetas a un correo:
+     CypressError: Timed out retrying after 5000ms: `cy.wait()` timed out waiting `5000ms` for the 1st request to the route: `getEmailRequest`. No request ever occurred.
+
+https://on.cypress.io/wait
+      at cypressErr (http://localhost:5173/__cypress/runner/cypress_runner.js:75187:18)
+      at Object.errByPath (http://localhost:5173/__cypress/runner/cypress_runner.js:75242:10)
+      at checkForXhr (http://localhost:5173/__cypress/runner/cypress_runner.js:134821:84)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:134844:28)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1807:23)
+      at Promise.attempt.Promise.try (http://localhost:5173/__cypress/runner/cypress_runner.js:4315:29)
+      at whenStable (http://localhost:5173/__cypress/runner/cypress_runner.js:143192:68)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:143133:14)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1807:23)
+      at Promise._settlePromiseFromHandler (http://localhost:5173/__cypress/runner/cypress_runner.js:1519:31)
+      at Promise._settlePromise (http://localhost:5173/__cypress/runner/cypress_runner.js:1576:18)
+      at Promise._settlePromise0 (http://localhost:5173/__cypress/runner/cypress_runner.js:1621:10)
+      at Promise._settlePromises (http://localhost:5173/__cypress/runner/cypress_runner.js:1701:18)
+      at Promise._fulfill (http://localhost:5173/__cypress/runner/cypress_runner.js:1645:18)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:5450:46)
+  From Your Spec Code:
+      at Context.eval (webpack://mywed360/./cypress/e2e/email/tags-filters.cy.js:240:7)
+
+  2) Flujo de etiquetado y filtrado de correos
+       permite eliminar etiquetas de un correo:
+     CypressError: Timed out retrying after 5000ms: `cy.wait()` timed out waiting `5000ms` for the 1st request to the route: `getEmailRequest`. No request ever occurred.
+
+https://on.cypress.io/wait
+      at cypressErr (http://localhost:5173/__cypress/runner/cypress_runner.js:75187:18)
+      at Object.errByPath (http://localhost:5173/__cypress/runner/cypress_runner.js:75242:10)
+      at checkForXhr (http://localhost:5173/__cypress/runner/cypress_runner.js:134821:84)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:134844:28)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1807:23)
+      at Promise.attempt.Promise.try (http://localhost:5173/__cypress/runner/cypress_runner.js:4315:29)
+      at whenStable (http://localhost:5173/__cypress/runner/cypress_runner.js:143192:68)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:143133:14)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1807:23)
+      at Promise._settlePromiseFromHandler (http://localhost:5173/__cypress/runner/cypress_runner.js:1519:31)
+      at Promise._settlePromise (http://localhost:5173/__cypress/runner/cypress_runner.js:1576:18)
+      at Promise._settlePromise0 (http://localhost:5173/__cypress/runner/cypress_runner.js:1621:10)
+      at Promise._settlePromises (http://localhost:5173/__cypress/runner/cypress_runner.js:1701:18)
+      at Promise._fulfill (http://localhost:5173/__cypress/runner/cypress_runner.js:1645:18)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:5450:46)
+  From Your Spec Code:
+      at Context.eval (webpack://mywed360/./cypress/e2e/email/tags-filters.cy.js:289:7)
+
+  3) Flujo de etiquetado y filtrado de correos
+       permite crear y aplicar nuevas etiquetas personalizadas:
+     CypressError: Timed out retrying after 5000ms: `cy.wait()` timed out waiting `5000ms` for the 1st request to the route: `getTagsRequest`. No request ever occurred.
+
+https://on.cypress.io/wait
+      at cypressErr (http://localhost:5173/__cypress/runner/cypress_runner.js:75187:18)
+      at Object.errByPath (http://localhost:5173/__cypress/runner/cypress_runner.js:75242:10)
+      at checkForXhr (http://localhost:5173/__cypress/runner/cypress_runner.js:134821:84)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:134844:28)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1807:23)
+      at Promise.attempt.Promise.try (http://localhost:5173/__cypress/runner/cypress_runner.js:4315:29)
+      at whenStable (http://localhost:5173/__cypress/runner/cypress_runner.js:143192:68)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:143133:14)
+      at tryCatcher (http://localhost:5173/__cypress/runner/cypress_runner.js:1807:23)
+      at Promise._settlePromiseFromHandler (http://localhost:5173/__cypress/runner/cypress_runner.js:1519:31)
+      at Promise._settlePromise (http://localhost:5173/__cypress/runner/cypress_runner.js:1576:18)
+      at Promise._settlePromise0 (http://localhost:5173/__cypress/runner/cypress_runner.js:1621:10)
+      at Promise._settlePromises (http://localhost:5173/__cypress/runner/cypress_runner.js:1701:18)
+      at Promise._fulfill (http://localhost:5173/__cypress/runner/cypress_runner.js:1645:18)
+      at <unknown> (http://localhost:5173/__cypress/runner/cypress_runner.js:5450:46)
+  From Your Spec Code:
+      at Context.eval (webpack://mywed360/./cypress/e2e/email/tags-filters.cy.js:332:7)
+
+
+
+
+  (Results)
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ Tests:        5                                                                                │
+  │ Passing:      2                                                                                │
+  │ Failing:      3                                                                                │
+  │ Pending:      0                                                                                │
+  │ Skipped:      0                                                                                │
+  │ Screenshots:  3                                                                                │
+  │ Video:        false                                                                            │
+  │ Duration:     37 seconds                                                                       │
+  │ Spec Ran:     tags-filters.cy.js                                                               │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+  (Screenshots)
+
+  -  /Users/dani/Documents/myWed360/mywed360/cypress/screenshots/tags-filters.cy.js/F     (1280x720)
+     lujo de etiquetado y filtrado de correos -- permite agregar etiquetas a un corre               
+     o (failed).png                                                                                 
+  -  /Users/dani/Documents/myWed360/mywed360/cypress/screenshots/tags-filters.cy.js/F     (1280x720)
+     lujo de etiquetado y filtrado de correos -- permite eliminar etiquetas de un cor               
+     reo (failed).png                                                                               
+  -  /Users/dani/Documents/myWed360/mywed360/cypress/screenshots/tags-filters.cy.js/F     (1280x720)
+     lujo de etiquetado y filtrado de correos -- permite crear y aplicar nuevas etiqu               
+     etas personalizadas (failed).png                                                               
+
+
+Opening `/dev/tty` failed (6): Device not configured
+resize:  can't open terminal /dev/tty
+tput: No value for $TERM and no -T specified
+================================================================================
+
+  (Run Finished)
+
+
+       Spec                                              Tests  Passing  Failing  Pending  Skipped  
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ ✖  tags-filters.cy.js                       00:37        5        2        3        -        - │
+  └────────────────────────────────────────────────────────────────────────────────────────────────┘
+    ✖  1 of 1 failed (100%)                     00:37        5        2        3        -        -  
+
+Error: server closed unexpectedly
+    at ChildProcess.onClose (/Users/dani/Documents/myWed360/mywed360/node_modules/start-server-and-test/src/index.js:83:14)
+    at ChildProcess.emit (node:events:517:28)
+    at maybeClose (node:internal/child_process:1098:16)
+    at ChildProcess._handle.onexit (node:internal/child_process:303:5)

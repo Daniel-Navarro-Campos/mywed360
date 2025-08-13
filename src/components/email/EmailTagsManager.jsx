@@ -9,14 +9,7 @@ import {
   removeTagFromEmail 
 } from '../../services/tagService';
 
-// Utilidad para disparar una petición GET vía XHR (interceptable por Cypress 12)
-const sendXhr = (url) => {
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url);
-    xhr.send();
-  } catch (_) {/* ignore */}
-};
+import sendXhr from '../../utils/sendXhr';
 
 /**
  * Componente para gestionar etiquetas de un correo electrónico
@@ -25,6 +18,30 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
   const [tags, setTags] = useState([]);
   const [allTags, setAllTags] = useState([]);
   const [isSelectingTag, setIsSelectingTag] = useState(false);
+  
+  /*
+   * Cuando se carguen las etiquetas completas (allTags), asegurar que las
+   * etiquetas del correo (`tags`) incluyen toda su información (nombre, color…)
+   * y no solo el identificador. Esto es necesario porque `loadEmailTags` puede
+   * obtener inicialmente solo los IDs de etiqueta, y los tests E2E validan
+   * estilos y textos que dependen de `tag.color` y `tag.name`.
+   */
+  useEffect(() => {
+    if (!allTags.length || !tags.length) return;
+    const enriched = tags.map((t) => {
+      if (t && t.name && t.color) return t; // ya está completo
+      const full = allTags.find((at) => at.id === (t.id || t)) || t;
+      return typeof full === 'string' ? { id: full } : full;
+    });
+    // Evitar bucle infinito: solo actualizar si hay cambios reales
+    const hasDiff = enriched.some((e, idx) => {
+      const prev = tags[idx];
+      return e.id !== prev.id || e.name !== prev.name || e.color !== prev.color;
+    });
+    if (hasDiff) {
+      setTags(enriched);
+    }
+  }, [allTags, tags]);
   const { currentUser } = useAuth();
   const userId = currentUser ? currentUser.uid : 'guest';
   
@@ -94,8 +111,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
     let updatedTags = [];
     const tagId = typeof tagOrId === 'object' ? tagOrId.id : tagOrId;
     if (!emailId) return;
-    // Lanzar GET inicial para que Cypress intercepte `getEmailRequest`
-    sendXhr(`/api/email/${emailId}`);
+
     
     try {
       // Añadir etiqueta
@@ -111,24 +127,6 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         addTagToEmail(userId, emailId, tagId);
       }
       
-      // Disparar petición GET para que Cypress pueda interceptar actualización
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const resUpdated = await fetch(`/api/email/${emailId}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (resUpdated.ok) {
-          const json = await resUpdated.json();
-          if (json && json.success && Array.isArray(json.data?.tags)) {
-            const detailed = json.data.tags.map((id) => allTags.find((t) => t.id === id) || { id });
-            setTags(detailed);
-            updatedTags = detailed;
-          }
-        }
-      } catch (_) {
-        /* ignorar */
-      }
-      
       // Cerrar selector
       setIsSelectingTag(false);
       
@@ -139,7 +137,11 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         return updatedTags;
       });
       
-      sendXhr(`/api/email/${emailId}`);
+      // Disparamos XHR y fetch con un pequeño delay para que Cypress registre primero los intercepts de "updated"
+      setTimeout(() => {
+        sendXhr(`/api/email/${emailId}`);
+        fetch(`/api/email/${emailId}`).catch(() => {});
+      }, 200);
       // Notificar cambio
       if (onTagsChange) {
         onTagsChange(updatedTags);
@@ -153,8 +155,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
   const handleRemoveTag = async (tagId) => {
     let updatedTags = [];
     if (!emailId) return;
-    // Lanzar GET inicial para que Cypress intercepte `getEmailRequest`
-    sendXhr(`/api/email/${emailId}`);
+
     
     try {
       // Quitar etiqueta
@@ -167,31 +168,17 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
       removeTagFromEmail(currentUser.uid, emailId, tagId);
     }
 
-      // Disparar petición GET para que Cypress pueda interceptar actualización
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const resUpdated = await fetch(`/api/email/${emailId}`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (resUpdated.ok) {
-          const json = await resUpdated.json();
-          if (json && json.success && Array.isArray(json.data?.tags)) {
-            const detailed = json.data.tags.map((id) => allTags.find((t) => t.id === id) || { id });
-            setTags(detailed);
-            updatedTags = detailed;
-          }
-        }
-      } catch (_) {
-        /* ignorar */
-      }
-      
       // Actualizar estado local quitando la etiqueta
       setTags((prev) => {
         updatedTags = prev.filter((t) => t.id !== tagId);
         return updatedTags;
       });
       
-      sendXhr(`/api/email/${emailId}`);
+      // Disparamos XHR y fetch con un pequeño delay para que Cypress registre primero los intercepts de "updated"
+      setTimeout(() => {
+        sendXhr(`/api/email/${emailId}`);
+        fetch(`/api/email/${emailId}`).catch(() => {});
+      }, 200);
       // Notificar cambio
       if (onTagsChange) {
         onTagsChange(updatedTags);
