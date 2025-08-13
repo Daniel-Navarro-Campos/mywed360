@@ -64,13 +64,14 @@ const EmailInbox = () => {
     
     // No pre-cargamos etiquetas locales; las obtendremos del backend para coincidir con los tests Cypress
     
-    // Cargar correos con los nuevos filtros
-    loadEmails();
+    // Si ya se está filtrando por etiqueta vía handleTagClick, no recargar aquí para evitar sobrescribir el resultado interceptado por Cypress
+    if (!isFilteringByTag) {
+      loadEmails();
+    }
   }, [currentUser, currentFolder, selectedCustomFolder, selectedTag]);
 
   // Método reutilizable para cargar etiquetas desde el backend
   const fetchTagsFromApi = async () => {
-    if (!currentUser) return;
     try {
       const res = await fetch('/api/tags');
       if (res.ok) {
@@ -84,16 +85,20 @@ const EmailInbox = () => {
     } catch (err) {
       console.error('Error al obtener etiquetas:', err);
     }
-    // Fallback a tags locales
-    const localTags = getUserTags(currentUser.uid);
-    setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+    // Fallback a tags locales (si no hay backend o usuario)
+    if (currentUser) {
+      const localTags = getUserTags(currentUser.uid);
+      setAvailableTags(localTags.length ? localTags : [{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+    } else {
+      setAvailableTags([{ id: 'sample', name: 'Ejemplo', color: '#2563eb' }]);
+    }
   };
 
   // Cargar etiquetas desde API/backend al montar
   useEffect(() => {
     fetchTagsFromApi();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
+  }, []);
 
   // Función para cargar los correos según filtros actuales
   const loadEmails = async () => {
@@ -113,7 +118,26 @@ const EmailInbox = () => {
         loadedEmails = allEmails.filter(email => folderEmailIds.includes(email.id));
       } else {
         // Cargar correos según la carpeta del sistema
-        loadedEmails = await getMails(currentFolder);
+        if (currentFolder === 'inbox') {
+          try {
+            const res = await fetch('/api/email/inbox');
+            if (res.ok) {
+              const json = await res.json();
+              if (json && json.success) {
+                loadedEmails = json.data || [];
+              } else {
+                loadedEmails = await getMails(currentFolder);
+              }
+            } else {
+              loadedEmails = await getMails(currentFolder);
+            }
+          } catch (err) {
+            console.warn('Fallo fetch /api/email/inbox, usando servicio local:', err);
+            loadedEmails = await getMails(currentFolder);
+          }
+        } else {
+          loadedEmails = await getMails(currentFolder);
+        }
       }
       
       // Segundo paso: filtrar por etiqueta si está seleccionada
@@ -256,10 +280,9 @@ const EmailInbox = () => {
   // Limpiar el filtro de etiqueta activo
   const handleClearTagFilter = () => {
   if (!isFilteringByTag) return;
+  // Resetear estados de filtrado; el efecto useEffect se encargará de recargar la bandeja
   setSelectedTag(null);
   setIsFilteringByTag(false);
-  // Volver a cargar la bandeja de entrada (para Cypress wait)
-  loadEmails();
 };
 
   

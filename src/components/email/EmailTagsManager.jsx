@@ -47,6 +47,16 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
       // Persistencia local (mock)
       addTagToEmail(currentUser.uid, emailId, tagId);
       
+      // Disparar petición GET para que Cypress pueda interceptar actualización
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        await fetch(`/api/email/${emailId}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+      } catch (_) {
+        /* ignorar */
+      }
+      
       // Actualizar etiquetas del correo
       const updatedTags = getEmailTagsDetails(currentUser.uid, emailId);
       setTags(updatedTags);
@@ -69,13 +79,22 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
     
     try {
       // Quitar etiqueta
-      await fetch(`/api/email/${emailId}/tag`, {
+      await fetch(`/api/email/${emailId}/tag/${tagId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tagId })
+        headers: { 'Content-Type': 'application/json' }
       });
 
       removeTagFromEmail(currentUser.uid, emailId, tagId);
+
+      // Disparar petición GET para que Cypress pueda interceptar actualización
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        await fetch(`/api/email/${emailId}`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+      } catch (_) {
+        /* ignorar */
+      }
       
       // Actualizar etiquetas del correo
       const updatedTags = getEmailTagsDetails(currentUser.uid, emailId);

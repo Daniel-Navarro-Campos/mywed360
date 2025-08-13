@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Loader from '../components/ui/Loader';
 
 // Páginas de usuario
-import EmailInbox from '../components/email/EmailInbox';
+import EmailInbox from '../pages/user/EmailInbox';
 import ComposeEmail from '../components/email/ComposeEmail';
 import EmailStatistics from '../pages/user/EmailStatistics';
 import GestionProveedores from '../pages/GestionProveedores';
@@ -11,7 +11,7 @@ import EmailSetup from '../pages/EmailSetup';
 import MailgunTester from '../components/email/MailgunTester';
 
 // Carga perezosa (lazy loading) de componentes para mejor rendimiento
-const EmailInboxLazy = lazy(() => import('../components/email/EmailInbox'));
+const EmailInboxLazy = lazy(() => import('../pages/user/EmailInbox'));
 const EmailSetupLazy = lazy(() => import('../pages/EmailSetup'));
 
 // Componente para mostrar durante la carga
