@@ -58,6 +58,11 @@ class PerformanceMonitor {
     };
     
     this.enabled = this.config.enabled;
+
+    // Si está deshabilitado en entorno de test, salir temprano para evitar timers
+    if (!this.enabled) {
+      return;
+    }
     this.pendingFlush = false;
     this.startTime = Date.now();
     
