@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateUserStats, getUserStats, saveUserStats } from '../../services/statsService';
+import { generateUserStats, getUserStats, saveUserStats, __setStorageProviderForTests } from '../../services/statsService';
 
 // Mock de los servicios dependientes
 vi.mock('../../services/emailService', () => ({
@@ -15,6 +15,12 @@ vi.mock('../../services/tagService', () => ({
   getUserTags: vi.fn(),
   getEmailsByTag: vi.fn(),
   getEmailTagsDetails: vi.fn()
+}));
+
+// Mock de métricas agregadas para evitar llamadas a Firebase
+vi.mock('../../services/emailMetricsService', () => ({
+  getAggregatedStats: vi.fn().mockResolvedValue(null),
+  getDailyStats: vi.fn().mockResolvedValue([])
 }));
 
 // Importar servicios después del mock para poder manipularlos
@@ -36,6 +42,8 @@ describe('statsService', () => {
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock
   });
+  // Forzar a statsService a usar nuestro mock
+  __setStorageProviderForTests(() => localStorageMock);
   
   // Datos de prueba
   const mockUserId = 'user123';
