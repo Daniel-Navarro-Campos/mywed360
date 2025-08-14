@@ -7,31 +7,25 @@ on:
 jobs:
   cypress-run:
     runs-on: ubuntu-latest
+    container: cypress/browsers:node20.14.0-chrome126.0.6478.114-1-ff127.0.1-edge126.0.2592.68-1
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 20
-
       - name: Install dependencies
         run: npm ci --legacy-peer-deps --include=dev
-      - name: Cache Cypress binary
-        uses: actions/cache@v4
+
+      - name: Cypress run
+        uses: cypress-io/github-action@v5
         with:
-          path: ~/.cache/Cypress
-          key: cypress-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            cypress-${{ runner.os }}-
-
-
-
-      - name: Run E2E tests (start-server-and-test + Cypress)
-        run: npm run test:e2e
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: 120
+          browser: electron
+          spec: 'cypress/e2e/email/tags-filters.cy.js'
         env:
           NODE_OPTIONS: "--experimental-vm-modules"
+          CYPRESS_baseUrl: http://localhost:5173
 
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
