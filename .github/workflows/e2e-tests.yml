@@ -1,13 +1,11 @@
 name: E2E Tests
 
-# Temporalmente deshabilitado hasta corregir mocks y selectores
-# on:
-#   push:
-#     branches: [ main, master, desarrollo ]
-#   pull_request:
-#     branches: [ main, master, desarrollo ]
 on:
-  workflow_dispatch: # Solo manual
+  push:
+    branches: [ main, suppliers-firestore-fix ]
+  pull_request:
+    branches: [ main, suppliers-firestore-fix ]
+  workflow_dispatch:
 
 jobs:
   cypress-run:
