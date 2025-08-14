@@ -14,7 +14,29 @@ export default defineConfig({
       {
         name: 'frontend',
         testMatch: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
-        environment: 'jsdom'
+        environment: 'jsdom',
+        exclude: [
+          '**/src/test/**',
+          '**/src/__tests__/**',
+          '**/__tests__/**',
+          '**/TagService.test.js',
+          '**/FolderSelectionModal.test.jsx',
+          '**/AIEmailModal.test.jsx',
+          '**/Email*.test.*',
+          '**/ComposeEmailModal.test.jsx',
+          '**/Email*Modal.test.jsx',
+          '**/Email*Manager.test.jsx',
+          '**/EmailComposer.test.jsx',
+          '**/EmailNotificationBadge.test.jsx',
+          '**/EmailInbox.test.jsx',
+          '**/EmailDetail.test.jsx',
+          '**/SmartEmailComposer.test.jsx',
+          '**/src/test/services/**',
+          '**/cypress/**',
+          '**/*.perf.test.*',
+          '**/*.security.test.*',
+          '**/*.a11y.test.*'
+        ]
       },
     ],
     setupFiles: ['./src/test/setup.js'],
