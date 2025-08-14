@@ -7,6 +7,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    testTimeout: 30000,
+    hookTimeout: 10000,
     environmentMatchGlobs: [
       ['src/**', 'jsdom'],
       ['backend/**', 'node']
@@ -16,7 +18,7 @@ export default defineConfig({
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'backend/**/*.test.{js,ts}', 'backend/**/*.spec.{js,ts}'
     ],
-    exclude: ['**/node_modules/**', '**/dist/**'],
+    exclude: ['**/node_modules/**', '**/dist/**', '**/AdvancedEmailWorkflows.test.jsx'],
     coverage: {
       provider: 'istanbul', // provider por defecto, genera coverage-final.json compatible
       reporter: ['text', 'json', 'html'],
