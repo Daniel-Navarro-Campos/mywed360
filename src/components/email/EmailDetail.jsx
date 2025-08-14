@@ -27,6 +27,13 @@ import EmailTagsManager from './EmailTagsManager';
  * @param {Array} props.folders - Lista de carpetas personalizadas disponibles
  */
 const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders = [], isMobile = false }) => {
+  const [localEmail, setLocalEmail] = useState(email);
+  
+  // Sincronizar con prop email cuando cambie
+  useEffect(() => {
+    setLocalEmail(email);
+  }, [email]);
+
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   
@@ -182,27 +189,27 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
           </div>
         </div>
         
-        <h2 className="text-lg sm:text-xl font-semibold mb-2" id="email-subject">{email.subject || '(Sin asunto)'}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-2" id="email-subject">{localEmail.subject || '(Sin asunto)'}</h2>
         
         <div className="flex items-start mb-2">
           <div 
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-500 text-white flex items-center justify-center mr-2 sm:mr-3 mt-1" 
             aria-hidden="true"
           >
-            {getSenderName(email.from).charAt(0).toUpperCase()}
+            {getSenderName(localEmail.from).charAt(0).toUpperCase()}
           </div>
           
           <div className="flex-grow">
             <div className={`${isSmallScreen ? 'flex flex-col' : 'flex items-baseline justify-between'}`}>
               <div>
-                <p className="font-medium text-sm sm:text-base" id="sender-name">{getSenderName(email.from)}</p>
-                <p className="text-xs text-gray-700 break-all" id="sender-email" aria-label="Dirección de correo del remitente">{getSenderEmail(email.from)}</p>
+                <p className="font-medium text-sm sm:text-base" id="sender-name">{getSenderName(localEmail.from)}</p>
+                <p className="text-xs text-gray-700 break-all" id="sender-email" aria-label="Dirección de correo del remitente">{getSenderEmail(localEmail.from)}</p>
               </div>
-              <p className="text-xs text-gray-700 mt-1 sm:mt-0" aria-label="Fecha de envío">{formatFullDate(email.date)}</p>
+              <p className="text-xs text-gray-700 mt-1 sm:mt-0" aria-label="Fecha de envío">{formatFullDate(localEmail.date)}</p>
             </div>
             
             <p className="text-xs sm:text-sm mt-1">
-              <span id="recipient-label">Para:</span> <span className="text-gray-700 break-all" aria-labelledby="recipient-label">{email.to}</span>
+              <span id="recipient-label">Para:</span> <span className="text-gray-700 break-all" aria-labelledby="recipient-label">{localEmail.to}</span>
             </p>
             
             <div className="mt-2 sm:mt-3">
@@ -210,11 +217,12 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
               <EmailTagsManager 
                                 emailId={email.id}
                 onTagsChange={(tags) => {
-                  // Actualizar objeto email local (para consistencia) y forzar re-render
-                  if (email) {
-                    email.tags = tags.map(t => (typeof t === 'string' ? t : t.id));
-                  }
-                                  }}
+                  // Actualizar estado local inmutable para forzar re-render
+                  setLocalEmail(prev => ({
+                    ...prev,
+                    tags: tags.map(t => (typeof t === 'string' ? t : t.id))
+                  }));
+                }}
                 isSmallScreen={isSmallScreen}
               />
             </div>
@@ -231,29 +239,29 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
         aria-labelledby="email-subject sender-name"
       >
         {/* Si es HTML, renderizarlo de forma segura */}
-        {email.body && email.body.includes('<') ? (
+        {localEmail.body && localEmail.body.includes('<') ? (
           <div 
             className="prose prose-sm sm:prose max-w-none" 
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(email.body) }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(localEmail.body) }}
           />
         ) : (
-          <div className="whitespace-pre-wrap text-sm sm:text-base text-gray-800">{email.body}</div>
+          <div className="whitespace-pre-wrap text-sm sm:text-base text-gray-800">{localEmail.body}</div>
         )}
       </main>
       
       {/* Archivos adjuntos */}
-      {email.attachments && email.attachments.length > 0 && (
+      {localEmail.attachments && localEmail.attachments.length > 0 && (
         <section 
           className="mt-3 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-200"
           role="group"
         >
           <h3 className="text-xs sm:text-sm font-medium mb-2 flex items-center" id="attachments-heading">
             <Paperclip size={isSmallScreen ? 14 : 16} className="mr-1" aria-hidden="true" /> 
-            Archivos adjuntos ({email.attachments.length})
+            Archivos adjuntos ({localEmail.attachments.length})
           </h3>
           
           <div className="space-y-2" role="list" aria-labelledby="attachments-heading">
-            {email.attachments.map((attachment, index) => (
+            {localEmail.attachments.map((attachment, index) => (
               <div 
                 key={index}
                 className="flex items-center p-1.5 sm:p-2 border rounded-lg hover:bg-gray-50"
@@ -296,7 +304,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
           setIsFolderModalOpen(false);
         }}
         title="Mover correo a carpeta"
-        description={`Seleccione una carpeta para mover "${email.subject || '(Sin asunto)'}":`}
+        description={`Seleccione una carpeta para mover "${localEmail.subject || '(Sin asunto)'}":`}
         aria-label="Selección de carpetas"
       />
     </div>

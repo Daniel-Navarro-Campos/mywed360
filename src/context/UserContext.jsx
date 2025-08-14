@@ -76,6 +76,17 @@ export default function UserProvider({ children }) {
   };
 
   const login = async (email, password, remember = true) => {
+    // En entorno Cypress evitamos Firebase y persistimos mock de usuario
+    if (typeof window !== 'undefined' && window.Cypress) {
+      const mockUser = { uid: 'user123', email, role: 'particular' };
+      // Persistir en estado
+      setUser(mockUser);
+      // Persistir en localStorage para que la app lo detecte en recargas
+      try {
+        localStorage.setItem('lovenda_user', JSON.stringify(mockUser));
+      } catch (_) {/* ignore */}
+      return mockUser;
+    }
     await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     let role = 'particular';

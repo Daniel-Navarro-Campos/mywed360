@@ -1,5 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as TagService from '../../services/TagService';
+import * as TagService from '../../services/tagService';
+
+// Mock del módulo storage
+vi.mock('../../utils/storage', () => {
+  let mockStorage = {};
+  
+  return {
+    loadJson: vi.fn((key, defaultValue = null) => {
+      const value = mockStorage[key];
+      return value ? JSON.parse(value) : defaultValue;
+    }),
+    saveJson: vi.fn((key, value) => {
+      mockStorage[key] = JSON.stringify(value);
+      return true;
+    }),
+    removeKey: vi.fn((key) => {
+      delete mockStorage[key];
+    }),
+    // Función para limpiar el mock storage (para tests)
+    __clearMockStorage: () => {
+      mockStorage = {};
+    },
+    // Función para obtener el contenido del mock storage (para debugging)
+    __getMockStorage: () => mockStorage
+  };
+});
 
 // Mock para localStorage
 const localStorageMock = (() => {
@@ -19,8 +44,15 @@ const localStorageMock = (() => {
   };
 })();
 
+// Configurar localStorage mock tanto en window como en globalThis
 Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock
+  value: localStorageMock,
+  writable: true
+});
+
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true
 });
 
 describe('TagService', () => {
@@ -34,9 +66,14 @@ describe('TagService', () => {
   
   const mockEmailId = 'email123';
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     localStorage.clear();
+    // Limpiar caché de TagService
+    TagService.clearCache();
+    // Limpiar mock storage
+    const { __clearMockStorage } = await import('../../utils/storage');
+    __clearMockStorage();
   });
 
   afterEach(() => {
@@ -44,18 +81,16 @@ describe('TagService', () => {
   });
 
   describe('getUserTags', () => {
-    it('devuelve etiquetas del sistema + personalizadas', () => {
+    it('devuelve etiquetas del sistema + personalizadas', async () => {
       // Crear algunas etiquetas personalizadas para el usuario
       const customTags = [
         { id: 'custom1', name: 'Familia', color: '#F59E0B' },
         { id: 'custom2', name: 'Urgente', color: '#EF4444' }
       ];
       
-      // Guardar en localStorage
-      localStorage.setItem(
-        `lovenda_email_tags_${userId}`, 
-        JSON.stringify(customTags)
-      );
+      // Guardar usando el mock de storage
+      const { saveJson } = await import('../../utils/storage');
+      saveJson(`lovenda_email_tags_${userId}`, customTags);
       
       // Obtener todas las etiquetas
       const tags = TagService.getUserTags(userId);
@@ -88,17 +123,15 @@ describe('TagService', () => {
   });
 
   describe('getCustomTags', () => {
-    it('devuelve solo etiquetas personalizadas', () => {
+    it('devuelve solo etiquetas personalizadas', async () => {
       // Crear etiquetas personalizadas
       const customTags = [
         { id: 'custom1', name: 'Familia', color: '#F59E0B' }
       ];
       
-      // Guardar en localStorage
-      localStorage.setItem(
-        `lovenda_email_tags_${userId}`, 
-        JSON.stringify(customTags)
-      );
+      // Guardar usando el mock de storage
+      const { saveJson } = await import('../../utils/storage');
+      saveJson(`lovenda_email_tags_${userId}`, customTags);
       
       const tags = TagService.getCustomTags(userId);
       
@@ -113,7 +146,7 @@ describe('TagService', () => {
   });
 
   describe('createTag', () => {
-    it('crea una nueva etiqueta personalizada', () => {
+    it('crea una nueva etiqueta personalizada', async () => {
       const newTag = TagService.createTag(
         userId, 
         mockCustomTag.name, 
@@ -125,8 +158,9 @@ describe('TagService', () => {
       expect(newTag.name).toBe(mockCustomTag.name);
       expect(newTag.color).toBe(mockCustomTag.color);
       
-      // Verificar que se guardó en localStorage
-      expect(localStorage.setItem).toHaveBeenCalled();
+      // Verificar que se guardó usando el mock de storage
+      const { saveJson } = await import('../../utils/storage');
+      expect(saveJson).toHaveBeenCalled();
       
       // Verificar que se puede recuperar
       const savedTags = TagService.getCustomTags(userId);

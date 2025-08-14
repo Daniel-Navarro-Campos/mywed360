@@ -9,6 +9,13 @@ import { loadJson, saveJson } from '../utils/storage.js';
 // Caché en memoria para tests y runtime rápido
 const runtimeCustomTags = {};
 
+// Función para limpiar caché (útil en tests)
+export const clearCache = () => {
+  Object.keys(runtimeCustomTags).forEach(key => {
+    delete runtimeCustomTags[key];
+  });
+};
+
 // Claves para almacenamiento local
 const TAGS_STORAGE_KEY = 'lovenda_email_tags';
 const EMAIL_TAGS_MAPPING_KEY = 'lovenda_email_tags_mapping';
@@ -52,10 +59,12 @@ export const getCustomTags = (userId) => {
   const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
   try {
     const fromStorage = loadJson(storageKey, []);
+    // Siempre actualizar caché con lo que leemos del storage
     runtimeCustomTags[userId] = fromStorage;
     return fromStorage;
   } catch (error) {
     console.error('Error al obtener etiquetas personalizadas:', error);
+    // En caso de error, devolver caché si existe, sino array vacío
     return runtimeCustomTags[userId] || [];
   }
 };
