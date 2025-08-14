@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { _getStorage } from '../utils/storage.js';
 
 // Clave para almacenamiento local
 const FOLDERS_STORAGE_KEY = 'lovenda_email_folders';
@@ -18,7 +19,7 @@ export const getUserFolders = (userId) => {
   try {
     // Formato de clave: lovenda_email_folders_[userId]
     const storageKey = `${FOLDERS_STORAGE_KEY}_${userId}`;
-    const foldersJson = localStorage.getItem(storageKey);
+    const foldersJson = _getStorage().getItem(storageKey);
     
     if (!foldersJson) {
       return [];
@@ -118,15 +119,21 @@ export const deleteFolder = (userId, folderId) => {
   try {
     const folders = getUserFolders(userId);
     
+    // Verificar existencia
+    const exists = folders.some(folder => folder.id === folderId);
+    if (!exists) {
+      return false;
+    }
+
     // Filtrar la carpeta a eliminar
     const updatedFolders = folders.filter(folder => folder.id !== folderId);
-    
+
     // Guardar carpetas actualizadas
     saveUserFolders(userId, updatedFolders);
-    
+
     // También eliminar mapeos de correos a esta carpeta
     removeEmailsFromFolder(userId, folderId);
-    
+
     return true;
   } catch (error) {
     console.error('Error al eliminar carpeta:', error);
@@ -142,7 +149,7 @@ export const deleteFolder = (userId, folderId) => {
  */
 const saveUserFolders = (userId, folders) => {
   const storageKey = `${FOLDERS_STORAGE_KEY}_${userId}`;
-  localStorage.setItem(storageKey, JSON.stringify(folders));
+  _getStorage().setItem(storageKey, JSON.stringify(folders));
 };
 
 /**
@@ -154,7 +161,7 @@ const saveUserFolders = (userId, folders) => {
 const getEmailFolderMapping = (userId) => {
   try {
     const storageKey = `${EMAIL_FOLDER_MAPPING_KEY}_${userId}`;
-    const mappingJson = localStorage.getItem(storageKey);
+    const mappingJson = _getStorage().getItem(storageKey);
     
     if (!mappingJson) {
       return {};
@@ -175,7 +182,7 @@ const getEmailFolderMapping = (userId) => {
  */
 const saveEmailFolderMapping = (userId, mapping) => {
   const storageKey = `${EMAIL_FOLDER_MAPPING_KEY}_${userId}`;
-  localStorage.setItem(storageKey, JSON.stringify(mapping));
+  _getStorage().setItem(storageKey, JSON.stringify(mapping));
 };
 
 /**
@@ -192,7 +199,8 @@ export const assignEmailToFolder = (userId, emailId, folderId) => {
     const folderExists = folders.some(folder => folder.id === folderId);
     
     if (!folderExists) {
-      throw new Error('La carpeta especificada no existe');
+      // Si la carpeta no existe, no se asigna y se devuelve false
+      return false;
     }
     
     // Obtener mapeo actual
@@ -323,7 +331,8 @@ export const updateFolderUnreadCount = (userId, folderId, unreadCount) => {
     // Guardar carpetas actualizadas
     saveUserFolders(userId, updatedFolders);
     
-    return true;
+    // Devolver carpeta actualizada o null si no encontrada
+    return updatedFolders.find(folder => folder.id === folderId) || null;
   } catch (error) {
     console.error('Error al actualizar contador de no leídos:', error);
     return false;

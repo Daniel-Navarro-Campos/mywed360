@@ -4,7 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
-import { loadJson, saveJson } from '../utils/storage.js';
+import { _getStorage, loadJson, saveJson } from '../utils/storage.js';
 
 // Caché en memoria para tests y runtime rápido
 const runtimeCustomTags = {};

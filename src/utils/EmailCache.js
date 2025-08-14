@@ -5,6 +5,8 @@
  * @module utils/EmailCache
  */
 
+import { _getStorage } from './storage.js';
+
 class EmailCache {
   constructor() {
     this.memoryCache = {};
@@ -35,7 +37,7 @@ class EmailCache {
     if (this.initialized) return;
     
     try {
-      const savedCache = localStorage.getItem(this.storageKey);
+      const savedCache = _getStorage().getItem(this.storageKey);
       
       if (savedCache) {
         const parsed = JSON.parse(savedCache);
@@ -70,7 +72,7 @@ class EmailCache {
         lastUpdated: Date.now()
       };
       
-      localStorage.setItem(this.storageKey, JSON.stringify(dataToSave));
+      _getStorage().setItem(this.storageKey, JSON.stringify(dataToSave));
     } catch (error) {
       console.error('EmailCache: Error al persistir caché', error);
       // Si falla por tamaño, intentamos limpiar la caché

@@ -8,18 +8,23 @@
  * @returns {*} Valor almacenado o defaultValue.
  */
 // Detectar implementación de localStorage disponible
-const _getStorage = () => {
+export const _getStorage = () => {
   /*
    * Prioridad:
    * 1. Si existe window.localStorage (ambiente navegador o jsdom en tests), usar ese.
    * 2. Si existe globalThis.localStorage (algunos entornos de test lo definen ahí), usarlo.
    * 3. Fallback: mock vacío para evitar ReferenceError.
    */
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage;
-  }
+  // Priorizar un mock de globalThis.localStorage cuando exista (entornos de test)
   if (typeof globalThis !== 'undefined' && globalThis.localStorage) {
     return globalThis.localStorage;
+  }
+  // Entornos Node/Vitest pueden exponer localStorage en "global"
+  if (typeof global !== 'undefined' && global.localStorage) {
+    return global.localStorage;
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage;
   }
   return {
     getItem: () => null,
