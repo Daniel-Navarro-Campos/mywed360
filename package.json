@@ -94,6 +94,7 @@
     "supertest": "^6.3.3",
     "vite-plugin-pwa": "^0.16.7",
     "vitest": "^3.2.4",
-    "@firebase/rules-unit-testing": "^3.0.0"
+    "@firebase/rules-unit-testing": "^3.0.0",
+    "cypress": "^14.5.4"
   }
 }
