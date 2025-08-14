@@ -33,6 +33,21 @@ export default function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Soporte para pruebas E2E con Cypress: detectar claves userEmail / isLoggedIn
+    const testEmail = localStorage.getItem('userEmail');
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    if (isLoggedIn === 'true' && testEmail) {
+      const mockUser = {
+        uid: 'cypress-test',
+        email: testEmail,
+        displayName: testEmail.split('@')[0],
+        role: 'particular'
+      };
+      setUser(mockUser);
+      setLoading(false);
+      return; // Skip Firebase auth listeners
+    }
+    
     // En modo desarrollo podemos forzar un rol sin pasar por Firebase,
     // pero solo si el desarrollador lo ha indicado explícitamente.
     if (process.env.NODE_ENV === 'development') {
