@@ -48,16 +48,30 @@ if (performanceMonitor?.setEnabled) {
 // Asegurar entorno de tests antes de que index.js se cargue
 process.env.NODE_ENV = 'test';
 
-// Forzar salida explícita en CI para evitar procesos colgados por handles abiertos
+// Forzar salida explícita en CI y loguear handles vivos con why-is-node-running
 if (process.env.CI) {
-  // Garantizar salida del proceso incluso si afterAll no se ejecuta por workers
+  // Función para imprimir handles vivos y salir
   const safeExit = () => setTimeout(() => process.exit(0), 500);
 
   if (typeof afterAll !== 'undefined') {
-    afterAll(safeExit);
+    afterAll(async () => {
+      try {
+        const why = await import('why-is-node-running');
+        (why.default || why)();
+      } catch (err) {
+        console.error('why-is-node-running import failed', err);
+      }
+      safeExit();
+    });
   }
-  // Fallback: si afterAll no está disponible, salir tras 60 s
-  setTimeout(() => {
+  // Fallback: si afterAll no está disponible, salir tras 60 s y loguear handles
+  setTimeout(async () => {
+    try {
+      const why = await import('why-is-node-running');
+      (why.default || why)();
+    } catch (err) {
+      console.error('why-is-node-running import failed', err);
+    }
     console.warn('CI timeout fallback: forcing exit');
     safeExit();
   }, 60000).unref?.();
