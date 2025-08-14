@@ -1,0 +1,46 @@
+# Ejecuta Vitest y ESLint en cada push y PR
+---
+name: CI - Unit & Lint
+
+on:
+  push:
+    branches: [ main, feat/** ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install deps (ci)
+        run: npm ci --legacy-peer-deps
+
+      - name: Run ESLint
+        run: npm run lint --if-present
+
+      - name: Run Unit Tests (Vitest)
+        run: npx vitest run --reporter=verbose
+
+      - name: Upload coverage
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-mywed360
