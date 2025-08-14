@@ -101,7 +101,7 @@ export function useEmailMonitoring() {
    * @returns {void}
    */
   const measureCachePerformance = useCallback((operation, durationMs = 0, metadata = {}) => {
-    performanceMonitor.trackMetric({
+    performanceMonitor.logEvent('email_operation', {
       category: 'cache',
       action: 'template_cache_' + operation,
       value: durationMs,

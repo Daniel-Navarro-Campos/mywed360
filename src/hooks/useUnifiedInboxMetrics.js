@@ -25,7 +25,7 @@ export function useUnifiedInboxMetrics() {
    * @param {number} loadTimeMs - Tiempo de carga en milisegundos
    */
   const logInitialLoad = useCallback((folder, emailCount, loadTimeMs) => {
-    performanceMonitor.trackMetric('unified_inbox_load', {
+    performanceMonitor.logEvent('unified_inbox_load', {
       folder,
       emailCount,
       loadTimeMs,
@@ -40,7 +40,7 @@ export function useUnifiedInboxMetrics() {
    * @param {number} searchTimeMs - Tiempo de búsqueda en milisegundos
    */
   const logSearch = useCallback((query, resultCount, searchTimeMs) => {
-    performanceMonitor.trackMetric('unified_inbox_search', {
+    performanceMonitor.logEvent('unified_inbox_search', {
       queryLength: query.length,
       resultCount,
       searchTimeMs,
@@ -56,7 +56,7 @@ export function useUnifiedInboxMetrics() {
    * @param {number} renderTimeMs - Tiempo de renderizado en milisegundos
    */
   const logEmailRender = useCallback((emailId, hasAttachments, contentLength, renderTimeMs) => {
-    performanceMonitor.trackMetric('unified_inbox_email_render', {
+    performanceMonitor.logEvent('unified_inbox_email_render', {
       emailId,
       hasAttachments,
       contentLength,
@@ -71,7 +71,7 @@ export function useUnifiedInboxMetrics() {
    * @param {Object} details - Detalles adicionales de la acción
    */
   const logUserInteraction = useCallback((actionType, details = {}) => {
-    performanceMonitor.trackMetric('unified_inbox_interaction', {
+    performanceMonitor.logEvent('unified_inbox_interaction', {
       actionType,
       ...details,
       timestamp: Date.now()
@@ -86,7 +86,7 @@ export function useUnifiedInboxMetrics() {
    * @param {number} durationMs - Duración de la operación
    */
   const logCacheOperation = useCallback((operation, key, sizeBytes, durationMs) => {
-    performanceMonitor.trackMetric('unified_inbox_cache', {
+    performanceMonitor.logEvent('unified_inbox_cache', {
       operation,
       key,
       sizeBytes,
