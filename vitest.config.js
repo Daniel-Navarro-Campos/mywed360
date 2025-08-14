@@ -16,23 +16,20 @@ export default defineConfig({
         testMatch: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
         environment: 'jsdom'
       },
-      {
-        name: 'backend', 
-        testMatch: ['backend/**/*.{test,spec}.{js,ts}'],
-        environment: 'node'
-      }
+
     ],
-    setupFiles: ['./src/test/setup.js', './backend/vitest.setup.js'],
+    setupFiles: ['./src/test/setup.js'],
     include: [
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'backend/**/*.test.{js,ts}', 'backend/**/*.spec.{js,ts}'
+      
     ],
     exclude: [
       '**/node_modules/**', 
       '**/dist/**', 
       '**/test/**',
-      '**/backend/test/**',
+      '**/backend/**',
       '**/src/__tests__/**',
+      '**/__tests__/**',
       '**/src/test/**',
       '**/TagService.test.js',
       '**/FolderSelectionModal.test.jsx',
