@@ -98,6 +98,7 @@ export default function EmailInbox() {
       {loading ? (
         <div>Cargando...</div>
       ) : (
+        <div data-testid="email-list">
         <table>
           <thead>
             <tr>
@@ -139,6 +140,7 @@ export default function EmailInbox() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ import useAuth from '../../hooks/useAuth';
  * con data-testid="email-body-editor" que esperan los tests.
  */
 const ComposeEmail = () => {
+  const [sentSuccess, setSentSuccess] = useState(false);
   const navigate = useNavigate();
   const { action, id } = useParams();
   const { profile } = useAuth();
@@ -64,8 +65,10 @@ const ComposeEmail = () => {
     setSending(true);
     try {
       await EmailService.sendMail({ to, subject, body, attachments });
-      // Redirigir a bandeja de entrada tras envío exitoso
-      navigate('/');
+      // Mostrar mensaje de éxito
+      setSentSuccess(true);
+      // Redirigir tras breve demora
+      setTimeout(() => navigate('/'), 500);
     } catch (err) {
       console.error(err);
       setError(`Error al enviar correo: ${err.message}`);
@@ -97,6 +100,7 @@ const ComposeEmail = () => {
               onChange={(e) => setTo(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2"
               disabled={sending}
+              data-testid="recipient-input"
             />
           </div>
 
@@ -109,6 +113,7 @@ const ComposeEmail = () => {
               onChange={(e) => setSubject(e.target.value)}
               className="w-full border border-gray-300 rounded-md p-2"
               disabled={sending}
+              data-testid="subject-input"
             />
           </div>
 
@@ -139,10 +144,15 @@ const ComposeEmail = () => {
           </div>
         </div>
         <div className="border-t border-gray-200 p-4 flex justify-end">
-          <Button onClick={handleSend} disabled={sending}>
+          <Button onClick={handleSend} disabled={sending} data-testid="send-button">
             {sending ? 'Enviando...' : 'Enviar'}
           </Button>
         </div>
+      {sentSuccess && (
+          <div data-testid="success-message" className="text-green-700 bg-green-50 border border-green-200 p-2 rounded-md mt-2">
+            Correo enviado correctamente
+          </div>
+        )}
       </Card>
     </div>
   );

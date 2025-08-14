@@ -45,6 +45,7 @@ export default function Login() {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="border p-2 w-full mb-4"
+          data-testid="email-input"
         />
         <input
           type="password"
@@ -52,6 +53,7 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="border p-2 w-full mb-4"
+          data-testid="password-input"
         />
         {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
         <div className="flex items-center mb-4">
@@ -72,6 +74,7 @@ export default function Login() {
           <button
           type="submit"
           className="bg-[var(--color-primary)] text-[color:var(--color-surface)] px-4 py-2 rounded w-full hover:bg-[var(--color-accent)] transition-colors"
+          data-testid="login-button"
         >
           Entrar
         </button>
