@@ -5,10 +5,13 @@
  * y funcionalidades críticas, especialmente el sistema de emails personalizados.
  */
 
+// Detectar entorno de test para desactivar métricas automáticamente
+const IS_TEST_ENV = (typeof globalThis !== 'undefined' && globalThis?.vitest) || process?.env?.VITEST || process?.env?.NODE_ENV === 'test';
+
 // Configuración para el monitoreo
 const CONFIG = {
   // Activar/desactivar el monitoreo
-  enabled: true,
+  enabled: !IS_TEST_ENV,
   
   // Nivel de detalle del monitoreo
   // 0: solo errores críticos

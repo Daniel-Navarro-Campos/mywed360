@@ -73,6 +73,8 @@ const InboxNavigation = ({
                   ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'hover:bg-gray-100 text-gray-700'
               }`}
+              aria-current={currentFolder === folder.id ? 'true' : undefined}
+              role="menuitem"
             >
               <span className="mr-2">{folder.icon}</span>
               {folder.name}
