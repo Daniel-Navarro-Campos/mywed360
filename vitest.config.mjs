@@ -6,6 +6,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    threads: false,
+    forceExit: true,
     environment: 'node',
     environmentMatchGlobs: [
       ['src/**', 'jsdom'],
