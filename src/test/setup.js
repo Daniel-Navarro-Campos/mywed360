@@ -72,7 +72,8 @@ vi.mock('lucide-react', () => {
       get: (target, prop) => {
         if (prop in target) return target[prop];
         return Stub;
-      }
+      },
+      has: () => true
     }
   );
 });

@@ -24,20 +24,7 @@ vi.mock('../../hooks/useAuth', () => ({
   })
 }));
 
-// Mock de componentes visuales
-vi.mock('lucide-react', () => ({
-  Trash: () => <div data-testid="trash-icon">×</div>,
-  Reply: () => <div data-testid="reply-icon">↩</div>,
-  Forward: () => <div data-testid="forward-icon">→</div>,
-  Star: () => <div data-testid="star-icon">★</div>,
-  Download: () => <div data-testid="download-icon">↓</div>,
-  Mail: () => <div data-testid="mail-icon">✉</div>,
-  Archive: () => <div data-testid="archive-icon">📦</div>,
-  Inbox: () => <div data-testid="inbox-icon">📥</div>,
-  Send: () => <div data-testid="sent-icon">📤</div>,
-  Folder: () => <div data-testid="folder-icon">📁</div>,
-  Plus: () => <div data-testid="plus-icon">+</div>
-}));
+
 
 // Datos de ejemplo
 const mockEmail = {
