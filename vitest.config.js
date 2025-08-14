@@ -16,13 +16,8 @@ export default defineConfig({
         testMatch: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}'],
         environment: 'jsdom'
       },
-
     ],
     setupFiles: ['./src/test/setup.js'],
-    include: [
-      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      
-    ],
     exclude: [
       '**/node_modules/**', 
       '**/dist/**', 
