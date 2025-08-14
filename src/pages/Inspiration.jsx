@@ -42,6 +42,7 @@ export default function Inspiration() {
   }, []);
 
   useEffect(() => {
+    if(selectedTag==='favs') return; // No cargar muro cuando estamos en pestaña favoritos
     async function load() {
       setLoading(true);
       const newItems = await fetchWall(page, query);
@@ -54,7 +55,7 @@ export default function Inspiration() {
       setLoading(false);
     }
     load();
-  }, [page, query]);
+  }, [page, query, selectedTag]);
 
   const handleSave = async (item) => {
     // Cargar estado actual de favoritos desde almacenamiento local
