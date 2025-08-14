@@ -12,22 +12,30 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    container:
-      image: node:20.19.0
-      options: --user root
-
+    
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+          registry-url: 'https://registry.npmjs.org'
+          always-auth: true
+          cache: 'npm'
+
+      - name: Force Node 20 environment
+        run: |
+          echo "PATH=/opt/hostedtoolcache/node/20.19.0/x64/bin:$PATH" >> $GITHUB_ENV
+          echo "NODE_VERSION=20.19.0" >> $GITHUB_ENV
+          
       - name: Verify Node version (must be 20.x)
         run: |
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           node -v | grep -E '^v20\.' || (echo "ERROR: Node 20 required but got $(node -v)" && exit 1)
-
-      - name: Update npm to latest
-        run: npm install -g npm@latest
+          npm -v | grep -E '^10\.' || (echo "ERROR: NPM 10 required but got $(npm -v)" && exit 1)
 
       - name: Install dependencies with engine-strict
         run: |
