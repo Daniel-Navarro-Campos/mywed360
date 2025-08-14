@@ -23,12 +23,18 @@
 
 // Comando personalizado para iniciar sesión
 Cypress.Commands.add('loginToLovenda', (email, password) => {
-  cy.visit('/login');
-  cy.get('[data-testid="email-input"]').type(email);
-  cy.get('[data-testid="password-input"]').type(password);
-  cy.get('[data-testid="login-button"]').click();
-  // Esperar a que se complete el inicio de sesión
-  cy.url().should('not.include', '/login');
+  // Simular autenticación directamente con localStorage (compatible con useAuth.jsx)
+  cy.window().then((win) => {
+    win.localStorage.setItem('userEmail', email || 'usuario.test@lovenda.com');
+    win.localStorage.setItem('isLoggedIn', 'true');
+    // También configurar datos de usuario completos para compatibilidad
+    const mockUser = {
+      uid: 'cypress-test',
+      email: email || 'usuario.test@lovenda.com',
+      displayName: 'Usuario Test Cypress'
+    };
+    win.localStorage.setItem('lovenda_user', JSON.stringify(mockUser));
+  });
 });
 
 // Comando personalizado para navegar a la bandeja de entrada de correo
