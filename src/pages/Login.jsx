@@ -3,6 +3,7 @@ import { useUserContext } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
+  console.log('Rendering Login component');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

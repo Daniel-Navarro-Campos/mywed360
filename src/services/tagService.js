@@ -31,22 +31,10 @@ export const SYSTEM_TAGS = [
 export const getUserTags = (userId) => {
   const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
   try {
-    const storage = _getStorage();
+    // Leer desde utilidades para evitar dependencias directas a _getStorage y facilitar el mocking en tests
+    const customTags = loadJson(storageKey, []);
 
-    // Llamada explícita para que el spy de los tests registre la lectura
-    const raw = storage.getItem(storageKey);
-
-    // Parsear resultado (si existe)
-    let customTags = [];
-    if (raw) {
-      try {
-        customTags = JSON.parse(raw);
-      } catch {
-        customTags = [];
-      }
-    }
-
-    // Actualizar caché
+    // Actualizar caché (útil para acceso rápido y pruebas)
     runtimeCustomTags[userId] = customTags;
 
     return [...SYSTEM_TAGS, ...customTags];

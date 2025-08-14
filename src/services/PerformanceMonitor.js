@@ -6,9 +6,13 @@
  */
 
 // Detectar entorno de test para desactivar métricas automáticamente
-const IS_TEST_ENV = (
-  typeof globalThis !== 'undefined' && (globalThis?.vitest || globalThis?.Cypress)
-) || process?.env?.VITEST || process?.env?.NODE_ENV === 'test';
+// Determinar si estamos en entorno de test sin provocar ReferenceError en navegador
+const IS_TEST_ENV = (() => {
+  const globalTest = typeof globalThis !== 'undefined' && (globalThis?.vitest || globalThis?.Cypress);
+  const nodeProcess = typeof process !== 'undefined' ? process : undefined;
+  const nodeEnvTest = nodeProcess?.env?.VITEST || nodeProcess?.env?.NODE_ENV === 'test';
+  return globalTest || nodeEnvTest;
+})();
 
 // Configuración para el monitoreo
 const CONFIG = {

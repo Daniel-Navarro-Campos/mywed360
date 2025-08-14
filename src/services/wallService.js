@@ -4,6 +4,31 @@
 
 import axios from 'axios';
 
+// Imágenes de demo para fallback en desarrollo
+const DEMO_IMAGES = [
+  {
+    id: 'demo_1',
+    url: 'https://images.unsplash.com/photo-1529634896862-08db0e0ea1cf?auto=format&fit=crop&w=800&q=60',
+    thumb: 'https://images.unsplash.com/photo-1529634896862-08db0e0ea1cf?auto=format&fit=crop&w=400&q=60',
+    tags: ['decoración','flores'],
+    source: 'demo'
+  },
+  {
+    id: 'demo_2',
+    url: 'https://images.unsplash.com/photo-1499955085172-a104c9463ece?auto=format&fit=crop&w=800&q=60',
+    thumb: 'https://images.unsplash.com/photo-1499955085172-a104c9463ece?auto=format&fit=crop&w=400&q=60',
+    tags: ['ceremonia'],
+    source: 'demo'
+  },
+  {
+    id: 'demo_3',
+    url: 'https://images.unsplash.com/photo-1502920917128-1aa500764b1c?auto=format&fit=crop&w=800&q=60',
+    thumb: 'https://images.unsplash.com/photo-1502920917128-1aa500764b1c?auto=format&fit=crop&w=400&q=60',
+    tags: ['flores','vestido'],
+    source: 'demo'
+  }
+];
+
 /**
  * Obtiene un lote paginado del muro de inspiración.
  * @param {number} page
@@ -51,9 +76,10 @@ export async function fetchWall(page = 1, query = 'wedding') {
   };
   try {
     const resp = await axios.post(`${API_BASE}/api/instagram/wall`, { page, query });
-    return resp.data.map(normalize);
+    const data = resp.data.map(normalize);
+    return data.length ? data : DEMO_IMAGES;
   } catch (err) {
     console.error('wallService error', err);
-    return [];
+    return DEMO_IMAGES;
   }
 }

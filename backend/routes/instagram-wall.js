@@ -59,8 +59,32 @@ function picsumPlaceholders(page = 1, query = 'wedding', count = 15) {
 
 
 async function discoverUnsplash(page = 1, query = 'wedding') {
-  // Si no hay clave, fallback a Picsum
+  // Si no hay clave, intentar endpoint público no autenticado de Unsplash
   if (!UNSPLASH_KEY) {
+    try {
+      const { data } = await axios.get('https://unsplash.com/napi/search/photos', {
+        params: { query, page, per_page: 15 },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (myWed360 dev)'
+        },
+        timeout: 10000,
+      });
+      const results = (data?.results || data?.photos?.results || []);
+      if(results.length){
+        return results.map((img)=>({
+          id: `unsplash_${img.id}`,
+          permalink: `https://unsplash.com/photos/${img.id}`,
+          media_url: img.urls?.regular || img.urls?.small,
+          timestamp: img.created_at || new Date().toISOString(),
+          like_count: img.likes || 0,
+          comments_count: 0,
+          provider: 'unsplash_public',
+        }));
+      }
+    } catch(err){
+      console.warn('Unsplash public endpoint error', err.message);
+    }
+    // Si sigue fallando, usar Picsum
     return picsumPlaceholders(page, query);
   }
 

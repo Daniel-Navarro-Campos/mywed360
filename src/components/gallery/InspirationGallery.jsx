@@ -24,14 +24,14 @@ export default function InspirationGallery({ images = [], onSave = () => {}, onV
 
   const allTags = useMemo(() => {
     const tags = new Set(BASE_TAGS);
-    DATA.forEach(img => img.tags.forEach(t => tags.add(t)));
+    DATA.forEach(img => (img.tags || []).forEach(t => tags.add(t)));
     return Array.from(tags);
   }, [DATA]);
 
   const filtered = useMemo(() => {
     if (filter === 'all') return DATA;
     if (filter === 'favs') return DATA.filter(img => favorites.includes(img.id));
-    return DATA.filter(img => img.tags.includes(filter));
+    return DATA.filter(img => (img.tags || []).includes(filter));
   }, [filter, DATA, favorites]);
 
   const toggleFav = id => {
