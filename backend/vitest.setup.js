@@ -26,19 +26,17 @@ vi.mock('lucide-react', () => {
   const iconNames = [
     'ArrowLeft','Paperclip','Inbox','Send','Star','Trash','Plus','Mail','Tag','Settings','ChevronDown','ChevronRight'
   ];
-  const base = { __esModule: true, default: Stub };
-  iconNames.forEach(name => { base[name] = Stub; });
-  // Devolver Proxy que resuelve cualquier icono al stub
-  return new Proxy(base, {
+  const exports = { __esModule: true, default: Stub };
+  iconNames.forEach(name => { exports[name] = Stub; });
+  // Devolver proxy para cualquier icono no listado
+  return new Proxy(exports, {
     get(target, prop) {
       if (prop in target) return target[prop];
       return Stub;
     },
-    has() {
-      // Afirmar que cualquier export existe para Vitest
-      return true;
-    },
+    has() { return true; }
   });
+
 });
 
 // Desactivar PerformanceMonitor en tests para evitar timers/handles abiertos
