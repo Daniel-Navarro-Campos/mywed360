@@ -27,14 +27,10 @@ jobs:
       - name: Update npm to latest
         run: npm install -g npm@latest
 
-      - name: Clear npm cache and force clean install
+      - name: Install dependencies with engine-strict
         run: |
           npm cache clean --force
-          rm -rf node_modules package-lock.json
-          npm install --engine-strict
-
-      - name: Install dependencies
-        run: npm ci
+          npm ci --engine-strict
 
       - name: Start dev server and run Cypress tests
         uses: cypress-io/github-action@v5
