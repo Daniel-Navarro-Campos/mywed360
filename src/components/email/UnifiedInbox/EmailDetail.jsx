@@ -160,7 +160,14 @@ const EmailDetail = ({ email, onReply, onDelete, onBack, onMarkRead }) => {
 
   // Procesar el contenido HTML del email de forma segura
   const getSafeHtml = (htmlContent) => {
-    return sanitizeHtml(htmlContent || '');
+    try {
+      const result = sanitizeHtml(htmlContent || '');
+      // Asegurar que siempre retornamos un string, nunca una Promesa
+      return typeof result === 'string' ? result : String(result || '');
+    } catch (error) {
+      console.error('Error al sanitizar HTML:', error);
+      return htmlContent || '';
+    }
   };
     
     
