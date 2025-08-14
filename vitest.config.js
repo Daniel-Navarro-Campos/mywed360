@@ -33,6 +33,8 @@ export default defineConfig({
       '**/test/**',
       '**/backend/test/**',
       '**/src/__tests__/**',
+      '**/src/test/**',
+      '**/TagService.test.js',
       '**/cypress/**',
       '**/*.perf.test.*',
       '**/*.security.test.*',
