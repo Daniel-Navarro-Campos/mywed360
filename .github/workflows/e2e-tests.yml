@@ -24,10 +24,9 @@ jobs:
             libgtk-3-0 \
             libgbm-dev \
             libnotify-dev \
-            libgconf-2-4 \
             libnss3 \
             libxss1 \
-            libasound2 \
+            libasound2t64 \
             libxtst6 \
             xauth \
             xvfb
@@ -42,6 +41,7 @@ jobs:
           wait-on: 'http://localhost:5173'
           wait-on-timeout: 120
           browser: electron
+          xvfb: true
           spec: 'cypress/e2e/email/tags-filters.cy.js'
         env:
           NODE_OPTIONS: "--experimental-vm-modules"
