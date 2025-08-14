@@ -244,6 +244,45 @@ const InboxContainer = () => {
     setSelectedEmailId(null);
   }, []);
   
+  // Memoizar emails filtrados y ordenados (MOVIDO AQUÍ para evitar error de inicialización)
+  const filteredEmails = useMemo(() => {
+    if (!emails.length) return [];
+    
+    let filtered = [...emails];
+    
+    // Filtrar por término de búsqueda
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(email => 
+        email.subject?.toLowerCase().includes(term) || 
+        email.from?.toLowerCase().includes(term) ||
+        email.to?.toLowerCase().includes(term) ||
+        email.body?.toLowerCase().includes(term)
+      );
+    }
+    
+    // Ordenar emails
+    return filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'date':
+          comparison = new Date(a.date) - new Date(b.date);
+          break;
+        case 'from':
+          comparison = (a.from || '').localeCompare(b.from || '');
+          break;
+        case 'subject':
+          comparison = (a.subject || '').localeCompare(b.subject || '');
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [emails, searchTerm, sortField, sortDirection]);
+  
   // Manejador para buscar
   const handleSearch = useCallback((term) => {
     const startTime = performance.now();
@@ -336,45 +375,6 @@ const InboxContainer = () => {
       toast.error('Error al eliminar el email');
     }
   }, [selectedEmailId, currentFolder, logUserInteraction]);
-  
-  // Memoizar emails filtrados y ordenados
-  const filteredEmails = useMemo(() => {
-    if (!emails.length) return [];
-    
-    let filtered = [...emails];
-    
-    // Filtrar por término de búsqueda
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(email => 
-        email.subject?.toLowerCase().includes(term) || 
-        email.from?.toLowerCase().includes(term) ||
-        email.to?.toLowerCase().includes(term) ||
-        email.body?.toLowerCase().includes(term)
-      );
-    }
-    
-    // Ordenar emails
-    return filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortField) {
-        case 'date':
-          comparison = new Date(a.date) - new Date(b.date);
-          break;
-        case 'from':
-          comparison = (a.from || '').localeCompare(b.from || '');
-          break;
-        case 'subject':
-          comparison = (a.subject || '').localeCompare(b.subject || '');
-          break;
-        default:
-          comparison = 0;
-      }
-      
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [emails, searchTerm, sortField, sortDirection]);
   
   return (
     <div className="flex flex-col h-full bg-gray-50">
