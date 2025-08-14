@@ -2,6 +2,8 @@
 
 Aplicación SPA para gestión integrada de correos electrónicos en Lovenda, construida con **React 18 + Vite + TailwindCSS** y hospedada como PWA (offline-first).
 
+> ⚠️ *Prueba de sincronización GitHub — 2025-08-04*
+
 Estructura básica para iniciar la aplicación frontend con React, Vite y Tailwind CSS.
 
 ## Tabla de Contenidos
