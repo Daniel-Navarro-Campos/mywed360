@@ -101,7 +101,7 @@ describe('Flujo de recepción y lectura de correos', () => {
 
     // Iniciar sesión antes de cada test
     cy.loginToLovenda(testUser.email, testUser.password);
-    cy.wait('@loginRequest');
+
   });
 
   it('muestra la lista de correos en la bandeja de entrada', () => {

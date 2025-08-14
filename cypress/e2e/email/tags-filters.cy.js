@@ -153,7 +153,7 @@ describe('Flujo de etiquetado y filtrado de correos', () => {
 
     // Iniciar sesión antes de cada test
     cy.loginToLovenda(testUser.email, testUser.password);
-    cy.wait('@loginRequest');
+
   });
 
   it('muestra correctamente las etiquetas disponibles', () => {

@@ -22,10 +22,21 @@ describe('Flujo de envío de correos desde búsqueda AI de proveedores (CP-EP-07
     // Cargar la página de proveedores con búsqueda AI
     cy.visit('/proveedores');
     
-    // Simular inicio de sesión
+    // Simular inicio de sesión y contexto de boda
     cy.window().then((win) => {
       win.localStorage.setItem('userEmail', 'usuario.test@lovenda.com');
       win.localStorage.setItem('isLoggedIn', 'true');
+      // Configurar contexto de boda para que Proveedores se renderice correctamente
+      win.localStorage.setItem('activeWedding', 'test-wedding-123');
+      const mockWedding = {
+        id: 'test-wedding-123',
+        brideFirstName: 'María',
+        brideLastName: 'García',
+        groomFirstName: 'Juan',
+        groomLastName: 'Pérez',
+        weddingDate: '2025-10-15'
+      };
+      win.localStorage.setItem('lovenda_wedding_test-wedding-123', JSON.stringify(mockWedding));
     });
     
     // Refrescar para aplicar cambios de autenticación

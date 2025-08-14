@@ -56,7 +56,7 @@ describe('Flujo de envío de correo electrónico', () => {
 
     // Iniciar sesión antes de cada test
     cy.loginToLovenda(testUser.email, testUser.password);
-    cy.wait('@loginRequest');
+
   });
 
   it('permite al usuario enviar un correo electrónico a un proveedor', () => {

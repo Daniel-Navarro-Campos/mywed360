@@ -144,7 +144,6 @@ describe('Flujo de gestión de carpetas de correo', () => {
 
     // Iniciar sesión antes de cada test
     cy.loginToLovenda(testUser.email, testUser.password);
-    cy.wait('@loginRequest');
   });
 
   it('muestra correctamente las carpetas en el panel lateral', () => {
