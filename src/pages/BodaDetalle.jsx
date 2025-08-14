@@ -228,7 +228,7 @@ export default function BodaDetalle() {
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-semibold">Disposición de Mesas</h2>
           {wedding.seatingPlanPdf && (
-            <a href={wedding.seatingPlanPdf} target="_blank" rel="noopener" className="text-rose-600 hover:underline text-sm">Descargar PDF</a>
+            <a href={wedding.seatingPlanPdf} target="_blank" rel="noopener noreferrer" className="text-rose-600 hover:underline text-sm">Descargar PDF</a>
           )}
         </div>
         {wedding.seatingPlan.map((table) => (

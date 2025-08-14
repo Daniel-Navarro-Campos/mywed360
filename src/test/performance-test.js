@@ -74,7 +74,7 @@ function generateTestData(type, size = 'medium') {
   let result = [];
   
   switch (type) {
-    case 'emails':
+    case 'emails': {
       const count = CONFIG.emailCount[size];
       for (let i = 0; i < count; i++) {
         result.push({
@@ -93,8 +93,9 @@ function generateTestData(type, size = 'medium') {
         });
       }
       break;
+    }
       
-    case 'notifications':
+    case 'notifications': {
       const notifCount = CONFIG.notificationCount[size];
       for (let i = 0; i < notifCount; i++) {
         result.push({
@@ -110,8 +111,9 @@ function generateTestData(type, size = 'medium') {
         });
       }
       break;
+    }
       
-    case 'events':
+    case 'events': {
       const eventCount = CONFIG.eventCount[size];
       for (let i = 0; i < eventCount; i++) {
         result.push({
@@ -126,8 +128,9 @@ function generateTestData(type, size = 'medium') {
         });
       }
       break;
+    }
       
-    case 'providers':
+    case 'providers': {
       const provCount = CONFIG.providerCount[size];
       for (let i = 0; i < provCount; i++) {
         result.push({
@@ -141,10 +144,26 @@ function generateTestData(type, size = 'medium') {
         });
       }
       break;
+    }
       
-    case 'templates':
-      const templateCount = CONFIG.templateCount[size];
-      for (let i = 0; i < templateCount; i++) {
+    case 'tasks': {
+      const taskCount = CONFIG.taskCount[size];
+      for (let i = 0; i < taskCount; i++) {
+        result.push({
+          id: `task_${i}`,
+          title: `Tarea de prueba #${i}`,
+          description: generateRandomText(Math.floor(Math.random() * 200) + 100),
+          completed: Math.random() > 0.6,
+          priority: ['high', 'medium', 'low'][Math.floor(Math.random() * 3)],
+          dueDate: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+        });
+      }
+      break;
+    }
+      
+    default:
+      console.warn(`Tipo de datos desconocido: ${type}`);
+      break;
         result.push({
           id: `template_${i}`,
           name: `Plantilla de prueba #${i}`,
