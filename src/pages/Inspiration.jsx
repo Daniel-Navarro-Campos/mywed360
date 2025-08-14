@@ -56,17 +56,30 @@ export default function Inspiration() {
     load();
   }, [page, query]);
 
-  const handleSave = (item) => {
-    saveData('ideasPhotos', (prev) => {
-      const arr = Array.isArray(prev) ? prev : [];
-      if (!arr.some((p) => p.id === item.id)) arr.push(item);
-      // actualizar prefTags en memoria
-      const newTags = (item.tags||[]).filter(t=>!prefTags.includes(t));
-      if(newTags.length){
-        setPrefTags([...prefTags, ...newTags].slice(0,5));
+  const handleSave = async (item) => {
+    // Cargar estado actual de favoritos desde almacenamiento local
+    const current = await loadData('ideasPhotos', { firestore: false, fallbackToLocal: true }) || [];
+    const exists = Array.isArray(current) && current.some(p => p.id === item.id);
+    let next;
+    if (exists) {
+      // Unfavorite: eliminar del array
+      next = current.filter(p => p.id !== item.id);
+    } else {
+      // Favorite: añadir al array
+      next = [...current, item];
+      // actualizar prefTags en memoria SOLO al añadir
+      const newTags = (item.tags || []).filter(t => !prefTags.includes(t));
+      if (newTags.length) {
+        setPrefTags([...prefTags, ...newTags].slice(0, 5));
       }
-      return arr;
-    }, { collection: 'userIdeas', showNotification: true });
+    }
+    // Guardar array resultante (solo local en modo invitado)
+    await saveData('ideasPhotos', next, { collection: 'userIdeas', firestore: false, showNotification: false });
+    // Si estamos en la pestaña de favoritos, refrescar inmediatamente el listado
+    if (selectedTag === 'favs') {
+      setItems(next);
+    }
+    // Tracking de interacción (marcado estrella)
     trackInteraction(userId, item, 0, true);
   };
 

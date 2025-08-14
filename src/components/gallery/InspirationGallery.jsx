@@ -29,10 +29,15 @@ export default function InspirationGallery({ images = [], onSave = () => {}, onV
   }, [DATA]);
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return DATA;
-    if (filter === 'favs') return DATA.filter(img => favorites.includes(img.id));
-    return DATA.filter(img => (img.tags || []).includes(filter));
-  }, [filter, DATA, favorites]);
+    const eff = activeTag || filter;
+    if (eff === 'all') return DATA;
+    if (eff === 'favs') {
+      // Si el padre ya nos pasa solo favoritos (activeTag==='favs'), no filtres de nuevo
+      if (activeTag === 'favs') return DATA;
+      return DATA.filter(img => favorites.includes(img.id));
+    }
+    return DATA.filter(img => (img.tags || []).includes(eff));
+  }, [filter, activeTag, DATA, favorites]);
 
   const toggleFav = id => {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
