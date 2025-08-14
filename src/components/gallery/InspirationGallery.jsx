@@ -12,12 +12,29 @@ export default function InspirationGallery({ images = [], onSave = () => {}, onV
   const [favorites, setFavorites] = useState([]); // ids de favoritos
   const [lightbox, setLightbox] = useState(null); // id
 
-  // Cargar favoritos de localStorage/Sync al montar
+  // Mantener filtro sincronizado con prop activeTag
+  useEffect(()=>{
+    setFilter(activeTag);
+  }, [activeTag]);
+
+  // Cargar favoritos al montar y mantener en sync con otras pestañas
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem('ideasPhotos')||'[]');
-      setFavorites(stored.map(p=>p.id));
-    } catch(e){console.warn('No favs yet');}
+    const loadFavIds = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('ideasPhotos') || '[]');
+        return stored.map(p => p.id);
+      } catch {
+        return [];
+      }
+    };
+    setFavorites(loadFavIds());
+    const handler = (e) => {
+      if (e.key === 'ideasPhotos') {
+        setFavorites(loadFavIds());
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
   }, []);
 
   const DATA = images.length ? images : DEFAULT_IMAGES;
