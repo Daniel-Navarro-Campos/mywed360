@@ -221,15 +221,13 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
         {email.body && email.body.includes('<') ? (
           <div 
             className="prose prose-sm sm:prose max-w-none" 
-            dangerouslySetInnerHTML={{ __html: (() => {
-              try {
+            dangerouslySetInnerHTML={{ __html: safeExecute(
+              () => {
                 const result = sanitizeHtml(email.body);
                 return typeof result === 'string' ? result : String(result || '');
-              } catch (error) {
-                console.error('Error al sanitizar HTML:', error);
-                return email.body || '';
-              }
-            })() }}
+              },
+              email.body || '' // fallback si sanitizeHtml retorna una Promesa
+            ) }}
           />
         ) : (
           <div className="whitespace-pre-wrap text-sm sm:text-base text-gray-800">{email.body}</div>

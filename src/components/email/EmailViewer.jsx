@@ -154,15 +154,13 @@ const EmailViewer = ({ email, onBack, onDelete, onReply, onForward, onToggleImpo
         {/* Renderizar el HTML del cuerpo del email */}
         <div 
           className="prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: (() => {
-            try {
+          dangerouslySetInnerHTML={{ __html: safeExecute(
+            () => {
               const result = sanitizeHtml(email.body || '');
               return typeof result === 'string' ? result : String(result || '');
-            } catch (error) {
-              console.error('Error al sanitizar HTML:', error);
-              return email.body || '';
-            }
-          })() }}
+            },
+            email.body || '' // fallback si sanitizeHtml retorna una Promesa
+          ) }}
         />
       </div>
 
