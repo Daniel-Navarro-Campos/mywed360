@@ -91,6 +91,7 @@ function App() {
         {/* Componente de notificaciones de correo - solo visible en rutas protegidas */}
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           {/* Herramientas de desarrollo accesibles sin protección (sólo si está activado por env) */}
           {enableDev && <Route path="dev/seed-guests" element={<DevSeedGuests />} />}
           {enableDev && <Route path="dev/ensure-finance" element={<DevEnsureFinance />} />}
@@ -151,6 +152,7 @@ function App() {
               
               {/* Bandeja unificada de emails */}
               <Route path="email" element={<UnifiedEmail />} />
+              <Route path="email/inbox" element={<UnifiedEmail />} />
               <Route path="buzon" element={<MailboxPage />} />
               
               {/* Rutas de usuario */}

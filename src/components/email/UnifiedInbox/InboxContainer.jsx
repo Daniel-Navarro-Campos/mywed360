@@ -381,7 +381,7 @@ const InboxContainer = () => {
       {/* Cabecera con información del usuario */}
       <div className="bg-white p-4 border-b shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-800">Bandeja unificada</h1>
+          <h1 className="text-2xl font-semibold text-gray-800" data-testid="email-title">Bandeja de entrada</h1>
           {userEmail && (
             <div className="text-sm text-gray-600">
               Tu dirección: <span className="font-semibold">{userEmail}</span>

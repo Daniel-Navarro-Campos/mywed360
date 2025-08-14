@@ -1411,7 +1411,7 @@ ${bride} y ${groom}`;
     <PageWrapper
         title="Gestión de Proveedores"
         actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setShowAiModal(true)}>
+          <Button leftIcon={<Plus size={16} />} onClick={() => setShowAiModal(true)} data-testid="open-ai-search">
             Buscar proveedor
           </Button>
         }
@@ -1839,14 +1839,14 @@ ${bride} y ${groom}`;
       {/* Modal búsqueda proveedor */}
       {showAiModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowAiModal(false)}>
-          <div className="bg-white w-full max-w-4xl h-[90vh] rounded shadow flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="bg-white w-full max-w-4xl h-[90vh] rounded shadow flex flex-col" data-testid="ai-search-modal" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b flex justify-between items-center">
               <h2 className="text-xl font-semibold">Buscar proveedor</h2>
               <button className="text-gray-500 text-2xl leading-4" onClick={() => setShowAiModal(false)}>&times;</button>
             </div>
             <div className="p-4 bg-gray-100">
               <form onSubmit={handleAiSearch} className="flex flex-wrap gap-2 items-center mb-4">
-                <input type="text" placeholder="Describe lo que buscas..." value={aiQuery} onChange={e=>setAiQuery(e.target.value)} className="flex-1 border rounded px-2 py-1" />
+                <input type="text" placeholder="Describe lo que buscas..." value={aiQuery} onChange={e=>setAiQuery(e.target.value)} className="flex-1 border rounded px-2 py-1" data-testid="ai-search-input" />
                 <select value={serviceFilter} onChange={e=>setServiceFilter(e.target.value)} className="border rounded px-2 py-1">
                   <option value="">Servicio...</option>
                   <option>Catering</option>
@@ -1870,7 +1870,7 @@ ${bride} y ${groom}`;
                   <option>3.000€ – 6.000€</option>
                   <option>&gt; 6.000€</option>
                 </select>
-                <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded flex items-center">
+                <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded flex items-center" data-testid="ai-search-button">
                   {aiLoading ? (
                     <>
                       <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1"></span>
@@ -1889,7 +1889,7 @@ ${bride} y ${groom}`;
               {aiResults.length > 0 && (
                 <div className="pt-3 border-t border-gray-200">
                   <h3 className="font-semibold text-lg mb-3">Resultados de búsqueda AI</h3>
-                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4" data-testid="ai-results-list">
                     {aiResults.map((r, idx) => (
                       <div key={idx} className="bg-white border rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => selectProvider(r)}>
                         {r.image && <img src={r.image} alt={r.title} className="w-full h-32 object-cover"/>}
@@ -1899,30 +1899,45 @@ ${bride} y ${groom}`;
                           {r.location && <p className="text-xs text-gray-500 mb-1"><MapPin size={12} className="inline mr-1"/>{r.location}</p>}
                           {r.priceRange && <p className="text-sm font-medium text-gray-700 mb-2">{r.priceRange}</p>}
                           {r.snippet && <p className="text-sm text-gray-600 line-clamp-3">{r.snippet}</p>}
-                          <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between">
+                          <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center">
                             {r.link && <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline font-semibold" onClick={(e) => e.stopPropagation()}>Ver web</a>}
-                            <button onClick={(e) => {
-                              e.stopPropagation();
-                              setProviders(prev => [...prev, { 
-                                id: `web-${Date.now()}`, 
-                                name: r.title, 
-                                service: r.service || servicioSeleccionado,
-                                contact: '',
-                                email: '',
-                                phone: '',
-                                link: r.link, 
-                                status: 'Nuevo',
-                                location: r.location || '',
-                                date: new Date().toISOString().slice(0,10), 
-                                rating: 0, 
-                                ratingCount: 0, 
-                                snippet: r.snippet || '',
-                                priceRange: r.priceRange || ''
-                              }]);
-                              setToast({ message: 'Proveedor añadido a la lista', type: 'success' });
-                            }} className="text-xs bg-green-50 hover:bg-green-100 text-green-600 px-2 py-1 rounded">
-                              Añadir
-                            </button>
+                            <div className="flex gap-2">
+                              <button onClick={(e) => {
+                                e.stopPropagation();
+                                // Abrir modal de composición de email con datos del proveedor
+                                const emailData = {
+                                  to: r.email || '',
+                                  subject: `Consulta sobre ${r.service || 'servicios'} - ${r.name || r.title}`,
+                                  body: `Hola,\n\nEstoy interesado en sus servicios de ${r.service || 'proveedor'} para mi boda.\n\n¿Podrían proporcionarme más información sobre disponibilidad y precios?\n\nGracias,`
+                                };
+                                // Simular apertura de modal de email
+                                setToast({ message: 'Funcionalidad de email en desarrollo', type: 'info' });
+                              }} className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 px-2 py-1 rounded" data-testid="email-provider-btn">
+                                Email
+                              </button>
+                              <button onClick={(e) => {
+                                e.stopPropagation();
+                                setProviders(prev => [...prev, { 
+                                  id: `web-${Date.now()}`, 
+                                  name: r.title, 
+                                  service: r.service || servicioSeleccionado,
+                                  contact: '',
+                                  email: '',
+                                  phone: '',
+                                  link: r.link, 
+                                  status: 'Nuevo',
+                                  location: r.location || '',
+                                  date: new Date().toISOString().slice(0,10), 
+                                  rating: 0, 
+                                  ratingCount: 0, 
+                                  snippet: r.snippet || '',
+                                  priceRange: r.priceRange || ''
+                                }]);
+                                setToast({ message: 'Proveedor añadido a la lista', type: 'success' });
+                              }} className="text-xs bg-green-50 hover:bg-green-100 text-green-600 px-2 py-1 rounded">
+                                Añadir
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>

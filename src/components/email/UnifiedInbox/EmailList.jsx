@@ -211,7 +211,7 @@ const EmailList = ({
             className="text-gray-500"
           />
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100" data-testid="email-list">
             {emails.map((email) => (
               <div
                 key={email.id}

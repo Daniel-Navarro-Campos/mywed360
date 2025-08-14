@@ -57,6 +57,7 @@ const InboxNavigation = ({
           onClick={onComposeNew}
           className="w-full mb-4 flex items-center justify-center"
           primary
+          data-testid="compose-button"
         >
           <Plus size={16} className="mr-2" />
           Nuevo email
@@ -73,6 +74,7 @@ const InboxNavigation = ({
                   ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'hover:bg-gray-100 text-gray-700'
               }`}
+              data-testid={`folder-${folder.id}`}
             >
               <span className="mr-2">{folder.icon}</span>
               {folder.name}

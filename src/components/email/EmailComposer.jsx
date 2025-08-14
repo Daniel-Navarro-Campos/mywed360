@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Paperclip, ChevronDown, AlertCircle } from 'lucide-react';
+import { X, Paperclip, Send, AlertCircle, Plus, Trash2, CheckCircle } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
 import * as EmailService from '../../services/EmailService';
@@ -26,6 +26,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
   const [showCc, setShowCc] = useState(!!initialValues.cc);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -137,6 +138,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
   // Enviar el email
   const handleSend = async () => {
     setError('');
+    setSuccess('');
     
     if (!validateEmail()) {
       return;
@@ -162,13 +164,17 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
       });
       
       if (result && (result.success || result.id)) {
+        setSuccess('Email enviado correctamente');
+        
         if (onSend) {
           onSend(result);
         }
         
-        // Cerrar compositor y limpiar campos
-        onClose();
-        resetForm();
+        // Esperar un momento para mostrar el mensaje de éxito antes de cerrar
+        setTimeout(() => {
+          onClose();
+          resetForm();
+        }, 1500);
       } else {
         throw new Error('Error al enviar el email');
       }
@@ -203,7 +209,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
   
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col" data-testid="email-composer">
         <div className="flex items-center justify-between border-b border-gray-200 p-4">
           <h2 className="text-xl font-bold">Nuevo mensaje</h2>
           <Button
@@ -218,9 +224,16 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
         
         <div className="p-4 overflow-y-auto flex-grow">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center text-red-700">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center text-red-700" data-testid="error-message">
               <AlertCircle size={18} className="flex-shrink-0 mr-2" />
               <span>{error}</span>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700" data-testid="success-message">
+              <CheckCircle size={18} className="flex-shrink-0 mr-2" />
+              <span>{success}</span>
             </div>
           )}
           
@@ -276,6 +289,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
             className="w-full border border-gray-300 rounded-md p-2"
             placeholder="Destinatarios (email@ejemplo.com, email2@ejemplo.com)"
             disabled={sending}
+            data-testid="recipient-input"
           />
         </div>
 
@@ -318,6 +332,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
             className="w-full border border-gray-300 rounded-md p-2"
             placeholder="Asunto del email"
             disabled={sending}
+            data-testid="subject-input"
           />
         </div>
 
@@ -332,6 +347,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
             rows="12"
             placeholder="Escribe tu mensaje aquí..."
             disabled={sending}
+            data-testid="body-editor"
           />
         </div>
 
@@ -399,6 +415,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
             <Button
               onClick={handleSend}
               disabled={sending}
+              data-testid="send-button"
             >
               {sending ? 'Enviando...' : 'Enviar'}
             </Button>
