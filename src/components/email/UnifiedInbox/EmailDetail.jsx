@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import sanitizeHtml from '../../../utils/sanitizeHtml';
+import { safeExecute } from '../../SafeRenderer';
 import EmailComments from '../EmailComments';
 // Importación problemática eliminada temporalmente
 // import { Viewer } from 'react-tiff';
@@ -160,14 +161,13 @@ const EmailDetail = ({ email, onReply, onDelete, onBack, onMarkRead }) => {
 
   // Procesar el contenido HTML del email de forma segura
   const getSafeHtml = (htmlContent) => {
-    try {
-      const result = sanitizeHtml(htmlContent || '');
-      // Asegurar que siempre retornamos un string, nunca una Promesa
-      return typeof result === 'string' ? result : String(result || '');
-    } catch (error) {
-      console.error('Error al sanitizar HTML:', error);
-      return htmlContent || '';
-    }
+    return safeExecute(
+      () => {
+        const result = sanitizeHtml(htmlContent || '');
+        return typeof result === 'string' ? result : String(result || '');
+      },
+      htmlContent || '' // fallback si sanitizeHtml retorna una Promesa
+    );
   };
     
     

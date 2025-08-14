@@ -2,10 +2,11 @@ import React, { useState, useEffect, useContext, useMemo, useCallback } from 're
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../../hooks/useAuth';
-import * as EmailService from '../../../services/EmailService';
+import * as EmailService from '../../../services/emailService';
 import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
 import { useUnifiedInboxMetrics } from '../../../hooks/useUnifiedInboxMetrics';
 import { emailCache } from '../../../utils/EmailCache';
+import SafeRenderer, { safeExecute } from '../../SafeRenderer';
 import InboxNavigation from './InboxNavigation';
 import EmailList from './EmailList';
 

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Paperclip, Send, AlertCircle, Plus, Trash2, CheckCircle } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
-import * as EmailService from '../../services/EmailService';
+import * as EmailService from '../../services/emailService';
+import { safeExecute } from '../SafeRenderer';
 import * as AuthModule from '../../hooks/useAuth';
 const useAuth = AuthModule.useAuth || AuthModule.default || AuthModule;
 
