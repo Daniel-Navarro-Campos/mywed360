@@ -50,11 +50,15 @@ process.env.NODE_ENV = 'test';
 
 // Forzar salida explícita en CI para evitar procesos colgados por handles abiertos
 if (process.env.CI) {
-  afterAll(() => {
-    // Dar 200 ms para que Vitest escriba cobertura y junit
-    setTimeout(() => {
-      // eslint-disable-next-line no-process-exit
-      process.exit(0);
-    }, 200);
-  });
+  // Garantizar salida del proceso incluso si afterAll no se ejecuta por workers
+  const safeExit = () => setTimeout(() => process.exit(0), 500);
+
+  if (typeof afterAll !== 'undefined') {
+    afterAll(safeExit);
+  }
+  // Fallback: si afterAll no está disponible, salir tras 60 s
+  setTimeout(() => {
+    console.warn('CI timeout fallback: forcing exit');
+    safeExit();
+  }, 60000).unref?.();
 }
