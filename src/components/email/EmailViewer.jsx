@@ -3,7 +3,7 @@ import sanitizeHtml from '../../utils/sanitizeHtml';
 import { ArrowLeft, Trash, Star, StarOff, Reply, Forward, Paperclip, Calendar, Download } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
-import * as EmailService from '../../services/EmailService';
+import * as emailService from '../../services/emailService';
 
 /**
  * Componente para visualizar el contenido completo de un email
@@ -154,7 +154,15 @@ const EmailViewer = ({ email, onBack, onDelete, onReply, onForward, onToggleImpo
         {/* Renderizar el HTML del cuerpo del email */}
         <div 
           className="prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(email.body || '') }}
+          dangerouslySetInnerHTML={{ __html: (() => {
+            try {
+              const result = sanitizeHtml(email.body || '');
+              return typeof result === 'string' ? result : String(result || '');
+            } catch (error) {
+              console.error('Error al sanitizar HTML:', error);
+              return email.body || '';
+            }
+          })() }}
         />
       </div>
 

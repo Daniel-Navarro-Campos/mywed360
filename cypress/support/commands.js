@@ -7,7 +7,10 @@
 // commands please read more here:
 // https://on.cypress.io/custom-commands
 // ***********************************************
-//
+
+// Import cypress-file-upload plugin for attachFile command
+import 'cypress-file-upload';
+
 //
 // -- This is a parent command --
 // Cypress.Commands.add('login', (email, password) => { ... })

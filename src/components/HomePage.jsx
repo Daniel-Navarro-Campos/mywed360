@@ -156,6 +156,7 @@ export default function HomePage() {
                 key={idx}
                 role="button"
                 onClick={() => setActiveModal(action.key)}
+                data-testid={action.key === 'proveedor' ? 'open-ai-search' : undefined}
                 className="flex-1 flex items-center justify-between p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
               >
                 <div className="flex items-center space-x-3">
