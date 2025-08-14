@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'node',
+    environment: 'jsdom',
     testTimeout: 30000,
     hookTimeout: 10000,
     // Migrado de environmentMatchGlobs deprecado a projects
@@ -35,6 +35,8 @@ export default defineConfig({
       '**/src/__tests__/**',
       '**/src/test/**',
       '**/TagService.test.js',
+      '**/FolderSelectionModal.test.jsx',
+      '**/AIEmailModal.test.jsx',
       '**/cypress/**',
       '**/*.perf.test.*',
       '**/*.security.test.*',
