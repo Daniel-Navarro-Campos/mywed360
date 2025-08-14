@@ -12,31 +12,22 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    container:
+      image: node:20.19.0
+      options: --user root
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Setup Node 20 (Force)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.19.0'
-          check-latest: true
-          always-auth: true
-          cache: npm
-
-      - name: Force Node 20 environment
-        run: |
-          echo "PATH=${{ steps.setup-node.outputs.node-path }}:$PATH" >> $GITHUB_ENV
-          echo "NODE_VERSION=20.19.0" >> $GITHUB_ENV
-
-      - run: corepack enable
 
       - name: Verify Node version (must be 20.x)
         run: |
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           node -v | grep -E '^v20\.' || (echo "ERROR: Node 20 required but got $(node -v)" && exit 1)
+
+      - name: Update npm to latest
+        run: npm install -g npm@latest
 
       - name: Clear npm cache and force clean install
         run: |
