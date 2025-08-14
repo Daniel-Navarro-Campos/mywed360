@@ -30,7 +30,15 @@ export default function ChairItem({ seat, scale = 1, offset = { x: 0, y: 0 }, on
     userSelect: 'none',
   };
 
-  const initial = guestName ? guestName.charAt(0).toUpperCase() : '';
+  const label = (() => {
+    if (!guestName) return '';
+    if (scale >= 1.5) {
+      const first = guestName.trim().split(/\s+/)[0] || '?';
+      return first.length > 8 ? first.slice(0, 8) + '…' : first;
+    }
+    // Iniciales (máx. 2)
+    return guestName.trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  })();
 
   return (
     <div
@@ -39,7 +47,7 @@ export default function ChairItem({ seat, scale = 1, offset = { x: 0, y: 0 }, on
       onClick={() => onToggleEnabled && onToggleEnabled(id)}
       aria-label={guestName || `Silla ${id}`}
     >
-      {initial}
+      {label}
     </div>
   );
 }

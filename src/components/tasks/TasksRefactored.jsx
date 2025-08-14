@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ViewMode } from 'gantt-task-react';
-import { saveData, loadData, subscribeSyncState, getSyncState } from '../../services/SyncService';
+import { subscribeSyncState, getSyncState } from '../../services/SyncService';
 import { Cloud, CloudOff, RefreshCw, Download } from 'lucide-react';
 
 // Importar componentes separados
@@ -12,8 +12,9 @@ import TaskForm from './TaskForm';
 import TaskList from './TaskList';
 import { Calendar } from 'react-big-calendar';
 
-// Importar useFirestoreCollection
+// Importar hooks de Firestore
 import { useFirestoreCollection } from '../../hooks/useFirestoreCollection';
+import { useWedding } from '../../context/WeddingContext';
 
 // Definir un fallback en caso de error
 const useFirestoreCollectionSafe = (params) => {
@@ -29,67 +30,37 @@ const useFirestoreCollectionSafe = (params) => {
 export default function Tasks() {
   // Estados - Inicialización segura con manejo de errores
 
-  // Array vacío para inicialización segura
-  const initialTasksDefault = [];
-  
-  // Inicializar tasksState como array vacío
-  const [tasksState, setTasksState] = useState(initialTasksDefault);
-  
-  // Inicializar meetingsState como array vacío
-  const [meetingsState, setMeetingsState] = useState([]);
-  
-  // --- Ref para saber cuándo se completó la carga inicial ---
+  // Contexto de boda activa
+  const { activeWedding } = useWedding();
+
+  // Hooks Firestore para tasks y meetings dentro de la boda
+  const {
+    data: tasksState,
+    addItem: addTaskFS,
+    updateItem: updateTaskFS,
+    deleteItem: deleteTaskFS,
+    loading: tasksLoading,
+  } = useFirestoreCollection(`weddings/${activeWedding}/tasks`, []);
+
+  const {
+    data: meetingsState,
+    addItem: addMeetingFS,
+    updateItem: updateMeetingFS,
+    deleteItem: deleteMeetingFS,
+    loading: meetingsLoading,
+  } = useFirestoreCollection(`weddings/${activeWedding}/meetings`, []);
+
+  const {
+    data: completedDocs,
+    addItem: addCompletedFS,
+    updateItem: updateCompletedFS,
+    deleteItem: deleteCompletedFS,
+    loading: completedLoading,
+  } = useFirestoreCollection(`weddings/${activeWedding}/tasksCompleted`, []);
+
+  // --- Ya no se requiere estado local ni carga inicial mediante loadData; los hooks de Firestore se encargan ---
   const dataLoadedRef = useRef(false);
 
-  // Cargar datos de manera segura con useEffect
-  useEffect(() => {
-    try {
-      // Intentar cargar las tareas
-      const tasksData = loadData('tasks', { defaultValue: initialTasksDefault, collection: 'userTasks' });
-      
-      // Verificar si es una promesa
-      if (tasksData && typeof tasksData.then === 'function') {
-        // Es una promesa, esperar a que se resuelva
-        tasksData.then(resolvedData => {
-          console.log('tasksState resuelto:', resolvedData);
-          setTasksState(Array.isArray(resolvedData) ? resolvedData : initialTasksDefault);
-          dataLoadedRef.current = true;
-        }).catch(err => {
-          console.error('Error al resolver promesa de tareas:', err);
-          setTasksState(initialTasksDefault);
-        });
-      } else {
-        // No es una promesa, usar directamente
-        console.log('tasksState cargado directamente:', tasksData);
-        setTasksState(Array.isArray(tasksData) ? tasksData : initialTasksDefault);
-        dataLoadedRef.current = true;
-      }
-      
-      // Intentar cargar las reuniones
-      const meetingsData = loadData('meetings', { defaultValue: [], collection: 'userMeetings' });
-      
-      // Verificar si es una promesa
-      if (meetingsData && typeof meetingsData.then === 'function') {
-        // Es una promesa, esperar a que se resuelva
-        meetingsData.then(resolvedData => {
-          setMeetingsState(Array.isArray(resolvedData) ? resolvedData : []);
-          dataLoadedRef.current = true;
-        }).catch(err => {
-          console.error('Error al resolver promesa de reuniones:', err);
-          setMeetingsState([]);
-        });
-      } else {
-        // No es una promesa, usar directamente
-        setMeetingsState(Array.isArray(meetingsData) ? meetingsData : []);
-        dataLoadedRef.current = true;
-      }
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      setTasksState(initialTasksDefault);
-      setMeetingsState([]);
-    }
-  }, []);
-  
   const [showNewTask, setShowNewTask] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -131,16 +102,14 @@ export default function Tasks() {
   }, [meetingsState]);
 
   // Función para añadir una reunión
-  const addMeeting = useCallback((meeting) => {
-    const newMeeting = {
+  const addMeeting = useCallback(async (meeting) => {
+    await addMeetingFS({
       ...meeting,
-      id: `meeting-${Date.now()}`,
       title: meeting.title || 'Nueva reunión',
       start: new Date(meeting.start),
       end: new Date(meeting.end)
-    };
-    setMeetingsState(prev => [...prev, newMeeting]);
-  }, []);
+    });
+  }, [addMeetingFS]);
 
   // Estado para tareas completadas (inicial vacío, se cargará asíncronamente)
   const [completed, setCompleted] = useState({});
@@ -150,7 +119,7 @@ export default function Tasks() {
     let isMounted = true;
     (async () => {
       try {
-        const data = await loadData('tasksCompleted', { defaultValue: {}, collection: 'userTasksCompleted' });
+        const data = await useFirestoreCollectionSafe(`weddings/${activeWedding}/tasksCompleted`);
         if (isMounted && data && typeof data === 'object' && !Array.isArray(data)) {
           setCompleted(data);
         }
@@ -159,7 +128,7 @@ export default function Tasks() {
       }
     })();
     return () => { isMounted = false; };
-  }, []);
+  }, [activeWedding]);
 
   // Suscribirse al estado de sincronización
   useEffect(() => {
@@ -169,21 +138,21 @@ export default function Tasks() {
   // Guardar cambios cuando cambie el estado (evitando sobrescribir con datos vacíos al inicio)
   useEffect(() => {
     if (dataLoadedRef.current) {
-      saveData('tasks', tasksState);
+      // No es necesario guardar cambios ya que se utiliza Firestore
     }
-  }, [tasksState]);
+  }, [tasksState, activeWedding]);
 
   useEffect(() => {
     if (dataLoadedRef.current) {
-      saveData('meetings', meetingsState);
+      // No es necesario guardar cambios ya que se utiliza Firestore
     }
-  }, [meetingsState]);
+  }, [meetingsState, activeWedding]);
 
   useEffect(() => {
     if (dataLoadedRef.current) {
-      saveData('tasksCompleted', completed);
+      // No es necesario guardar cambios ya que se utiliza Firestore
     }
-  }, [completed]);
+  }, [completed, activeWedding]);
 
   // Sugerencia automática de categoría
   const sugerirCategoria = (titulo, descripcion) => {
@@ -307,7 +276,7 @@ export default function Tasks() {
     }
   };
 
-  // Guardar una tarea
+  // Guardar una tarea en la subcolección de la boda
   const handleSaveTask = async () => {
     try {
       // Validar formulario básico
@@ -375,23 +344,25 @@ export default function Tasks() {
         };
         
         if (editingId) {
-          setTasksState(prev => prev.map(t => t.id === editingId ? ganttTask : t));
+          await updateTaskFS(editingId, ganttTask);
         } else {
-          setTasksState(prev => [...prev, ganttTask]);
+          await addTaskFS(ganttTask);
         }
       } else {
         // Para el calendario
         if (editingId) {
           // Buscar primero en tareas Gantt
-          const taskIndex = Array.isArray(tasksState) ? tasksState.findIndex(t => t.id === editingId) : -1;
-          if (taskIndex >= 0) {
-            setTasksState(prev => prev.filter(t => t.id !== editingId));
+          if (tasksState.some(t => t.id === editingId)) {
+            await updateTaskFS(editingId, taskData);
           } else {
-            // Si no está en tareas, buscar en reuniones
-            setMeetingsState(prev => prev.map(m => m.id === editingId ? taskData : m));
+            await updateMeetingFS(editingId, taskData);
           }
         } else {
-          setMeetingsState(prev => [...prev, taskData]);
+          if (taskData.long) {
+            await addMeetingFS(taskData);
+          } else {
+            await addTaskFS(taskData);
+          }
         }
       }
       
@@ -407,11 +378,10 @@ export default function Tasks() {
   const handleDeleteTask = () => {
     if (confirm('¿Estás seguro de querer eliminar esta tarea?')) {
       // Buscar en ambas colecciones - con verificación de tipo
-      const inTasks = Array.isArray(tasksState) && tasksState.some(t => t.id === editingId);
-      if (inTasks) {
-        setTasksState(prev => prev.filter(t => t.id !== editingId));
+      if (tasksState.some(t => t.id === editingId)) {
+        deleteTaskFS(editingId);
       } else {
-        setMeetingsState(prev => prev.filter(m => m.id !== editingId));
+        deleteMeetingFS(editingId);
       }
       closeModal();
     }

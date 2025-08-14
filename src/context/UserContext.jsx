@@ -7,6 +7,11 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile as fbUpdateProfile,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  updateEmail,
+  updatePassword,
+  reauthenticateWithCredential,
 } from 'firebase/auth';
 import { db } from '../firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -76,7 +81,9 @@ export default function UserProvider({ children }) {
   };
 
   const login = async (email, password, remember = true) => {
-    await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+    // Siempre usamos browserLocalPersistence para que la sesión se conserve aunque se cierre el navegador.
+    // El parámetro "remember" queda sólo para conservar el email en localStorage, no afecta a la persistencia.
+    await setPersistence(auth, browserLocalPersistence);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     let role = 'particular';
     try {
@@ -89,25 +96,14 @@ export default function UserProvider({ children }) {
     }
     setUser({ ...userCredential.user, role });
     return { ...userCredential.user, role };
-  };
+};
 
-  /*
-// --- Fin función login ---
-   = await getDoc(doc(db, 'users', userCredential.user.uid));
-      if (userDoc.exists()) {
-        role = userDoc.data().role || role;
-      }
-    } catch (err) {
-      console.warn('No se pudo obtener rol en login:', err?.code || err);
-    }
-    setUser({ ...userCredential.user, role });
-    return { ...userCredential.user, role };
-
-  */
-const logout = async () => {
+  // Cerrar sesión y limpiar estado
+  const logout = async () => {
     await signOut(auth);
     setUser(null);
   };
+
 
   const updateProfile = async (profile) => {
     if (auth.currentUser) {

@@ -2,14 +2,43 @@ import React, { useState, useEffect } from 'react';
 import MainLayout from '../components/layout/MainLayout';
 import Card from '../components/Card';
 import Button from '../components/Button';
+import { useWedding } from '../context/WeddingContext';
+import { useParams, useNavigate } from 'react-router-dom';
+import useWeddingCollection from '../hooks/useWeddingCollection';
+import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
+import { loadTrackingRecords, createTrackingRecord, updateTrackingStatus, TRACKING_STATUS } from '../services/EmailTrackingService';
+import PageWrapper from '../components/PageWrapper';
+import { Plus, Search, RefreshCcw, Star, Eye, Edit2, Trash2, Calendar, Clock, Download, MapPin } from 'lucide-react';
+import Toast from '../components/Toast';
 
 export default function Proveedores() {
+  // Indicar si hay boda activa
+  const renderNoWedding = () => (
+    <MainLayout title="Proveedores">
+      <p>No se ha seleccionado ninguna boda.</p>
+    </MainLayout>
+  );
   // Proveedores de ejemplo iniciales
+  // Proveedores de ejemplo (solo cuando no hay boda activa)
   const sampleProviders = [
     { id: 1, name: 'Eventos Catering', service: 'Catering', contact: 'Luis Pérez', email: 'luis@catering.com', phone: '555-1234', status: 'Contactado', date: '2025-06-10', rating: 0, ratingCount: 0 },
     { id: 2, name: 'Flores y Diseño', service: 'Flores', contact: 'Ana Gómez', email: 'ana@flores.com', phone: '555-5678', status: 'Confirmado', date: '2025-06-12', rating: 0, ratingCount: 0 },
   ];
-  const [providers, setProviders] = useState(sampleProviders);
+  const { activeWedding } = useWedding();
+  const { id: routeWeddingId } = useParams();
+  const weddingId = activeWedding || routeWeddingId;
+  // Si existe un weddingId, no usamos proveedores de muestra
+  const fallbackProviders = weddingId ? [] : sampleProviders;
+  // Usamos weddingId para asegurar que la ruta por parámetro funcione
+  const { data: providersData, addItem: addProvider, updateItem: updateProvider, deleteItem: deleteProvider, loading: providersLoading } = useWeddingCollection('suppliers', weddingId, fallbackProviders);
+  if (!weddingId) return renderNoWedding();
+
+  const [providers, setProviders] = useState([]);
+
+  // Sincronizar con datos de Firestore
+  useEffect(() => {
+    setProviders(Array.isArray(providersData) ? providersData : []);
+  }, [providersData]);
   const [searchTerm, setSearchTerm] = useState('');
   const [serviceFilter, setServiceFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -19,7 +48,7 @@ export default function Proveedores() {
   const [aiLoading, setAiLoading] = useState(false);
   const [toast, setToast] = useState(null);
   // pestaña actual: selected | contacted
-  const [tab, setTab] = useState('selected');
+  const [tab, setTab] = useState('all');
   const [selected, setSelected] = useState([]);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiResults, setAiResults] = useState([]);
@@ -44,6 +73,37 @@ export default function Proveedores() {
   // Estado de sincronización
   const [syncStatus, setSyncStatus] = useState(getSyncState());
 
+  // Eliminar proveedor
+  const removeProvider = async (id) => {
+    // Obtener proveedor a eliminar (para conocer su link)
+    const providerObj = providers.find(p => p.id === id);
+    // 1. Eliminar del estado local principal
+    setProviders(prev => prev.filter(p => p.id !== id));
+
+    // 2. Si el proveedor está almacenado en lovendaSuppliers (lista IA), limpiarlo también
+    try {
+      const stored = await loadData('lovendaSuppliers', { defaultValue: [], firestore: false });
+      if (Array.isArray(stored) && stored.length) {
+        const filtered = stored.filter(p => p.id !== id && (providerObj ? p.link !== providerObj.link : true));
+        // Solo guardar si cambia la longitud
+        if (filtered.length !== stored.length) {
+          await saveData('lovendaSuppliers', filtered, { firestore: false, showNotification: false });
+        }
+      }
+    } catch (err) {
+      console.warn('Error al limpiar lovendaSuppliers:', err);
+    }
+
+    // 3. Intentar eliminar de Firestore cuando aplique
+    try {
+      if (!`${id}`.startsWith('web-')) {
+        await deleteProvider(id);
+      }
+    } catch (err) {
+      console.warn('Error al eliminar proveedor de Firestore:', err);
+    }
+  };
+
   // Suscribirse a cambios en el estado de sincronización
   useEffect(() => {
     const unsubscribe = subscribeSyncState(setSyncStatus);
@@ -62,44 +122,38 @@ export default function Proveedores() {
 
   // Cargar proveedores encontrados por la IA (usando SyncService) y escuchar cambios
   useEffect(() => {
-    const loadSuppliers = () => {
-      try {
-        const stored = loadData('lovendaSuppliers', { 
-          defaultValue: [], 
-          collection: 'userSuppliers' 
-        });
-        if (!Array.isArray(stored) || !stored.length) return;
-        setProviders(prev => {
-          const existingLinks = new Set(prev.map(p => p.link));
-          const mapped = stored
-            .filter(s => !existingLinks.has(s.link))
-            .map((s, idx) => ({
-              id: `web-${Date.now()}-${idx}`,
-              name: s.title,
-              service: 'Proveedor',
-              contact: '',
-              email: '',
-              phone: '',
-              link: s.link,
-              status: 'Nuevo',
-              date: new Date().toISOString().slice(0, 10),
-              rating: 0,
-              ratingCount: 0,
-              snippet: s.snippet || '',
-            }));
-          return [...prev, ...mapped];
-        });
-      } catch (_) {}
-    };
+    const loadSuppliers = async () => {
+    // Ya no añadimos automáticamente todos los proveedores devueltos por la búsqueda IA.
+    // El usuario decidirá manualmente qué proveedor añadir mediante el botón “Añadir”.
+    // Se mantiene vacía para conservar la firma y evitar errores de llamadas existentes.
+  };
+    // Ejecutamos por compatibilidad, aunque la función esté vacía
     loadSuppliers();
     window.addEventListener('lovenda-suppliers', loadSuppliers);
     return () => window.removeEventListener('lovenda-suppliers', loadSuppliers);
   }, []);
   const [newProvider, setNewProvider] = useState(initialProvider);
-  const handleAddProvider = e => {
+  const handleAddProvider = async (e) => {
     e.preventDefault();
-    const newId = providers.length ? Math.max(...providers.map(p => p.id)) + 1 : 1;
-    setProviders(prev => [...prev, { id: newId, ...newProvider, rating: 0, ratingCount: 0 }]);
+
+    // Borrador con id temporal (por si estamos offline)
+    const draftProv = {
+      id: `web-${Date.now()}`,
+      ...newProvider,
+      rating: 0,
+      ratingCount: 0,
+      date: new Date().toISOString().slice(0, 10),
+    };
+
+    let savedProv = draftProv;
+    try {
+      const result = await addProvider(draftProv);
+      if (result) savedProv = result; // id definitivo si Firestore lo genera
+    } catch (err) {
+      console.warn('Error al guardar proveedor en Firestore, se mantiene local:', err);
+    }
+
+    setProviders(prev => [...prev, savedProv]);
     setNewProvider(initialProvider);
     setShowAddModal(false);
     setToast({ message: 'Proveedor agregado', type: 'success' });
@@ -120,9 +174,10 @@ export default function Proveedores() {
     }
   };
 
-  const selectProvider = (item) => {
-    const newProv = {
-      id: `web-${Date.now()}`,
+  const selectProvider = async (item) => {
+    // 1) Creamos el objeto con valores iniciales (sin id definitivo)
+    const draftProv = {
+      id: `web-${Date.now()}`, // id temporal en caso de modo offline
       name: item.title || item.name || 'Proveedor',
       service: serviceFilter || 'Proveedor',
       contact: '',
@@ -137,13 +192,32 @@ export default function Proveedores() {
       priceRange: item.priceRange || budgetRange,
       image: item.image || '',
     };
-    setProviders(prev => [...prev, newProv]);
-    setDetailProvider(newProv);
+
+    // 2) Guardamos usando addProvider (puede devolver id definitivo)
+    let savedProv = draftProv;
+    try {
+      const result = await addProvider(draftProv);
+      if (result) {
+        savedProv = result; // ya contiene id definitivo si viene de Firestore
+      }
+    } catch (err) {
+      console.warn('Error al guardar proveedor, se mantiene versión local:', err);
+    }
+
+    // 3) Actualizamos estados UI con el proveedor guardado
+    setProviders(prev => [...prev, savedProv]);
+    setDetailProvider(savedProv);
     setShowDetail(true);
     setShowAiModal(false);
   };
 
   const rateProvider = (id, ratingValue) => {
+  const prov = providers.find(p => p.id === id);
+  if (!prov) return;
+  const newCount = (prov.ratingCount || 0) + 1;
+  const newRating = ((prov.rating || 0) * prov.ratingCount + ratingValue) / newCount;
+  setProviders(prev => prev.map(p => p.id === id ? { ...p, ratingCount: newCount, rating: newRating } : p));
+  updateProvider(id, { rating: newRating, ratingCount: newCount });
     setProviders(prev => prev.map(p =>
       p.id === id ? { ...p,
         ratingCount: p.ratingCount + 1,
@@ -152,7 +226,62 @@ export default function Proveedores() {
     ));
   };
 
-  const handleAiSearch = async (e) => {
+  // Verificar la operatividad de enlaces de proveedores
+const verifyProviderLinks = async (providers) => {
+  console.log('Verificando validez de enlaces de proveedores...');
+  // Normalizar proveedores para asegurarnos de que todos tienen los mismos campos
+  const normalizedProviders = providers.map((provider) => ({
+    title: provider.title || provider.name || 'Proveedor sin nombre',
+    name: provider.title || provider.name || 'Proveedor',
+    link: (() => {
+    let l = provider.link || provider.url || '';
+    if (l && !l.startsWith('http://') && !l.startsWith('https://')) {
+      l = 'https://' + l.replace(/^\/+/, '');
+    }
+    return l;
+  })(),
+    snippet: provider.snippet || provider.description || '',
+    service: provider.service || serviceFilter || 'Proveedor',
+    location: provider.location || 'No especificada',
+    priceRange: provider.priceRange || provider.price || 'Consultar',
+    image: provider.image || '',
+    // Por defecto consideramos válido hasta que se demuestre lo contrario
+    verified: true,
+  }));
+
+  // Filtrar proveedores con enlaces vacíos o mal formados
+  const validProviders = normalizedProviders.filter((provider) => {
+    const link = provider.link || '';
+    return (
+      link &&
+      (link.startsWith('http://') || link.startsWith('https://')) &&
+      link.includes('.')
+    );
+  });
+
+  console.log(`${validProviders.length} de ${normalizedProviders.length} tienen enlaces potencialmente válidos`);
+
+  // Si no hay proveedores válidos, devolver un resultado de respaldo genérico
+  if (validProviders.length === 0 && normalizedProviders.length > 0) {
+    return [
+      {
+        title: 'Directorio de proveedores para bodas',
+        link: `https://www.bodas.net/busqueda/${(serviceFilter || 'proveedores')
+          .toLowerCase()
+          .replace(/\s+/g, '-')}-espana`,
+        snippet: `Encuentra proveedores de ${serviceFilter || 'boda'} en toda España`,
+        service: serviceFilter || 'Proveedor',
+        location: 'España',
+        priceRange: 'Varios precios disponibles',
+        verified: true,
+      },
+    ];
+  }
+
+  return validProviders;
+};
+
+const handleAiSearch = async (e) => {
     e.preventDefault();
     if (!aiQuery.trim() && !serviceFilter) {
       setToast({ message: 'Por favor, introduce una búsqueda o selecciona un tipo de servicio', type: 'warning' });
@@ -268,10 +397,7 @@ export default function Proveedores() {
         verifyProviderLinks(data).then(verifiedResults => {
           setAiResults(verifiedResults);
           setShowAiModal(true);
-          saveData('lovendaSuppliers', verifiedResults, {
-            collection: 'userSuppliers',
-            showNotification: false
-          });
+          saveData('lovendaSuppliers', verifiedResults, { firestore: false, showNotification: false });
           window.dispatchEvent(new Event('lovenda-suppliers'));
         });
       } else {
@@ -290,7 +416,7 @@ export default function Proveedores() {
 
   const displayed = providers
     .filter(p =>
-      (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.service.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      ((p.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.service || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
       (serviceFilter ? p.service === serviceFilter : true) &&
       (statusFilter ? p.status === statusFilter : true) &&
       (dateFrom ? p.date >= dateFrom : true) &&
@@ -673,7 +799,8 @@ export default function Proveedores() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_KEY}`
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+          'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID
         },
         body: JSON.stringify({
           model: 'gpt-4o',
@@ -799,7 +926,9 @@ export default function Proveedores() {
               allResults = providerCandidates.map((line, index) => ({
                 title: line.trim().split(':')[0] || `Proveedor ${index + 1}`,
                 name: line.trim().split(':')[0] || `Proveedor ${index + 1}`,
-                link: `https://www.bodas.net/busqueda/${servicioSeleccionado.toLowerCase().replace(/\s+/g, '-')}-${formattedLocation ? formattedLocation.split(',')[0].toLowerCase() : 'espana'}`,
+                link: `https://www.bodas.net/busqueda/${(serviceFilter || 'proveedores')
+                  .toLowerCase()
+                  .replace(/\s+/g, '-')}-espana`,
                 snippet: line,
                 service: servicioSeleccionado,
                 location: formattedLocation || 'España',
@@ -976,10 +1105,7 @@ export default function Proveedores() {
           // Mostrar los resultados en el modal solo si hay resultados
           setAiResults(results);
           setShowAiModal(true);
-          saveData('lovendaSuppliers', results, {
-            collection: 'userSuppliers',
-            showNotification: false
-          });
+          saveData('lovendaSuppliers', results, { firestore: false, showNotification: false });
           window.dispatchEvent(new Event('lovenda-suppliers'));
         } else {
           setToast({ 
@@ -1355,8 +1481,15 @@ ${bride} y ${groom}`;
         {displayed.length===0 && <p className="text-gray-500">No hay proveedores en esta pestaña.</p>}
         {displayed.map(p=>(
           <div key={p.id} className="relative p-4 cursor-pointer bg-white rounded shadow" onClick={() => openDetail(p)}>
-            <span className="absolute top-2 right-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{p.service}</span>
-            <h3 className="text-lg font-semibold mb-2">{p.name}</h3>
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
+              onClick={(e) => { e.stopPropagation(); removeProvider(p.id); }}
+              title="Eliminar proveedor"
+            >
+              <Trash2 size={16} />
+            </button>
+            <span className="absolute top-2 left-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{p.service}</span>
+            <h3 className="text-lg font-semibold mb-2 mt-6">{p.name}</h3>
             <p className="text-sm text-gray-600">{p.contact || p.email || p.phone}</p>
           </div>
         ))}
@@ -1761,13 +1894,13 @@ ${bride} y ${groom}`;
                       <div key={idx} className="bg-white border rounded overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => selectProvider(r)}>
                         {r.image && <img src={r.image} alt={r.title} className="w-full h-32 object-cover"/>}
                         <div className="p-3">
-                          <h4 className="font-medium text-blue-700 mb-1">{r.title}</h4>
+                          <h4 className="font-medium text-blue-700 mb-1">{r.name || r.title}</h4>
                           {r.service && <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">{r.service}</p>}
                           {r.location && <p className="text-xs text-gray-500 mb-1"><MapPin size={12} className="inline mr-1"/>{r.location}</p>}
                           {r.priceRange && <p className="text-sm font-medium text-gray-700 mb-2">{r.priceRange}</p>}
                           {r.snippet && <p className="text-sm text-gray-600 line-clamp-3">{r.snippet}</p>}
                           <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between">
-                            {r.link && <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline" onClick={(e) => e.stopPropagation()}>Ver detalles</a>}
+                            {r.link && <a href={r.link} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline font-semibold" onClick={(e) => e.stopPropagation()}>Ver web</a>}
                             <button onClick={(e) => {
                               e.stopPropagation();
                               setProviders(prev => [...prev, { 

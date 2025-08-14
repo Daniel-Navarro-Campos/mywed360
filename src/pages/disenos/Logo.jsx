@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
+import { saveData, loadData } from '../../services/SyncService';
 import Card from '../../components/Card';
 import UploadImageCard from '../../components/UploadImageCard';
-import { saveData, loadData } from '../../services/SyncService';
+
+import { useWedding } from '../../context/WeddingContext';
 import SyncIndicator from '../../components/SyncIndicator';
 import ImageGeneratorAI from '../../components/ImageGeneratorAI';
 
@@ -35,6 +39,7 @@ const logoTemplates = [
 ];
 
 export default function Logo() {
+  const { activeWedding } = useWedding();
   const [hex, setHex] = useState(() => loadData('logoColor', { defaultValue: '#FF69B4', collection: 'userLogo' }));
 
   const handleColor = (e) => {
@@ -70,17 +75,20 @@ export default function Logo() {
       <ImageGeneratorAI 
         category="logo" 
         templates={logoTemplates}
-        onImageGenerated={(image) => {
+        onImageGenerated={async (image) => {
           console.log('Nuevo logo generado:', image);
           // Actualizamos el logo en el contexto de usuario si se desea
           try {
-            const userProfile = loadData('lovendaProfile', { defaultValue: {}, collection: 'userProfile' });
-            if (userProfile) {
-              userProfile.logoUrl = image.url;
-              saveData('lovendaProfile', userProfile, { collection: 'userProfile', showNotification: false });
-              // Notificar a la aplicación que el logo ha cambiado
-              window.dispatchEvent(new Event('lovenda-profile-updated'));
+            if (!activeWedding) return;
+            const infoRef = doc(db, 'weddings', activeWedding, 'weddingInfo');
+            const infoSnap = await getDoc(infoRef);
+            if (infoSnap.exists()) {
+              await updateDoc(infoRef, { logoUrl: image.url });
+            } else {
+              await setDoc(infoRef, { logoUrl: image.url });
             }
+            // Notificar a la aplicación que el logo ha cambiado
+            window.dispatchEvent(new Event('lovenda-profile-updated'));
           } catch (err) {
             console.error('Error al guardar el logo en el perfil:', err);
           }

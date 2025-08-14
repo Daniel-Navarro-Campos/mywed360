@@ -7,10 +7,14 @@ import SeatItem from '../components/SeatItem';
 import TemplatesModal from '../components/TemplatesModal';
 import CeremonyConfigModal from '../components/CeremonyConfigModal';
 import BanquetConfigModal from '../components/BanquetConfigModal';
+import SpaceConfigModal from '../components/SpaceConfigModal';
 // Drag & Drop context
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
+import { doc as fsDoc, setDoc, getDoc, getDocs, collection as fsCollection, onSnapshot, writeBatch } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 import { Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { useWedding } from '../context/WeddingContext';
@@ -27,6 +31,11 @@ import jsPDF from 'jspdf';
 import PageWrapper from '../components/PageWrapper';
 import Card from '../components/Card';
 
+// Flag para desactivar llamadas al microservicio de invitados cuando no hay backend levantado.
+// Define VITE_BACKEND_URL en .env.local si quieres habilitarlo.
+const API_BASE = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV ? 'http://localhost:4004' : '');
+const ENABLE_GUEST_API = API_BASE !== '';
+
 // Utilidad para normalizar IDs de mesas (convierte a número si es posible)
 export const normalizeId = (id) => {
   const num = parseInt(id, 10);
@@ -36,10 +45,29 @@ export const normalizeId = (id) => {
 // Clean rebuilt SeatingPlan page (v2)
 export default function SeatingPlan() {
   const [tab, setTab] = useState('ceremony');
+  const { activeWedding } = useWedding();
   const [ceremonyConfigOpen, setCeremonyConfigOpen] = useState(false);
   
   // Estado de sincronización
   const [syncStatus, setSyncStatus] = useState(getSyncState());
+
+  // Cargar dimensiones del salón
+  useEffect(() => {
+
+   if (!activeWedding) return;
+    (async () => {
+      try {
+        const cfgRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'config');
+        const snap = await getDoc(cfgRef);
+        if (snap.exists()) {
+          const { width, height } = snap.data();
+          if (width && height) setHallSize({ width, height });
+        }
+      } catch (err) {
+        console.warn('No se pudieron cargar dimensiones del salón:', err);
+      }
+    })();
+  }, [activeWedding]);
 
   // Suscribirse a cambios en el estado de sincronización
   useEffect(() => {
@@ -48,6 +76,10 @@ export default function SeatingPlan() {
   }, []);
 
   const [areasCeremony, setAreasCeremony] = useState([]);
+  // Dimensiones del salón (cm)
+  const [hallSize, setHallSize] = useState({ width: 1800, height: 1200 });
+  const [spaceConfigOpen, setSpaceConfigOpen] = useState(false);
+
   const [areasBanquet, setAreasBanquet] = useState([]);
   const [tablesCeremony, setTablesCeremony] = useState([]);
   const [seatsCeremony, setSeatsCeremony] = useState([]);
@@ -60,10 +92,184 @@ export default function SeatingPlan() {
   const setTables = tab === 'ceremony' ? setTablesCeremony : setTablesBanquet;
 
   // history for undo/redo
+  // ------ Firestore: cargar seatingPlan existente ------
+  useEffect(() => {
+    if (!activeWedding) return;
+    // -- Listener ceremony (document plano) --
+    const cerRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'ceremony');
+    const unsubCer = onSnapshot(cerRef, docSnap => {
+      const data = docSnap.exists() ? docSnap.data() : {};
+      if (data.tables) setTablesCeremony(data.tables);
+      if (data.seats) setSeatsCeremony(data.seats);
+      if (data.areas) setAreasCeremony(data.areas);
+    });
+
+    // -- Listener banquet (subcolección tables) --
+    const banqTablesRef = fsCollection(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'tables');
+    const unsubBanq = onSnapshot(banqTablesRef, snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setTablesBanquet(list);
+    });
+    // -- Listener banquet metadata (áreas) --
+    const banqMetaRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet');
+    const unsubBanqMeta = onSnapshot(banqMetaRef, snap => {
+      const data = snap.exists() ? snap.data() : {};
+      if (data.areas) setAreasBanquet(data.areas);
+    });
+    // fin listener seatingPlan
+
+    return () => { unsubCer(); unsubBanq(); unsubBanqMeta && unsubBanqMeta(); };
+  }, [activeWedding]);
+
   const historyRef = useRef({ ceremony: [], banquet: [] });
 
 
   const pointerRef = useRef({ ceremony: -1, banquet: -1 });
+
+  // ------ Firestore: guardar cambios (debounce 500ms) ------
+  useEffect(() => {
+    if (!activeWedding) return;
+    const t = setTimeout(() => {
+      const payload = { tables: tablesCeremony, seats: seatsCeremony, areas: areasCeremony };
+      setDoc(fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'ceremony'), payload, { merge: true });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [activeWedding, tablesCeremony, seatsCeremony, areasCeremony]);
+
+  // --- Migración automática de formato antiguo ---
+  useEffect(() => {
+    if (!activeWedding) return;
+    // Si aún no hay mesas en subcolección pero existen en doc antiguo, migrar.
+    (async () => {
+      try {
+        if (tablesBanquet.length > 0) return; // ya existen mesas en nuevo formato (listener llenó estado)
+        const banqDocRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet');
+        const banqSnap = await getDoc(banqDocRef);
+        if (!banqSnap.exists()) return;
+        const data = banqSnap.data() || {};
+        if (!Array.isArray(data.tables) || data.tables.length === 0) return;
+        console.log('Migrando mesas de banquete al nuevo formato…');
+        const colRef = fsCollection(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'tables');
+        const batch = writeBatch(db);
+        data.tables.forEach(tbl => {
+          if (!tbl || tbl.id === undefined) return;
+          const docRef = fsDoc(colRef, String(tbl.id));
+          batch.set(docRef, tbl, { merge: true });
+        });
+        await batch.commit();
+        console.log('Migración completada.');
+      } catch (err) {
+        console.error('Error migrando mesas de banquete:', err);
+      }
+    })();
+  }, [activeWedding, tablesBanquet]);
+
+  // --- Generar mesas desde invitados si la subcolección está vacía ---
+  useEffect(() => {
+    if (!activeWedding) return;
+    (async () => {
+      try {
+        const tablesCol = fsCollection(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'tables');
+        const tablesSnap = await getDocs(tablesCol);
+        const existingIds = new Set(tablesSnap.docs.map((d) => d.id));
+        // Batch para operaciones atómicas y contador para posicionar mesas nuevas
+        const batch = writeBatch(db);
+        let idx = tablesSnap.size; // empezamos a contar tras las mesas existentes
+
+        // Obtener invitados con tableId
+        const guestsCol = fsCollection(db, 'weddings', activeWedding, 'guests');
+        const guestsSnap = await getDocs(guestsCol);
+        console.groupCollapsed('[SeatingPlan debug] Sincronización de mesas');
+        console.log('Invitados leídos:', guestsSnap.size);
+        console.log('Docs mesas existentes:', tablesSnap.size);
+
+        const tableMap = {};
+        guestsSnap.forEach((g) => {
+          const data = g.data();
+          const tidRaw = data.tableId ?? data.table;
+          if (tidRaw === undefined || tidRaw === null) return;
+          const tidStr = String(tidRaw).trim();
+          if (tidStr === '' || tidStr === '0') return; // ignorar sin asignar o valor 0
+          const tid = tidStr;
+          if (!tableMap[tid]) tableMap[tid] = [];
+          tableMap[tid].push({ id: g.id, name: data.name || data.nombre || '', companion: data.companion || 0 });
+        });
+        const ids = new Set(Object.keys(tableMap));
+        console.log('Mesas detectadas a partir de invitados:', [...ids]);
+        console.log('Mapa invitados por mesa (primeros 2):', Object.fromEntries(Object.entries(tableMap).slice(0,2)));
+
+        const missing = [...ids].filter((tid) => !existingIds.has(tid));
+        console.log('Mesas faltantes (a crear):', missing);
+
+        if (missing.length > 0) {
+          console.log(`Creando ${missing.length} mesas que faltaban según invitados…`);
+          // Crear mesas faltantes
+          missing.forEach((tid) => {
+            const docRef = fsDoc(tablesCol, tid);
+            const x = 120 + (idx % 5) * 140;
+            const y = 160 + Math.floor(idx / 5) * 160;
+            batch.set(docRef, {
+              id: parseInt(tid, 10) || tid,
+              name: `Mesa ${tid}`,
+              shape: 'circle',
+              seats: 10,
+              x,
+              y,
+              enabled: true,
+            }, { merge: true });
+            idx += 1;
+          });
+        }
+
+        // Eliminar mesas huérfanas (sin invitados)
+        const orphan = [...existingIds].filter((tid) => !ids.has(tid));
+        console.log('Mesas huérfanas (a eliminar):', orphan);
+        orphan.forEach((tid) => {
+          const docRef = fsDoc(tablesCol, tid);
+          batch.delete(docRef);
+        });
+
+        // Actualizar assignedGuests en TODAS las mesas detectadas (existentes y nuevas)
+        Object.entries(tableMap).forEach(([tid, list]) => {
+          const docRef = fsDoc(tablesCol, tid);
+          batch.set(docRef, { assignedGuests: list }, { merge: true });
+        });
+
+        await batch.commit();
+        console.log('Mesas sincronizadas con invitados.');
+      } catch (err) {
+        console.error('Error generando mesas desde invitados:', err);
+      }
+    })();
+  }, [activeWedding]);
+
+  // Guardar mesas de banquete en subcolección `banquet/tables`
+  useEffect(() => {
+    if (!activeWedding) return;
+    const t = setTimeout(async () => {
+      try {
+        const colRef = fsCollection(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'tables');
+        const batch = writeBatch(db);
+        tablesBanquet.forEach(tbl => {
+          const docRef = fsDoc(colRef, String(tbl.id));
+          batch.set(docRef, tbl, { merge: true });
+        });
+        await batch.commit();
+      } catch (err) {
+        console.error('Error sincronizando mesas de banquete:', err);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [activeWedding, tablesBanquet]);
+
+  // Guardar áreas de banquete en documento `seatingPlan/banquet`
+  useEffect(() => {
+    if (!activeWedding) return;
+    const t = setTimeout(() => {
+      setDoc(fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet'), { areas: areasBanquet }, { merge: true });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [activeWedding, areasBanquet]);
 
   // Guarda un snapshot en el historial y coloca el puntero al final
   // Añade un nuevo snapshot al historial respetando el puntero actual.
@@ -113,8 +319,7 @@ export default function SeatingPlan() {
     }
   };
 
-  // Guests from backend
-  const { activeWedding } = useWedding();
+  // Invitados en tiempo real desde Firestore
   // Invitados en tiempo real desde Firestore
   const { data: dbGuests } = useWeddingCollection('guests', activeWedding, []);
   const [guests, setGuests] = useState([]);
@@ -122,6 +327,7 @@ export default function SeatingPlan() {
   // Mantener estado local basado en Firestore
   useEffect(() => {
     setGuests(dbGuests);
+    console.log('[SeatingPlan] Firestore guests loaded', dbGuests.length, dbGuests);
   }, [dbGuests]);
   const [selectedTableId, setSelectedTableId] = useState(null);
   const [selectedSeatId, setSelectedSeatId] = useState(null);
@@ -157,17 +363,43 @@ export default function SeatingPlan() {
 
   // Número real de mesas (únicas) considerando tanto las dibujadas como las referenciadas por invitados
   // Número total de elementos (mesas o sillas) según pestaña
-  const tableCount = useMemo(() => {
-     const idsFromGuests = guests
-       .map(g => g.tableId ?? g.table)
-       .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
-       .map(v => String(v).trim());
-     return new Set(idsFromGuests).size;
-   }, [guests]);
+  // Recuento de mesas distintas según campo `table`/`tableId` en invitados
+  // Recuento de mesas teniendo en cuenta:
+    // 1) Mesas existentes en el plano de banquete (tablesBanquet)
+    // 2) IDs de mesa referenciados por los invitados (table | tableId)
+    // De esta forma reflejamos tanto las mesas "vacías" como las ya asignadas.
+    const tableCount = useMemo(() => {
+      const set = new Set();
+
+      // 1. Mesas dibujadas (solo banquet)
+      tablesBanquet.forEach(t => {
+        if (t && t.enabled !== false && t.id !== undefined && t.id !== null) {
+          set.add(String(t.id));
+        }
+      });
+
+      // 2. Mesas referenciadas por invitados
+      guests.forEach(g => {
+        const v = g.tableId ?? g.table;
+        if (v !== undefined && v !== null && String(v).trim() !== '') {
+          set.add(String(v).trim());
+        }
+      });
+
+      return set.size;
+    }, [tablesBanquet, guests]);
+
+    // Actualizar tableCount en Firestore cada vez que cambie
+    useEffect(() => {
+      console.log('[SeatingPlan] tableCount', tableCount);
+      setDoc(fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'config'), { tablesCount: tableCount }, { merge: true });
+    }, [activeWedding, tableCount]);
 
   // Sincronizar el número de mesas con la gestión de invitados (ceremonia)
   useEffect(() => {
     // Obtener identificadores (id numérico o nombre) que figuran en la lista de invitados
+    console.log('[SeatingPlan] Ceremony sync - guests length', guests.length);
+
     const idsFromGuests = guests
       .map(g => g.tableId ?? g.table)
       .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
@@ -244,7 +476,19 @@ export default function SeatingPlan() {
 
   // Sincronizar mesas de BANQUETE con la gestión de invitados
   useEffect(() => {
-    // Reunir identificadores de mesa referenciados por los invitados
+    if(tab!=='banquet') return;
+    // Sólo actualizamos mesas existentes; no creamos nuevas
+    setTablesBanquet(prev => prev.map(t => {
+      const guestsForTable = guests.filter(g => String(g.tableId ?? g.table).trim() === String(t.id));
+      return {
+        ...t,
+        assignedGuests: guestsForTable.slice(0, t.seats || 8),
+      };
+    }));
+  }, [guests, tab]);
+
+    /*
+console.log('[SeatingPlan] Banquet sync - guests length', guests.length);
     const idsFromGuests = guests
       .map(g => g.tableId ?? g.table)
       .filter(v => v !== undefined && v !== null && String(v).trim() !== '')
@@ -262,41 +506,35 @@ export default function SeatingPlan() {
     });
 
     setTablesBanquet(prev => {
-      const uniqueNormalizedIds = Object.keys(groupedIds);
-      const byId = new Map(prev.map(t => [normalizeId(t.id), t]));
-      const byName = new Map(prev.filter(t => t.name).map(t => [normalizeId(t.name), t]));
+        const uniqueNormalizedIds = Object.keys(groupedIds);
+        const byId = new Map(prev.map(t => [normalizeId(t.id), t]));
+        const byName = new Map(prev.filter(t => t.name).map(t => [normalizeId(t.name), t]));
 
-      // Crear/actualizar mesas
-      const updated = uniqueNormalizedIds.map(normalizedId => {
-        const idStr = groupedIds[normalizedId];
-        const existing = byId.get(normalizedId) || byName.get(normalizedId);
+        // Sólo tocar mesas existentes
+        const updated = uniqueNormalizedIds
+          .map(normalizedId => {
+            const idStr = groupedIds[normalizedId];
+            const existing = byId.get(normalizedId) || byName.get(normalizedId);
+            if (!existing) return null;
+            const guestsForTable = guests.filter(g => String(g.tableId ?? g.table).trim() === idStr);
+            return {
+              ...existing,
+              name: idStr,
+              assignedGuests: guestsForTable.slice(0, existing.seats || 8),
+            };
+          })
+          .filter(Boolean);
 
-        // Invitados que deberían estar sentados en esta mesa
-        const guestsForTable = guests.filter(g => String(g.tableId ?? g.table).trim() === idStr);
+        // Mantener mesas que ya no tienen invitados (extras) para que el usuario decida
+        const extras = prev.filter(t => {
+          const norm = normalizeId(t.id);
+          return !uniqueNormalizedIds.some(id => id == norm);
+        });
 
-        if (existing) {
-          return {
-            ...existing,
-            name: idStr,
-            assignedGuests: guestsForTable.slice(0, existing.seats || 8),
-          };
-        }
-
-        // Crear nueva mesa con posición aleatoria dentro del lienzo
-        const idVal = typeof normalizedId === 'number' ? normalizedId : idStr;
-        return {
-          id: idVal,
-          name: idStr,
-          x: 120 + Math.random() * 200,
-          y: 120 + Math.random() * 200,
-          shape: 'circle',
-          seats: 8,
-          assignedGuests: guestsForTable.slice(0, 8),
-          enabled: true,
-        };
+        return [...extras, ...updated];
       });
 
-      // Conservar mesas no referenciadas por los invitados (añadidas manualmente)
+      // Eliminar mesas huérfanas (sin invitados)
       const extras = prev.filter(t => {
         const norm = normalizeId(t.id);
         return !uniqueNormalizedIds.some(id => id == norm);
@@ -356,25 +594,38 @@ export default function SeatingPlan() {
      const loadGuests = async ()=>{
        let got = [];
        try{
-         const res = await fetch('/api/guests');
-         if(res.ok){
-           got = await res.json();
-         }
+         if(ENABLE_GUEST_API){
+            const res = await fetch(`${API_BASE}/api/guests`);
+            if(res.ok){
+              got = await res.json();
+            }
+          }
        }catch(e){
          console.warn('Sin backend /api/guests, cargando desde SyncService');
        }
        if(!Array.isArray(got) || got.length===0){
-         try{ 
-           got = await loadData('lovendaGuests', { 
-             defaultValue: [], 
-             collection: 'userGuests'
-           }); 
-         }catch(error){ 
-           console.error('Error al cargar invitados:', error);
-           got=[]; 
-         }
-       }
-       if(got.length===0){
+    try{ 
+      got = await loadData('lovendaGuests', { 
+        defaultValue: [], 
+        collection: 'userGuests'
+      }); 
+    }catch(error){ 
+      console.error('Error al cargar invitados desde SyncService:', error);
+      got=[]; 
+    }
+  }
+  // Fallback final: leer directamente de Firestore si sigue vacío
+  if(got.length===0 && activeWedding){
+    try {
+      const guestsCol = fsCollection(db, 'weddings', activeWedding, 'guests');
+      const snap = await getDocs(guestsCol);
+      got = snap.docs.map(d=>({ id: d.id, ...d.data() }));
+      if (import.meta.env.DEV) console.debug('[SeatingPlan] invitados obtenidos de Firestore:', got.length);
+    } catch(err){
+      console.error('Error leyendo invitados desde Firestore:', err);
+    }
+  }
+  if(got.length===0){
          // Invitados de prueba
          got=[
            {id:1, name:'Ana García', companion:1, tableId:1},
@@ -419,18 +670,21 @@ export default function SeatingPlan() {
 
   // Real-time sync via WebSocket with fallback polling
   useEffect(()=>{
+    if(!ENABLE_GUEST_API) return; // Sin backend, omitimos WebSocket y polling
+
     let ws=null;
     let pollId=null;
     const sinceRef={current:Date.now()};
 
-    const applyUpdate = (update)=>{
-      setGuests(prev=> prev.map(g=> g.id===update.id ? {...g, tableId:update.tableId}: g));
+    const applyUpdate = (update) => {
+      const newTable = update.table ?? update.tableId;
+      setGuests(prev => prev.map(g => g.id === update.id ? { ...g, table: newTable, tableId: newTable } : g));
     };
 
     const startPolling=()=>{
       pollId=setInterval(async()=>{
         try{
-          const res=await fetch(`/api/guests/changes?since=${sinceRef.current}`);
+          const res=await fetch(`${API_BASE}/api/guests/changes?since=${sinceRef.current}`);
           const data=await res.json();
           if(Array.isArray(data)){
             data.forEach(u=>{applyUpdate(u); sinceRef.current=u.ts;});
@@ -440,8 +694,21 @@ export default function SeatingPlan() {
     };
 
     if('WebSocket' in window){
-      const proto=window.location.protocol==='https:'?'wss':'ws';
-      const url=`${proto}://${window.location.host}/ws/guests`;
+      let wsUrl;
+      if (API_BASE) {
+        try {
+          const api = new URL(API_BASE);
+          const proto = api.protocol === 'https:' ? 'wss' : 'ws';
+          wsUrl = `${proto}://${api.host}/ws/guests`;
+        } catch (e) {
+          console.warn('API_BASE no es URL válida, usando host de origen', e);
+        }
+      }
+      if (!wsUrl) {
+        const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        wsUrl = `${proto}://${window.location.host}/ws/guests`;
+      }
+      const url = wsUrl;
       ws=new WebSocket(url);
       ws.onmessage=(ev)=>{
         try{const msg=JSON.parse(ev.data); if(msg.type==='guestUpdated') {
@@ -490,6 +757,42 @@ export default function SeatingPlan() {
   const [loadingAI, setLoadingAI] = useState(false);
 
 
+  // ------- Sincronizar invitados DESDE Firestore (assignedGuests -> guests) -------
+  useEffect(()=>{
+    if(tab!=='banquet') return;
+    if(tablesBanquet.length===0) return;
+    setGuests(prev=>{
+      let changed=false;
+      const map = new Map(prev.map(g=>[String(g.id), g]));
+      tablesBanquet.forEach(t=>{
+        if(!Array.isArray(t.assignedGuests)) return;
+        t.assignedGuests.forEach(ag=>{
+          if(!ag || !ag.id) return;
+          const idStr = String(ag.id);
+          const existing = map.get(idStr);
+          if(existing){
+            if(String(existing.tableId) !== String(t.id)){
+              existing.tableId = t.id;
+              existing.table = t.id;
+              changed=true;
+            }
+          }else{
+            map.set(idStr, {
+              id: ag.id,
+              name: ag.name || 'Invitado',
+              companion: ag.companion || 0,
+              tableId: t.id,
+              table: t.id,
+            });
+            changed=true;
+          }
+        });
+      });
+      if(!changed) return prev;
+      return Array.from(map.values());
+    });
+  }, [tablesBanquet, tab]);
+
   // When guests or table list changes, sync assignedGuests to reflect any new guest allocations
   useEffect(()=>{
     if(tab!=='banquet') return;
@@ -501,12 +804,45 @@ export default function SeatingPlan() {
     }));
   },[guests,tab]);
 
+  // Persist assignedGuests to Firestore cada vez que cambie la lista de invitados
+  useEffect(()=>{
+    if(tab!=='banquet') return;
+    if(!activeWedding) return;
+    if(guests.length===0 || tablesBanquet.length===0) return;
+    const timeout = setTimeout(async ()=>{
+      try{
+        const colRef = fsCollection(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'tables');
+        const batch = writeBatch(db);
+        let changed = 0;
+        tablesBanquet.forEach(t=>{
+          const assigned = guests
+            .filter(g=> String(g.tableId??g.table).trim() === String(t.id))
+            .map(g=>({id:g.id, name:g.name||g.nombre||'', companion:g.companion||0}))
+            .slice(0, t.seats || 8);
+          const curr = Array.isArray(t.assignedGuests)? t.assignedGuests : [];
+          const isSame = curr.length===assigned.length && curr.every((g,i)=>String(g.id)===String(assigned[i].id));
+          if(!isSame){
+            const docRef = fsDoc(colRef, String(t.id));
+            batch.set(docRef, { assignedGuests: assigned }, { merge:true });
+            changed += 1;
+          }
+        });
+        if(changed>0){
+          await batch.commit();
+        }
+      }catch(e){
+        console.error('[SeatingPlan] Error sincronizando assignedGuests a Firestore', e);
+      }
+    }, 500);
+    return ()=>clearTimeout(timeout);
+  }, [activeWedding, guests, tablesBanquet, tab]);
+
   // Load autosaved state
   useEffect(()=>{
     try{
-      const data = loadData('seating-autosave', { 
-        defaultValue: null, 
-        collection: 'userSeatingPlan' 
+      const data = loadData('seating-autosave', {
+        defaultValue: null,
+        docPath: activeWedding ? `weddings/${activeWedding}/meta/seatingAutosave` : undefined
       });
       if(data){
         setAreasCeremony(data.areasCeremony||[]);
@@ -573,7 +909,7 @@ export default function SeatingPlan() {
         ts: Date.now()
       };
       saveData('seating-autosave', payload, {
-        collection: 'userSeatingPlan',
+        docPath: activeWedding ? `weddings/${activeWedding}/meta/seatingAutosave` : undefined,
         showNotification: false
       });
       setSavedAt(new Date());
@@ -645,22 +981,57 @@ export default function SeatingPlan() {
     setTables(prev => [...prev, { id, x: 200, y: 150, shape: 'circle' }]);
   };
   const onAssignGuest = (tableId, guestId) => {
+    // Snapshot para undo
+    pushHistory(tables);
+
+    // ---------------- DESASIGNAR ----------------
     if (guestId === null) {
-      // desasignar: encontrar invitado que estuviera en esa mesa
-      const prevGuestId = tables.find(t=>t.id===tableId)?.guestId;
-      pushHistory(tables);
+      if (tab === 'banquet') {
+        // Limpiar assignedGuests y desvincular invitados
+        setTables(prev =>
+          prev.map(t => t.id === tableId ? { ...t, assignedGuests: [], guestId: undefined, guestName: undefined } : t)
+        );
+        setGuests(prev =>
+          prev.map(g => String(g.tableId) === String(tableId) ? { ...g, tableId: undefined, table: undefined } : g)
+        );
+        return;
+      }
+
+      // Ceremonia (una persona por mesa)
+      const prevGuestId = tables.find(t => t.id === tableId)?.guestId;
       setTables(prev => prev.map(t => t.id === tableId ? { ...t, guestId: undefined, guestName: undefined } : t));
-      if(prevGuestId){
-        setGuests(prev=> prev.map(g=> g.id===prevGuestId? {...g, tableId: undefined, table: undefined}: g));
+      if (prevGuestId) {
+        setGuests(prev => prev.map(g => g.id === prevGuestId ? { ...g, tableId: undefined, table: undefined } : g));
       }
       return;
     }
+
+    // ---------------- ASIGNAR ----------------
     const guest = guests.find(g => g.id === guestId);
     if (!guest) return;
-    pushHistory(tables);
-    setTables(prev => prev.map(t => t.id === tableId ? { ...t, guestId, guestName: guest.name } : t));
-    // actualizar invitado con su mesa
-    setGuests(prev=> prev.map(g=> g.id===guestId? {...g, tableId: tableId}: g));
+
+    if (tab === 'banquet') {
+      // Añadir al array assignedGuests manteniendo capacidad y evitando duplicados
+      setTables(prev =>
+        prev.map(t => {
+          if (t.id !== tableId) return t;
+          let list = Array.isArray(t.assignedGuests) ? [...t.assignedGuests] : [];
+          list = list.filter(ag => {
+            const id = typeof ag === 'object' ? ag.id : ag;
+            return String(id) !== String(guestId);
+          });
+          list.push({ id: guest.id, name: guest.name, companion: guest.companion });
+          const capacity = t.seats || 8;
+          return { ...t, assignedGuests: list.slice(0, capacity), guestId: undefined, guestName: undefined };
+        })
+      );
+    } else {
+      // Ceremonia
+      setTables(prev => prev.map(t => t.id === tableId ? { ...t, guestId, guestName: guest.name } : t));
+    }
+
+    // Actualizar invitado con su mesa
+    setGuests(prev => prev.map(g => g.id === guestId ? { ...g, table: tableId, tableId: tableId } : g));
   };
 
   const onToggleEnabled = (tableId) => {
@@ -808,7 +1179,80 @@ export default function SeatingPlan() {
     setAreas(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const moveTable = (id, pos) => {
+  /**
+   * Actualiza los puntos de un perímetro existente tras editarlo en FreeDrawCanvas.
+   * - Guarda snapshot para undo/redo.
+   * - Actualiza el estado local del área.
+   * - Persiste inmediatamente en Firestore.
+   */
+  const onUpdateArea = (idx, pts) => {
+    // Snapshot para undo/redo
+    pushHistory(areas);
+
+    // Nuevo array de áreas con la edición aplicada
+    const updatedAreas = areas.map((poly, i) => (i === idx ? pts : poly));
+
+    // Actualizar estado UI
+    setAreas(updatedAreas);
+    // Persistir en Firestore sin esperar al debounce
+    if (activeWedding) {
+      const docRef = fsDoc(
+        db,
+        'weddings',
+        activeWedding,
+        'seatingPlan',
+        tab === 'ceremony' ? 'ceremony' : 'banquet',
+      );
+      setDoc(docRef, { areas: updatedAreas }, { merge: true });
+    }
+  };
+
+  // Utilidad para mantener una mesa dentro de los límites visibles del lienzo
+const clampTablesWithinCanvas = (tbls) => {
+    // Usar límites del salón si estamos en banquete y hallSize está definido
+    const hallW = tab === 'banquet' ? hallSize.width : null;
+    const hallH = tab === 'banquet' ? hallSize.height : null;
+  if (!containerRef.current) return tbls;
+  const rect = containerRef.current.getBoundingClientRect();
+  const maxX = hallW ?? rect.width / scale;
+  const maxY = hallH ?? rect.height / scale;
+  let changed = false;
+  const clamped = tbls.map(t => {
+    const shape = t.shape || 'circle';
+    const diameter = t.diameter || 60;
+    const width = t.width || 80;
+    const height = t.height || t.length || 60;
+    const sizeX = shape === 'circle' ? diameter : width;
+    const sizeY = shape === 'circle' ? diameter : height;
+    const minX = sizeX / 2;
+    const minY = sizeY / 2;
+    const maxAllowedX = maxX - sizeX / 2;
+    const maxAllowedY = maxY - sizeY / 2;
+    let nx = t.x;
+    let ny = t.y;
+    if (nx < minX) { nx = minX; changed = true; }
+    else if (nx > maxAllowedX) { nx = maxAllowedX; changed = true; }
+    if (ny < minY) { ny = minY; changed = true; }
+    else if (ny > maxAllowedY) { ny = maxAllowedY; changed = true; }
+    return (nx !== t.x || ny !== t.y) ? { ...t, x: nx, y: ny } : t;
+  });
+  return changed ? clamped : tbls;
+};
+
+// Effects: cada vez que cambien las mesas o el zoom/escala, comprobamos límites
+useEffect(() => {
+  const adjusted = clampTablesWithinCanvas(tablesCeremony);
+  if (adjusted !== tablesCeremony) setTablesCeremony(adjusted);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [tablesCeremony, scale]);
+
+useEffect(() => {
+  const adjusted = clampTablesWithinCanvas(tablesBanquet);
+  if (adjusted !== tablesBanquet) setTablesBanquet(adjusted);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [tablesBanquet, scale]);
+
+const moveTable = (id, pos) => {
     pushHistory(tables);
     setTables(prev => prev.map(t => {
       if (t.id !== id) return t;
@@ -823,14 +1267,31 @@ export default function SeatingPlan() {
       let { x: newX, y: newY } = pos;
 
       // Limitar dentro del contenedor (considerando zoom)
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const maxX = rect.width / scale - sizeX / 2;
-        const maxY = rect.height / scale - sizeY / 2;
+      // Limitar dentro del espacio definido del salón
+      {
+        const maxX = space.width - sizeX / 2;
+        const maxY = space.height - sizeY / 2;
         const minX = sizeX / 2;
         const minY = sizeY / 2;
         newX = Math.max(minX, Math.min(maxX, newX));
         newY = Math.max(minY, Math.min(maxY, newY));
+      }
+
+      // Evitar solaparse con otras mesas
+      const hasOverlap = prev.some(o => {
+        if (o.id === id) return false;
+        const oShape = o.shape || 'circle';
+        const oDiameter = o.diameter || 60;
+        const oWidth = o.width || 80;
+        const oHeight = o.height || o.length || 60;
+        const sizeOX = oShape === 'circle' ? oDiameter : oWidth;
+        const sizeOY = oShape === 'circle' ? oDiameter : oHeight;
+        return Math.abs(newX - o.x) < (sizeX + sizeOX) / 2 &&
+               Math.abs(newY - o.y) < (sizeY + sizeOY) / 2;
+      });
+
+      if (hasOverlap) {
+        return t; // no mover si colisiona
       }
       return { ...t, x: newX, y: newY };
     }));
@@ -858,6 +1319,7 @@ export default function SeatingPlan() {
           setTemplateOpen={setTemplateOpen}
           setCeremonyConfigOpen={setCeremonyConfigOpen}
           setBanquetConfigOpen={setBanquetConfigOpen}
+        setSpaceConfigOpen={setSpaceConfigOpen}
           handleLocalAssign={handleLocalAssign}
           handleServerAssign={handleServerAssign}
           loadingAI={loadingAI}
@@ -871,13 +1333,34 @@ export default function SeatingPlan() {
             {/* Panel de herramientas de dibujo */}
             <div className="w-full md:w-1/6 border rounded p-2 h-96 bg-gray-50 flex flex-col space-y-2">
               <h3 className="font-semibold mb-2">Herramientas</h3>
-              <button className={`px-2 py-1 rounded ${drawMode==='pan'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('pan')}>Mover plano</button>
-              <button className={`px-2 py-1 rounded ${drawMode==='move'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('move')}>Mover mesas</button>
-              <button className={`px-2 py-1 rounded ${drawMode==='free'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('free')}>A mano alzada</button>
-              <button className={`px-2 py-1 rounded ${drawMode==='line'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('line')}>Línea</button>
-              <button className={`px-2 py-1 rounded ${drawMode==='rect'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('rect')}>Rectángulo</button>
-              <button className={`px-2 py-1 rounded ${drawMode==='curve'?'bg-blue-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('curve')}>Curva</button>
-              <button className={`px-2 py-1 rounded ${drawMode==='erase'?'bg-red-600 text-white':'bg-gray-200'}`} onClick={()=>setDrawMode('erase')}>Borrar</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='pan'?'bg-blue-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('pan')}
+              >Mover plano</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='move'?'bg-blue-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('move')}
+              >Mover mesas</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='free'?'bg-blue-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('free')}
+              >A mano alzada</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='line'?'bg-blue-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('line')}
+              >Línea</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='rect'?'bg-blue-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('rect')}
+              >Rectángulo</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='curve'?'bg-blue-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('curve')}
+              >Curva</button>
+              <button
+                className={`px-2 py-1 rounded ${drawMode==='erase'?'bg-red-600 text-white':'bg-gray-200'}`}
+                onClick={()=>setDrawMode('erase')}
+              >Borrar</button>
 
 
           </div>
@@ -902,9 +1385,11 @@ export default function SeatingPlan() {
                handleWheel={handleWheel}
                handlePointerDown={handlePointerDown}
                guests={guests}
+               hallSize={tab==='banquet' ? hallSize : null}
                drawMode={drawMode}
                canPan={drawMode==='pan'}
                canMoveTables={drawMode==='move'}
+               onUpdateArea={onUpdateArea}
                onDeleteArea={deleteArea}
             />
             {tab==='ceremony' && (
@@ -1059,7 +1544,26 @@ export default function SeatingPlan() {
   <TemplatesModal open={templateOpen} onApply={applyTemplate} onClose={()=>setTemplateOpen(false)} count={tab==='ceremony' ? seats.length || 60 : tableCount} tab={tab} />
 
   </Card>
-  </PageWrapper>
+  {/* Configurar espacio */}
+
+    <SpaceConfigModal
+        open={spaceConfigOpen}
+        defaultWidth={hallSize.width}
+        defaultHeight={hallSize.height}
+        onApply={async ({ width, height }) => {
+          setHallSize({ width, height });
+          if (activeWedding) {
+            try {
+              const cfgRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'config');
+              await setDoc(cfgRef, { width, height }, { merge: true });
+            } catch (err) {
+              console.error('Error guardando dimensiones del salón:', err);
+            }
+          }
+        }}
+        onClose={() => setSpaceConfigOpen(false)}
+      />
+    </PageWrapper>
 </DndProvider>
 );
 }

@@ -8,10 +8,11 @@ import { toast } from 'react-toastify';
 import useRoles from '../hooks/useRoles';
 import { Users, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { auth } from '../firebaseConfig'; // respaldo para UID
+import { auth, db } from '../firebaseConfig'; // respaldo para UID
 import 'react-toastify/dist/ReactToastify.css';
 import { invitePlanner, getWeddingIdForOwner } from '../services/WeddingService';
-import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
+import { subscribeSyncState, getSyncState } from '../services/SyncService';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 // ---------------------- NUEVO PERFIL -----------------------
 function Perfil() {
@@ -129,20 +130,33 @@ function Perfil() {
   };
 
   const saveProfile = async () => {
-    const data = {subscription, account, weddingInfo, billing, importantInfo};
-    
+    const uid = fallbackUid;
+    if (!uid) {
+      toast.error('No se pudo determinar tu usuario.');
+      return;
+    }
+
     try {
-      // Usar el nuevo servicio de sincronización híbrida
-      const success = await saveData('lovendaProfile', data, {
-        collection: 'userProfiles',
-        showNotification: false // Manejamos las notificaciones aquí
-      });
-      
-      if (success) {
-        toast.success('Perfil guardado');
-      } else {
-        toast.warning('Perfil guardado localmente. Se sincronizará cuando haya conexión');
+      // 1. Datos globales del usuario
+      await setDoc(
+        doc(db, 'users', uid),
+        {
+          account,
+          subscription,
+          billing,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // 2. Datos específicos de la boda
+      if (weddingId) {
+        await updateDoc(doc(db, 'weddings', weddingId), {
+          weddingInfo: { ...weddingInfo, importantInfo },
+        });
       }
+
+      toast.success('Perfil guardado');
     } catch (error) {
       console.error('Error guardando perfil:', error);
       toast.error('Error al guardar el perfil');
@@ -155,18 +169,33 @@ function Perfil() {
     
     // Cargar datos con la nueva estrategia híbrida
     const loadProfileData = async () => {
+      const uid = fallbackUid;
+      if (!uid) return;
       try {
-        const profileData = await loadData('lovendaProfile', {
-          collection: 'userProfiles',
-          fallbackToLocal: true
-        });
-        
-        if (profileData) {
-          if (profileData.weddingInfo) setWeddingInfo(profileData.weddingInfo);
-          if (profileData.account) setAccount(profileData.account);
-          if (profileData.billing) setBilling(profileData.billing);
-          if (profileData.subscription) setSubscription(profileData.subscription);
-          if (profileData.importantInfo) setImportantInfo(profileData.importantInfo);
+        // Datos globales
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        if (userSnap.exists()) {
+          const d = userSnap.data();
+          if (d.account) setAccount(d.account);
+          if (d.subscription) setSubscription(d.subscription);
+          if (d.billing) setBilling(d.billing);
+        }
+
+        // Datos de la boda
+        if (weddingId) {
+          const wedSnap = await getDoc(doc(db, 'weddings', weddingId));
+          if (wedSnap.exists() && wedSnap.data().weddingInfo) {
+            const wi = wedSnap.data().weddingInfo;
+            setWeddingInfo({
+              coupleName: wi.coupleName || '',
+              celebrationPlace: wi.celebrationPlace || '',
+              banquetPlace: wi.banquetPlace || '',
+              schedule: wi.schedule || '',
+              giftAccount: wi.giftAccount || '',
+              numGuests: wi.numGuests || '',
+            });
+            if (wi.importantInfo) setImportantInfo(wi.importantInfo);
+          }
         }
       } catch (error) {
         console.error('Error cargando datos del perfil:', error);

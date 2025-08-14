@@ -1,17 +1,51 @@
 import React, { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, getDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDoc, doc, addDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useNavigate } from 'react-router-dom';
+import WeddingFormModal from '../components/WeddingFormModal';
 import { Card } from '../components/ui/Card';
 import { Progress } from '../components/ui/Progress';
 import { useUserContext } from '../context/UserContext';
+import { useWedding } from '../context/WeddingContext';
 
 
 export default function Bodas() {
   const { user } = useUserContext();
+  const { setActiveWedding } = useWedding();
   const [weddings, setWeddings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [tab, setTab] = useState('active');
   const navigate = useNavigate();
+
+  const crearBoda = async (values) => {
+    try {
+      const newDoc = await addDoc(collection(db, 'weddings'), {
+        name: values.name,
+        weddingDate: values.date || '',
+        location: values.location || '',
+        banquetPlace: values.banquetPlace || '',
+        createdAt: serverTimestamp(),
+        ownerIds: [],
+        plannerIds: [user.uid],
+        assistantIds: [],
+        progress: 0,
+        active: true,
+      });
+      // Inicializar subcolección de finanzas
+      try {
+        const financeRef = doc(db, 'weddings', newDoc.id, 'finance', 'main');
+        await setDoc(financeRef, { movements: [], createdAt: serverTimestamp() }, { merge: true });
+      } catch (e) {
+        console.warn('No se pudo inicializar finance/main para', newDoc.id, e);
+      }
+      setActiveWedding(newDoc.id);
+      navigate(`/bodas/${newDoc.id}`);
+    } catch (err) {
+      console.error('Error creando nueva boda:', err);
+      alert('No se pudo crear la boda. Revise permisos.');
+    }
+  };
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -59,23 +93,65 @@ export default function Bodas() {
     return () => unsub();
   }, [user]);
 
+    const today = new Date();
+  const activeWeddings = weddings.filter((w) => {
+    if (!w.date) return true; // sin fecha = activa
+    const d = new Date(w.date);
+    return isNaN(d) ? true : d >= today;
+  });
+  const pastWeddings = weddings.filter((w) => {
+    if (!w.date) return false;
+    const d = new Date(w.date);
+    return !isNaN(d) && d < today;
+  });
+  const weddingsToShow = tab === 'active' ? activeWeddings : pastWeddings;
+
   if (loading) {
     return <p>Cargando bodas...</p>;
   }
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-8">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Mis Bodas</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Mis Bodas</h1>
+        {user?.role === 'planner' && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded shadow"
+          >
+            + Crear nueva boda
+          </button>
+        )}
+      </div>
 
-      {weddings.length === 0 ? (
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setTab('active')}
+          className={`px-4 py-1 rounded font-medium ${tab==='active' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+        >
+          Bodas activas
+        </button>
+        <button
+          onClick={() => setTab('past')}
+          className={`px-4 py-1 rounded font-medium ${tab==='past' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+        >
+          Bodas pasadas
+        </button>
+      </div>
+
+      {weddingsToShow.length === 0 ? (
         <p>No tienes bodas asignadas todavía.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {weddings.map((wed) => (
+          {weddingsToShow.map((wed) => (
             <Card
               key={wed.id}
               className="cursor-pointer hover:shadow-md transition-shadow flex flex-col justify-between"
-              onClick={() => navigate(`/bodas/${wed.id}`)}
+              onClick={() => {
+                setActiveWedding(wed.id);
+                navigate(`/bodas/${wed.id}`);
+              }}
             >
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-gray-800">{wed.name}</h2>
@@ -95,6 +171,11 @@ export default function Bodas() {
           ))}
         </div>
       )}
+          <WeddingFormModal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={crearBoda}
+      />
     </div>
   );
 }

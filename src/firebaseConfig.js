@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, connectFirestoreEmulator, doc, setDoc, enableIndexedDbPersistence } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, connectFirestoreEmulator, doc, setDoc, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getDatabase, ref, onValue } from 'firebase/database';
 
@@ -101,6 +101,14 @@ const inicializarFirebase = async () => {
     // Inicializar autenticación
     try {
       auth = getAuth(app);
+      // Garantizamos persistencia local para mantener la sesión incluso tras cerrar el navegador
+      try {
+        const { setPersistence, browserLocalPersistence } = await import('firebase/auth');
+        await setPersistence(auth, browserLocalPersistence);
+        console.log('✅ Persistencia del auth establecida en Local');
+      } catch (pErr) {
+        console.warn('No se pudo establecer la persistencia local de auth:', pErr);
+      }
       auth.languageCode = 'es';
       if (typeof window !== 'undefined') window.auth = auth;
       console.log('✅ Autenticación de Firebase inicializada');
@@ -111,15 +119,21 @@ const inicializarFirebase = async () => {
 
     // Inicializar Firestore con mejores opciones para estabilidad de conexión
     try {
-      db = initializeFirestore(app, { 
+      db = initializeFirestore(app, {
         experimentalForceLongPolling: true,
-        cacheSizeBytes: 50000000, // ~50MB
-        ignoreUndefinedProperties: true
+        cacheSizeBytes: 50 * 1024 * 1024, // ~50 MB
+        ignoreUndefinedProperties: true,
       });
       console.log('✅ Firestore inicializado con configuración optimizada');
     } catch (firestoreError) {
-      console.error('❌ Error al inicializar Firestore:', firestoreError);
-      throw new Error(`Error al inicializar Firestore: ${firestoreError.message}`);
+      // Si Firestore ya estaba inicializado (p.ej. por otro módulo), reutilizamos la instancia existente
+      if (firestoreError?.message?.includes('has already been called')) {
+        db = getFirestore(app);
+        console.warn('ℹ️ Firestore ya estaba inicializado, usando instancia existente');
+      } else {
+        console.error('❌ Error al inicializar Firestore:', firestoreError);
+        throw new Error(`Error al inicializar Firestore: ${firestoreError.message}`);
+      }
     }
     
     // Habilitar persistencia offline con IndexedDB

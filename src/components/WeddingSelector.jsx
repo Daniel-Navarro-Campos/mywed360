@@ -1,11 +1,12 @@
 import React from 'react';
 import { useWedding } from '../context/WeddingContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // Selector de boda activa para planners
 export default function WeddingSelector() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { weddings, activeWedding, setActiveWedding } = useWedding();
-
-  if (!weddings || weddings.length === 0) return null;
 
   return (
     <div className="mb-4 flex items-center space-x-2">
@@ -13,14 +14,25 @@ export default function WeddingSelector() {
       <select
         id="wedding-select"
         value={activeWedding}
-        onChange={(e) => setActiveWedding(e.target.value)}
+        onChange={(e) => {
+          const newId = e.target.value;
+          setActiveWedding(newId);
+          // Si estamos en /bodas o /bodas/:algo, navegamos al detalle de la nueva boda
+          if (location.pathname.startsWith('/bodas')) {
+            navigate(`/bodas/${newId}`);
+          }
+        }}
         className="border border-gray-300 rounded px-2 py-1 pr-6 text-sm"
       >
-        {weddings.map((w) => (
-          <option key={w.id} value={w.id}>
-            {w.name}
-          </option>
-        ))}
+        {weddings && weddings.length > 0 ? (
+          weddings.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.name?.trim() ? w.name : 'Boda sin nombre'}
+            </option>
+          ))
+        ) : (
+          <option value="" disabled>Sin bodas</option>
+        )}
       </select>
     </div>
   );

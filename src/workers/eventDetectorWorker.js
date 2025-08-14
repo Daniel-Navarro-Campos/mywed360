@@ -174,7 +174,7 @@ function detectEventsInChunk(text, subject, startIndex, chunkId) {
 
 // Escuchar mensajes del hilo principal
 self.addEventListener('message', (e) => {
-  const { text, subject, chunkSize, chunkId, startIndex } = e.data;
+  const { text, subject, chunkId, startIndex } = e.data;
   
   // Detectar eventos en este chunk
   const events = detectEventsInChunk(text, subject, startIndex, chunkId);

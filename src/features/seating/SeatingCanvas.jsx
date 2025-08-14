@@ -34,19 +34,43 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
     canPan = true,
     canMoveTables = true,
     onToggleSeat = () => {},
+    onDoubleClick = () => {}, // added prop
+    onUpdateArea = () => {}, // NUEVO: prop para actualizar un área existente
+    hallSize = null,
   },
   containerRef,
 ) {
   return (
 
       <div
-        className="flex-grow border border-gray-300 h-96 relative"
+        className="flex-grow border border-gray-300 h-[800px] relative overflow-hidden" // adjusted height
+        onDoubleClick={onDoubleClick} // added event handler
         onWheel={canPan ? handleWheel : undefined}
         onPointerDown={canPan ? handlePointerDown : undefined}
         role="main"
         aria-label="Lienzo de plano"
         ref={containerRef}
+        style={{
+          backgroundImage: 'linear-gradient(to right, #eaeaea 1px, transparent 1px), linear-gradient(to bottom, #eaeaea 1px, transparent 1px)',
+          backgroundSize: `${20 * scale}px ${20 * scale}px`,
+        }}
       >
+        {/* Área del salón (solo banquete) */}
+        {tab==='banquet' && hallSize && (
+          <div
+            style={{
+              position:'absolute',
+              left:0,
+              top:0,
+              width: hallSize.width * scale,
+              height: hallSize.height * scale,
+              border:'2px dashed #6b7280',
+              backgroundColor:'rgba(255,255,255,0.6)',
+              pointerEvents:'none'
+            }}
+          />
+        )}
+
         {/* Canvas libre */}
         <FreeDrawCanvas
           areas={areas}
@@ -54,18 +78,19 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
           offset={offset}
           onFinalize={addArea}
           onDeleteArea={onDeleteArea}
+          onUpdateArea={onUpdateArea}
           drawMode={drawMode}
         />
 
 {/* Sillas (solo ceremonia) */}
-        {tab==='ceremony' && seats.map(seat=> (
-          <ChairItem key={seat.id} seat={seat} scale={scale} offset={offset} onToggleEnabled={onToggleSeat} />
+        {tab==='ceremony' && seats.map((seat, idx) => (
+          <ChairItem key={`${seat.id}-${idx}`} seat={seat} scale={scale} offset={offset} onToggleEnabled={onToggleSeat} />
         ))}
 
         {/* Mesas (solo banquete) */}
-        {tab==='banquet' && tables.map((t) => (
+        {tab==='banquet' && tables.map((t, idx) => (
           <TableItem
-            key={t.id}
+            key={`${t.id}-${idx}`}
             table={t}
             scale={scale}
             offset={offset}

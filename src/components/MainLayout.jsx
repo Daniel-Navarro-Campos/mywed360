@@ -18,8 +18,10 @@ export default function MainLayout() {
   const { logoUrl, logout, role } = useUserContext();
   const [openMenu, setOpenMenu] = useState(false);
   const location = useLocation();
-  const hideSelectorRoutes = ['/home', '/tasks', '/bodas'];
-  const showWeddingSelector = role === 'planner' && !hideSelectorRoutes.some(r => location.pathname.startsWith(r));
+  const hideSelectorRoutes = ['/home', '/tasks'];
+  const hideSelector = hideSelectorRoutes.some(r => location.pathname.startsWith(r)) || location.pathname === '/bodas';
+  const isPlanner = (role || '').toLowerCase() === 'planner';
+  const showWeddingSelector = isPlanner && !hideSelector;
   const { showOnboarding, completeOnboarding } = useOnboarding();
 
   if (showOnboarding) {

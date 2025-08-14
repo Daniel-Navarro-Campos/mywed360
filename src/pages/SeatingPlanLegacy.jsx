@@ -185,7 +185,8 @@ function SeatingPlanOld() {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type':'application/json', Authorization: 'Bearer '+import.meta.env.VITE_OPENAI_KEY },
+        headers: { 'Content-Type':'application/json', 'Authorization': 'Bearer '+import.meta.env.VITE_OPENAI_API_KEY,
+        'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID },
         body: JSON.stringify({ model:'gpt-3.5-turbo', temperature: aiTemp, max_tokens: aiMaxTokens, messages:[
           {role:'system',content:'Asigna invitados a asientos. Devuelve JSON [{seatId,guestId}]'},
           {role:'user',content:`Prompt: ${aiPrompt}. Invitados: ${JSON.stringify(sampleGuests)}. Asientos: ${JSON.stringify((activeTab==='ceremony'?seatsCeremony:seatsBanquet))}`} ] })

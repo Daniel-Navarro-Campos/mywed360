@@ -9,6 +9,15 @@ const firstName = (str='?') => {
   return first.length>8? first.slice(0,8)+'…' : first;
 };
 export default function TableItem({ table, scale, offset, onMove, onAssignGuest, onToggleEnabled, onOpenConfig, onSelect, guests = [], canMove = true }) {
+  // Decide qué texto mostrar en cada asiento según el nivel de zoom
+  const getLabel = (name='?') => {
+    if (scale >= 1.5) {
+      return firstName(name); // nombre (o parte) cuando hay zoom suficiente
+    }
+    // Iniciales (máx. 2) cuando está alejado
+    const initials = String(name).trim().split(/\s+/).map(w=>w[0]).filter(Boolean).slice(0,2).join('').toUpperCase();
+    return initials || '?';
+  };
   const ref = useRef(null);
 
   // drop logic
@@ -78,21 +87,31 @@ export default function TableItem({ table, scale, offset, onMove, onAssignGuest,
     
     // Modo ceremonia: usamos exclusivamente los invitados de la lista global
     // Modo banquete: podemos tener invitados en la propiedad assignedGuests
-    
-    // Si hay assignedGuests (modo banquete) y no hay invitados en la lista global,
-    // o si estamos en modo banquete (determinado por la presencia de assignedGuests)
     if (Array.isArray(table.assignedGuests) && table.assignedGuests.length) {
-      // Evitamos duplicados creando un mapa de IDs ya incluidos
-      const guestIds = new Set(list.map(g => g.id).filter(id => id));
-      
-      // Filtramos assignedGuests para incluir solo los que no están ya en la lista global
-      const uniqueAssignedGuests = table.assignedGuests.filter(g => !g.id || !guestIds.has(g.id));
-      
+      // IDs ya presentes para evitar duplicados
+      const guestIds = new Set(list.map((g) => g.id).filter(Boolean));
+
+      // Resolvemos cada elemento de assignedGuests:
+      //  - Si es string => buscamos el invitado en la lista global por id
+      //  - Si ya es objeto => lo usamos tal cual
+      const resolvedAssigned = table.assignedGuests.map((ag) => {
+        if (ag && typeof ag === 'object') return ag; // ya es invitado completo
+        const found = guests.find((g) => String(g.id) === String(ag));
+        if (found) return found;
+        // Fallback: devolvemos placeholder para contar asiento aunque no tengamos nombre
+        return { id: ag };
+      });
+
+      // Filtramos duplicados por id
+      const uniqueAssignedGuests = resolvedAssigned.filter(
+        (g) => !g.id || !guestIds.has(g.id),
+      );
+
       // Combinamos ambas fuentes
       return [...list, ...uniqueAssignedGuests];
     }
-    
-    // Si no hay assignedGuests, devolvemos la lista global (puede ser vacía)
+
+    // Sin assignedGuests: devolvemos la lista de invitados por mesa (puede estar vacía)
     return list;
   })();
   const seatDots = guestsList.length; // mostramos iniciales alrededor
@@ -103,8 +122,8 @@ export default function TableItem({ table, scale, offset, onMove, onAssignGuest,
 
   const style = {
     position: 'absolute',
-    left: table.x * scale + offset.x - (sizeX * scale) / 2,
-    top: table.y * scale + offset.y - (sizeY * scale) / 2,
+    left: ( (table.x ?? 0) * scale ) + offset.x - (sizeX * scale) / 2,
+    top: ( (table.y ?? 0) * scale ) + offset.y - (sizeY * scale) / 2,
     width: sizeX * scale,
     height: sizeY * scale,
     backgroundColor: disabled ? '#e5e7eb' : '#fef3c7',
@@ -165,7 +184,7 @@ export default function TableItem({ table, scale, offset, onMove, onAssignGuest,
                   left: px - 12,
                   top: py - 12,
                 }}
-              >{firstName(guestsList[i]?.name || guestsList[i]?.nombre || '')}</div>
+              >{getLabel(guestsList[i]?.name || guestsList[i]?.nombre || '')}</div>
             );
           });
         }
@@ -198,7 +217,7 @@ export default function TableItem({ table, scale, offset, onMove, onAssignGuest,
                 left: sx - 12,
                 top: sy - 12,
               }}
-            >{firstName(guestsList[i]?.name || guestsList[i]?.nombre || '')}</div>
+            >{getLabel(guestsList[i]?.name || guestsList[i]?.nombre || '')}</div>
           );
         });
       })()}

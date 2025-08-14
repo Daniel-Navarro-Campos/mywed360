@@ -19,9 +19,10 @@ const SYNC_STATE_CHANGE = 'syncStateChange';
 export const saveData = async (key, data, userOptions = {}) => {
   const options = {
     firestore: true, // También guardar en Firestore?
-    collection: 'userData', // Colección en Firestore
+    collection: 'users', // Colección en Firestore (doc users/{uid})
     mergeWithExisting: true, // Combinar con datos existentes o reemplazar
     showNotification: true, // Mostrar notificación de éxito/error
+    docPath: undefined,       // Ruta completa opcional (prioridad sobre collection/uid)
     ...userOptions
   };
 
@@ -39,7 +40,19 @@ export const saveData = async (key, data, userOptions = {}) => {
         syncState.pendingChanges = true;
         notifySyncStateChange();
         
-        const docRef = doc(db, options.collection, user.uid);
+        let docRef;
+        if (options.docPath) {
+          docRef = doc(db, options.docPath);
+        } else if (options.collection === 'userProfile') {
+          const wid = localStorage.getItem('lovenda_active_wedding');
+          if (wid) {
+            docRef = doc(db, 'weddings', wid, 'weddingInfo');
+          } else {
+            docRef = doc(db, 'users', user.uid);
+          }
+        } else {
+          docRef = doc(db, options.collection, user.uid);
+        }
         
         try {
           // Comprobar si el documento ya existe
@@ -100,8 +113,9 @@ export const saveData = async (key, data, userOptions = {}) => {
 export const loadData = async (key, userOptions = {}) => {
   const options = {
     firestore: true, // Intentar cargar de Firestore?
-    collection: 'userData', // Colección en Firestore
+    collection: 'users', // Colección en Firestore (doc users/{uid})
     fallbackToLocal: true, // Si no se encuentra en Firestore, intentar localStorage
+    docPath: undefined, // Permite especificar una ruta de documento arbitraria
     ...userOptions
   };
   
@@ -116,7 +130,19 @@ export const loadData = async (key, userOptions = {}) => {
         notifySyncStateChange();
         
         try {
-          const docRef = doc(db, options.collection, user.uid);
+          let docRef;
+        if (options.docPath) {
+          docRef = doc(db, options.docPath);
+        } else if (options.collection === 'userProfile') {
+          const wid = localStorage.getItem('lovenda_active_wedding');
+          if (wid) {
+            docRef = doc(db, 'weddings', wid, 'weddingInfo');
+          } else {
+            docRef = doc(db, 'users', user.uid);
+          }
+        } else {
+          docRef = doc(db, options.collection, user.uid);
+        }
           const docSnap = await getDoc(docRef);
           
           if (docSnap.exists() && docSnap.data()[key] !== undefined) {

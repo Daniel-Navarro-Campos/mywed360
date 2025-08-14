@@ -75,14 +75,15 @@ export default function WebEditor() {
   // --- AI helpers ---
   const suggestStory = async () => {
     if (aiLoading) return;
-    if (!import.meta.env.VITE_OPENAI_KEY) { alert('Falta la clave de OpenAI'); return; }
+    if (!import.meta.env.VITE_OPENAI_API_KEY) { alert('Falta la clave de OpenAI'); return; }
     setAiLoading(true);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_KEY}`
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
@@ -102,14 +103,15 @@ export default function WebEditor() {
 
   const suggestSchedule = async () => {
     if (aiLoading) return;
-    if (!import.meta.env.VITE_OPENAI_KEY) { alert('Falta la clave de OpenAI'); return; }
+    if (!import.meta.env.VITE_OPENAI_API_KEY) { alert('Falta la clave de OpenAI'); return; }
     setAiLoading(true);
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_KEY}`
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',

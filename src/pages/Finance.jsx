@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
 import { Spinner } from '../components/ui';
 import Pagination from '../components/Pagination';
@@ -14,10 +16,12 @@ import { CategoryBreakdown } from '../components/finance/CategoryBreakdown';
 import { BudgetAlerts } from '../components/finance/BudgetAlerts';
 
 import Modal from '../components/Modal';
+import { useWedding } from '../context/WeddingContext';
 
 // -------------------------- NUEVA PÁGINA FINANZAS --------------------------
 function Finance() {
   const locationHash = typeof window !== 'undefined' ? window.location.hash : '';
+  const { activeWedding } = useWedding();
   const [tab, setTab] = useState('contabilidad');
 
   const [configOpen, setConfigOpen] = React.useState(false);
@@ -47,14 +51,17 @@ function Finance() {
 
   // Al abrir/mostrar configuracion intentar cargar número de invitados desde perfil
   React.useEffect(() => {
-    if (configOpen) {
+    if (!configOpen) return;
+    (async () => {
       try {
-        const profile = loadData('lovendaProfile', { defaultValue: {}, collection: 'userProfile' });
-        if (profile?.weddingInfo?.numGuests) {
-          setGuestCount(Number(profile.weddingInfo.numGuests));
+        if (!activeWedding) return;
+        const infoSnap = await getDoc(doc(db, 'weddings', activeWedding, 'weddingInfo'));
+        if (infoSnap.exists()) {
+          const info = infoSnap.data();
+          if (info?.numGuests) setGuestCount(Number(info.numGuests));
         }
       } catch (e) { console.error('Error leyendo perfil', e); }
-    }
+    })();
   }, [configOpen]);
 
   // Abrir modal de nuevo movimiento si la URL contiene #nuevo
@@ -91,9 +98,9 @@ function Finance() {
   // --- Cargar movimientos IA/externos con SyncService ---
 const loadStoredMovements = () => {
   try {
-    return loadData('lovendaMovements', { 
-      defaultValue: [], 
-      collection: 'userFinanceMovements' 
+    return loadData('movements', {
+      defaultValue: [],
+      docPath: activeWedding ? `weddings/${activeWedding}/finance/main` : undefined
     });
   } catch(error) { 
     console.error('Error al cargar movimientos:', error);
@@ -113,7 +120,7 @@ const loadStoredMovements = () => {
   useEffect(() => {
     const handler = async () => {
       try {
-        const stored = await loadData('lovendaMovements', { defaultValue: [], collection: 'userFinanceMovements' }) || [];
+        const stored = await loadData('movements', { defaultValue: [], docPath: activeWedding ? `weddings/${activeWedding}/finance/main` : undefined }) || [];
         for (const m of stored) {
           if (!historyState.some(e => e.id === m.id)) {
             await addMovement(m);
@@ -542,8 +549,8 @@ const loadStoredMovements = () => {
                 // Actualizar estados y sincronizar datos
                 setNewTransaction({ type: 'expense', date: today, name: '', amount: '', category: 'OTROS' });
                 const updatedMovements = [...stored, movObj];
-                saveData('lovendaMovements', updatedMovements, {
-                  collection: 'userFinanceMovements',
+                saveData('movements', updatedMovements, {
+                  docPath: activeWedding ? `weddings/${activeWedding}/finance/main` : undefined,
                   showNotification: false
                 });
                 window.dispatchEvent(new Event('lovenda-movements'));

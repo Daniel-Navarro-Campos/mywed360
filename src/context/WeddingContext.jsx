@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useUserContext } from './UserContext';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 /**
  * Contexto para la boda activa que está gestionando el planner.
@@ -18,6 +20,19 @@ const WeddingContext = createContext({
 
 export const useWedding = () => useContext(WeddingContext);
 
+async function ensureFinance(weddingId){
+  try{
+    const fRef = doc(db,'weddings',weddingId,'finance','main');
+    const fSnap = await getDoc(fRef);
+    if(!fSnap.exists()){
+      await setDoc(fRef,{movements:[],createdAt:serverTimestamp()},{merge:true});
+      console.log('🆕 finance/main creado para',weddingId);
+    }
+  }catch(e){
+    console.warn('No se pudo asegurar finance para',weddingId,e);
+  }
+}
+
 export default function WeddingProvider({ children }) {
   const [weddings, setWeddings] = useState([]);
   const { user } = useUserContext();
@@ -29,21 +44,39 @@ export default function WeddingProvider({ children }) {
   useEffect(() => {
     let unsubscribe;
     async function listenWeddings() {
-      
       if (!user) return; // espera a que cargue usuario
       try {
         const { db } = await import('../firebaseConfig');
         const { collection, query, where, onSnapshot } = await import('firebase/firestore');
-        // Usar el nombre de campo correcto según el esquema de datos
-        const q = query(collection(db, 'weddings'), where('plannerIds', 'array-contains', user.uid));
-        unsubscribe = onSnapshot(q, (snap) => {
-          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        const plannersQ = query(collection(db, 'weddings'), where('plannerIds', 'array-contains', user.uid));
+        const ownersQ = query(collection(db, 'weddings'), where('ownerIds', 'array-contains', user.uid));
+
+        let plannerDocs = [];
+        let ownerDocs = [];
+
+        const merge = () => {
+          const map = new Map();
+          [...plannerDocs, ...ownerDocs].forEach((d) => map.set(d.id, { id: d.id, ...d.data() }));
+          const list = Array.from(map.values());
+          if (import.meta.env.DEV) console.debug('[WeddingContext] bodas cargadas', list.map(l => l.id));
           setWeddings(list);
-          // Si no hay boda activa selecciona la primera
-          if (!activeWedding && list.length) {
-            setActiveWeddingState(list[0].id);
-          }
+          // Asegurar finance/main en cada boda listada
+          list.forEach(w => ensureFinance(w.id));
+          if (!activeWedding && list.length) setActiveWeddingState(list[0].id);
+        };
+
+        const unsub1 = onSnapshot(plannersQ, (snap) => {
+          if (import.meta.env.DEV) console.debug('[WeddingContext] planners snapshot', snap.size);
+          plannerDocs = snap.docs;
+          merge();
         });
+        const unsub2 = onSnapshot(ownersQ, (snap) => {
+          if (import.meta.env.DEV) console.debug('[WeddingContext] owners snapshot', snap.size);
+          ownerDocs = snap.docs;
+          merge();
+        });
+        unsubscribe = () => { unsub1(); unsub2(); };
       } catch (err) {
         console.warn('No se pudo cargar bodas del planner:', err);
       }

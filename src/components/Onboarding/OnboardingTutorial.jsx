@@ -28,7 +28,7 @@ const OnboardingTutorial = ({ onComplete }) => {
       if (!user?.uid) return;
       
       try {
-        const profileDoc = await getDoc(doc(db, 'userProfile', user.uid));
+        const profileDoc = await getDoc(doc(db, 'users', user.uid));
         if (profileDoc.exists()) {
           const data = profileDoc.data();
           if (data.weddingInfo) {
@@ -304,34 +304,7 @@ const OnboardingTutorial = ({ onComplete }) => {
 
     setLoading(true);
     try {
-      // Guardar los datos del perfil
-      const profileRef = doc(db, 'userProfile', user.uid);
-      const profileDoc = await getDoc(profileRef);
-      
-      const updatedData = {
-        weddingInfo: {
-          brideAndGroom: profileData.nombres,
-          surnames: profileData.apellidos,
-          weddingDate: profileData.fecha,
-          celebrationPlace: profileData.lugar,
-          budget: profileData.presupuesto,
-          profileImage: profileData.imagen
-        },
-        onboardingCompleted: true,
-        lastUpdated: new Date().toISOString()
-      };
-
-      if (profileDoc.exists()) {
-        await updateDoc(profileRef, updatedData);
-      } else {
-        await setDoc(profileRef, {
-          ...updatedData,
-          createdAt: new Date().toISOString(),
-          userId: user.uid
-        });
-      }
-      
-      // Asegurar que el usuario tenga una boda creada
+      // Guardar datos en weddingInfo
       let wid = await getWeddingIdForOwner(user.uid);
       if (!wid) {
         wid = await createWedding(user.uid, {
@@ -339,6 +312,23 @@ const OnboardingTutorial = ({ onComplete }) => {
           weddingDate: profileData.fecha || undefined,
         });
       }
+
+      const weddingInfoPayload = {
+        brideAndGroom: profileData.nombres,
+        surnames: profileData.apellidos,
+        weddingDate: profileData.fecha,
+        celebrationPlace: profileData.lugar,
+        budget: profileData.presupuesto,
+        profileImage: profileData.imagen,
+      };
+
+      await setDoc(doc(db, 'weddings', wid, 'weddingInfo'), weddingInfoPayload, { merge: true });
+
+      // Marcar onboarding completado en users/{uid}
+      const profileRef = doc(db, 'users', user.uid);
+      await setDoc(profileRef, { onboardingCompleted: true, lastUpdated: new Date().toISOString() }, { merge: true });
+      
+
 
       // Crear evento en calendario si hay fecha de boda
       if (profileData.fecha) {

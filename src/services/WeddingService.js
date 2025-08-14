@@ -11,7 +11,7 @@
 //   createdAt: Timestamp
 // }
 
-import { db } from '../lib/firebase';
+import { db } from '../firebaseConfig';
 import {
   doc,
   setDoc,
@@ -24,6 +24,7 @@ import {
 } from 'firebase/firestore';
 
 import { v4 as uuidv4 } from 'uuid';
+import { collectionGroup } from 'firebase/firestore';
 import { query, where, getDocs, limit } from 'firebase/firestore';
 
 
@@ -45,6 +46,13 @@ export async function createWedding(uid, extraData = {}) {
     ...extraData,
   };
   await setDoc(ref, base);
+  // Inicializar subcolección de finanzas
+  try {
+    const financeRef = doc(db, 'weddings', weddingId, 'finance', 'main');
+    await setDoc(financeRef, { movements: [], createdAt: Timestamp.now() }, { merge: true });
+  } catch (e) {
+    console.warn('No se pudo inicializar finance/main para', weddingId, e);
+  }
   // Actualizar doc del usuario con su weddingId principal
   await updateDoc(doc(db, 'users', uid), { weddingId });
   return weddingId;
@@ -73,7 +81,9 @@ export async function invitePlanner(weddingId, email) {
 async function createInvitation(weddingId, email, role) {
   if (!weddingId || !email) throw new Error('parámetros requeridos');
   const code = uuidv4();
-  await setDoc(doc(db, 'weddingInvitations', code), {
+  const invRef = doc(db, 'weddings', weddingId, 'weddingInvitations', code);
+  await setDoc(invRef, {
+    code,
     weddingId,
     email: email.toLowerCase(),
     role, // 'partner' | 'planner'
@@ -89,10 +99,13 @@ async function createInvitation(weddingId, email, role) {
  */
 export async function acceptInvitation(code, uid) {
   if (!code || !uid) throw new Error('parámetros requeridos');
-  const invRef = doc(db, 'weddingInvitations', code);
-  const snap = await getDoc(invRef);
-  if (!snap.exists()) throw new Error('Invitación no encontrada');
+  // Buscar código en cualquier boda usando collectionGroup
+  const q = query(collectionGroup(db, 'weddingInvitations'), where('__name__', '==', code));
+  const res = await getDocs(q);
+  if (res.empty) throw new Error('Invitación no encontrada');
+  const snap = res.docs[0];
   const { weddingId, role } = snap.data();
+  const invRef = snap.ref;
   const wedRef = doc(db, 'weddings', weddingId);
   if (role === 'partner') {
     await updateDoc(wedRef, { ownerIds: arrayUnion(uid) });

@@ -35,8 +35,7 @@ beforeAll(async () => {
       createdBy: 'owner3'
     });
 
-    // userProfile docs
-    await setDoc(doc(db, 'userProfile', 'owner3'), { displayName: 'Owner 3' });
+
   });
 });
 
@@ -136,21 +135,4 @@ describe('weddingInvitations rules', () => {
   });
 });
 
-// --- USER PROFILE ---
 
-describe('userProfile collection rules', () => {
-  test('Any auth user can READ other profiles', async () => {
-    const db = getFirestore(ctx('viewer').app);
-    await assertSucceeds(getDoc(doc(db, 'userProfile', 'owner3')));
-  });
-
-  test('User can UPDATE own profile', async () => {
-    const db = getFirestore(ctx('owner3').app);
-    await assertSucceeds(setDoc(doc(db, 'userProfile', 'owner3'), { displayName: 'Nuevo' }, { merge: true }));
-  });
-
-  test('User cannot UPDATE another profile', async () => {
-    const db = getFirestore(ctx('viewer').app);
-    await assertFails(setDoc(doc(db, 'userProfile', 'owner3'), { displayName: 'Hack' }, { merge: true }));
-  });
-});

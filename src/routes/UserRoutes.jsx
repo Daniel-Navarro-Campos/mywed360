@@ -5,7 +5,7 @@ import Loader from '../components/ui/Loader';
 // Páginas de usuario
 import EmailInbox from '../components/email/EmailInbox';
 import EmailStatistics from '../pages/user/EmailStatistics';
-import GestionProveedores from '../pages/GestionProveedores';
+import Proveedores from '../pages/Proveedores';
 import EmailSetup from '../pages/EmailSetup';
 import MailgunTester from '../components/email/MailgunTester';
 
@@ -33,7 +33,7 @@ const UserRoutes = () => {
         <Route path="/email" element={<EmailInbox />} />
         <Route path="/email/stats" element={<EmailStatistics />} />
         <Route path="/email/setup" element={<EmailSetup />} />
-        <Route path="/proveedores/*" element={<GestionProveedores />} />
+        <Route path="/proveedores" element={<Proveedores />} />
         <Route path="/email/test" element={<MailgunTester />} />
         <Route path="*" element={<Navigate to="/user/dashboard" replace />} />
       </Routes>

@@ -15,7 +15,7 @@ import BodaDetalle from './pages/BodaDetalle';
 import Finance from './pages/Finance';
 import More from './pages/More';
 import Invitados from './pages/Invitados';
-import GestionProveedores from './pages/GestionProveedores';
+import Proveedores from './pages/Proveedores';
 import UnifiedEmail from './pages/UnifiedEmail';
 import MailboxPage from './pages/MailboxPage';
 import EmailAdminDashboard from './components/admin/EmailAdminDashboard';
@@ -45,6 +45,8 @@ import PapelesNombres from './pages/disenos/PapelesNombres';
 import Ideas from './pages/Ideas';
 import Inspiration from './pages/Inspiration';
 import Blog from './pages/Blog';
+import DevSeedGuests from './pages/DevSeedGuests';
+import DevEnsureFinance from './pages/DevEnsureFinance';
 
 import Notificaciones from './pages/Notificaciones';
 import WeddingSite from './pages/WeddingSite';
@@ -52,7 +54,11 @@ import RSVPConfirm from './pages/RSVPConfirm';
 import AcceptInvitation from './pages/AcceptInvitation';
 
 function ProtectedRoute() {
-  const { isAuthenticated } = useUserContext();
+  const { isAuthenticated, loading } = useUserContext();
+  if (loading) {
+    // Mientras se resuelve el estado de autenticación, no hagas redirecciones prematuras
+    return null; // Se podría mostrar un spinner si se desea
+  }
   return isAuthenticated ? (
     <>
       <Outlet />
@@ -63,6 +69,7 @@ function ProtectedRoute() {
 
 
 function App() {
+  const enableDev = (import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true') || (import.meta.env.MODE !== 'production');
   // Mensaje de diagnóstico para verificar si la aplicación carga correctamente
   console.log('App component rendering...');
   return (
@@ -84,6 +91,9 @@ function App() {
         {/* Componente de notificaciones de correo - solo visible en rutas protegidas */}
         <Routes>
           <Route path="/" element={<Login />} />
+          {/* Herramientas de desarrollo accesibles sin protección (sólo si está activado por env) */}
+          {enableDev && <Route path="dev/seed-guests" element={<DevSeedGuests />} />}
+          {enableDev && <Route path="dev/ensure-finance" element={<DevEnsureFinance />} />}
           {/* Web pública de cada boda */}
           <Route path="w/:uid" element={<WeddingSite />} />
           <Route path="invitation/:code" element={<AcceptInvitation />} />
@@ -99,7 +109,7 @@ function App() {
               <Route path="invitados" element={<Invitados />} />
               <Route path="invitados/seating" element={<SeatingPlan />} />
               <Route path="invitados/invitaciones" element={<Invitaciones />} />
-              <Route path="proveedores" element={<GestionProveedores />} />
+              <Route path="proveedores" element={<Proveedores />} />
               <Route path="proveedores/contratos" element={<Contratos />} />
 
               {/* Rutas de Protocolo */}
@@ -122,6 +132,10 @@ function App() {
                {/* Panel de administración con monitoreo de caché */}
                <Route path="admin/*" element={<AdminRoutes />} />
                <Route path="email-admin" element={<EmailAdminDashboard />} />
+
+               {/* Herramientas de desarrollo (duplicado dentro del layout, sólo si está activado por env) */}
+               {enableDev && <Route path="dev/seed-guests" element={<DevSeedGuests />} />}
+               {enableDev && <Route path="dev/ensure-finance" element={<DevEnsureFinance />} />}
 
                {/* Rutas Diseños */}
                <Route path="disenos" element={<DisenosLayout />}>

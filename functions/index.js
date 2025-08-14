@@ -270,7 +270,11 @@ exports.initWeddingSubcollections = functions.firestore
     const weddingId = context.params.weddingId;
     const subCollections = [
       'guests',
+      // seatingPlan raíz y subniveles
       'seatingPlan',
+      'seatingPlan/banquet',
+      'seatingPlan/banquet/areas',
+      'seatingPlan/banquet/tables',
       'designs',
       'suppliers',
       'momentosEspeciales',
@@ -293,6 +297,254 @@ exports.initWeddingSubcollections = functions.firestore
 
     await batch.commit();
     console.log(`Subcolecciones iniciales creadas para boda ${weddingId}`);
+  });
+
+// ------------------------------
+// Cloud Function: inicializar subcolección meetings al crear un usuario
+// ------------------------------
+exports.initUserMeetingsSubcollection = functions.firestore
+  .document('users/{uid}')
+  .onCreate(async (snap, context) => {
+    const uid = context.params.uid;
+    const ref = db.collection('users').doc(uid).collection('meetings').doc('_placeholder');
+    try {
+      await ref.set({ createdAt: admin.firestore.FieldValue.serverTimestamp() });
+      console.log(`Subcolección meetings creada para usuario ${uid}`);
+    } catch (err) {
+      console.error('Error creando subcolección meetings para usuario', uid, err);
+    }
+  });
+
+// ------------------------------
+// Cloud Function: eliminar weddingId redundante en users
+// ------------------------------
+exports.cleanupUserWeddingId = functions.firestore
+  .document('users/{uid}')
+  .onWrite(async (change, context) => {
+    const afterData = change.after.exists ? change.after.data() : null;
+    if (!afterData) return null;
+    if (!('weddingId' in afterData)) return null;
+
+    const uid = context.params.uid;
+    console.log(`Detectado campo weddingId redundante en users/${uid}. Eliminando…`);
+    try {
+      await change.after.ref.update({ weddingId: admin.firestore.FieldValue.delete() });
+      console.log(`weddingId eliminado de users/${uid}`);
+    } catch (err) {
+      console.error('Error al eliminar weddingId en users/', uid, err);
+    }
+    return null;
+  });
+
+// ------------------------------
+// Firestore trigger: sincronizar seatingPlan al modificar invitados
+// ------------------------------
+// ------------------------------
+// Cloud Function: establecer campos por defecto al crear una boda
+// ------------------------------
+exports.initWeddingDefaultFields = functions.firestore
+  .document('weddings/{weddingId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data() || {};
+    const defaults = {
+      active: true,
+      assistantIds: [],
+      banquetPlace: '',
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      location: '',
+      name: 'Boda sin nombre',
+      ownerIds: [],
+      plannerIds: [],
+      progress: 0,
+      weddingDate: '',
+    };
+    const update = {};
+    for (const [k, v] of Object.entries(defaults)) {
+      if (!(k in data)) update[k] = v;
+    }
+    if (Object.keys(update).length) {
+      await snap.ref.update(update);
+      console.log(`Campos por defecto añadidos a boda ${context.params.weddingId}`);
+    }
+  });
+
+// ------------------------------
+// Firestore trigger: sincronizar seatingPlan al modificar invitados
+// [eliminada] función legacy syncSeatingPlanOnGuestWrite
+/*
+  .document('weddings/{weddingId}/guests/{guestId}')
+  .onWrite(async (change, context) => {
+    const weddingId = context.params.weddingId;
+    const guestId = context.params.guestId;
+
+    const beforeData = change.before.exists ? change.before.data() : null;
+    const afterData = change.after.exists ? change.after.data() : null;
+
+    const oldTableId = beforeData ? beforeData.tableId : undefined;
+    const newTableId = afterData ? afterData.tableId : undefined;
+
+    const tableColl = db.collection('weddings').doc(weddingId).collection('seatingPlan');
+    const batch = db.batch();
+
+    // Quitar invitado de la mesa antigua (si procede)
+    if (oldTableId && oldTableId !== newTableId) {
+      const oldRef = tableColl.doc(String(oldTableId));
+      batch.set(
+        oldRef,
+        {
+          assignedGuestIds: admin.firestore.FieldValue.arrayRemove(guestId),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
+    // Añadir invitado a la nueva mesa
+    if (newTableId) {
+      const newRef = tableColl.doc(String(newTableId));
+      const newSnap = await newRef.get();
+      if (newSnap.exists) {
+        batch.set(
+          newRef,
+          {
+            assignedGuestIds: admin.firestore.FieldValue.arrayUnion(guestId),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } else {
+        // Crear documento de mesa con estructura mínima
+        batch.set(newRef, {
+          name: `Mesa ${newTableId}`,
+          shape: 'circle',
+          seats: 8,
+          assignedGuestIds: [guestId],
+          position: { x: 0, y: 0 },
+          enabled: true,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    await batch.commit();
+
+    // Eliminar la mesa antigua si quedó vacía
+    if (oldTableId && oldTableId !== newTableId) {
+      const oldSnap = await tableColl.doc(String(oldTableId)).get();
+      if (oldSnap.exists) {
+        const assigned = oldSnap.get('assignedGuestIds') || [];
+        if (assigned.length === 0) {
+          await tableColl.doc(String(oldTableId)).delete();
+        }
+      }
+    }
+  });
+*/
+
+// ------------------------------
+// Firestore trigger: sincronizar banquet/tables con invitados (nueva estructura)
+// ------------------------------
+/* LEGACY: desactivada tras migración a banquet/tables
+exports.syncSeatingPlanOnGuestWrite = functions.firestore
+  .document('weddings/{weddingId}/guests/{guestId}')
+  .onWrite(async (change, context) => {
+    const { weddingId, guestId } = context.params;
+    const after = change.after.exists ? change.after.data() : null;
+    const before = change.before.exists ? change.before.data() : null;
+
+    const beforeTable = before ? before.tableId : null;
+    const afterTable = after ? after.tableId : null;
+
+    const tableRef = (tableId) => db.doc(`weddings/${weddingId}/seatingPlan/banquet/tables/${tableId}`);
+
+    // Si el invitado estaba en una mesa y cambia/elimina
+    if (beforeTable && beforeTable !== afterTable) {
+      const ref = tableRef(beforeTable);
+      await ref.update({
+        assignedGuestIds: admin.firestore.FieldValue.arrayRemove(guestId),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      const snap = await ref.get();
+      if (!snap.exists || (snap.data().assignedGuestIds || []).length === 0) {
+        await ref.delete();
+      }
+    }
+
+    // Si se elimina al invitado, salir
+    if (!after) return;
+
+    if (afterTable) {
+      const ref = tableRef(afterTable);
+      const snap = await ref.get();
+      if (snap.exists) {
+        await ref.update({
+          assignedGuestIds: admin.firestore.FieldValue.arrayUnion(guestId),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        await ref.set({
+          name: `Mesa ${afterTable}`,
+          shape: 'circle',
+          seats: 8,
+          assignedGuestIds: [guestId],
+          position: { x: 0, y: 0 },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  });
+*/
+
+exports.syncBanquetTablesOnGuestWrite = functions.firestore
+  .document('weddings/{weddingId}/guests/{guestId}')
+  .onWrite(async (change, context) => {
+    const { weddingId, guestId } = context.params;
+    const after = change.after.exists ? change.after.data() : null;
+    const before = change.before.exists ? change.before.data() : null;
+
+    const beforeTable = before ? before.tableId : null;
+    const afterTable = after ? after.tableId : null;
+
+    const tableRef = (tableId) => db.doc(`weddings/${weddingId}/seatingPlan/banquet/tables/${tableId}`);
+
+    // Si el invitado estaba en una mesa y cambia/elimina
+    if (beforeTable && beforeTable !== afterTable) {
+      const ref = tableRef(beforeTable);
+      await ref.update({
+        assignedGuestIds: admin.firestore.FieldValue.arrayRemove(guestId),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      const snap = await ref.get();
+      if (!snap.exists || (snap.data().assignedGuestIds || []).length === 0) {
+        await ref.delete();
+      }
+    }
+
+    // Si se elimina al invitado, salir
+    if (!after) return;
+
+    if (afterTable) {
+      const ref = tableRef(afterTable);
+      const snap = await ref.get();
+      if (snap.exists) {
+        await ref.update({
+          assignedGuestIds: admin.firestore.FieldValue.arrayUnion(guestId),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } else {
+        await ref.set({
+          name: `Mesa ${afterTable}`,
+          shape: 'circle',
+          seats: 8,
+          assignedGuestIds: [guestId],
+          position: { x: 0, y: 0 },
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    }
   });
 
 exports.validateEmail = functions.https.onRequest((request, response) => {

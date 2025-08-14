@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, RefreshCcw, Star, MapPin } from 'lucide-react';
-import { saveData, loadData } from '../services/SyncService';
+import { saveData } from '../services/SyncService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
+import { useWedding } from '../context/WeddingContext';
 import Spinner from './Spinner';
 
 export default function ProviderSearchModal({ onClose, onSelectProvider }) {
+  const { activeWedding } = useWedding();
   const [aiQuery, setAiQuery] = useState('');
   const [serviceFilter, setServiceFilter] = useState('');
   const [budgetRange, setBudgetRange] = useState('');
@@ -93,13 +97,17 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
     setAiLoading(true);
     
     try {
-      const profile = loadData('lovendaProfile', { defaultValue: {}, collection: 'userProfile' });
+      let profile = {};
+        if (activeWedding) {
+          const infoSnap = await getDoc(doc(db, 'weddings', activeWedding, 'weddingInfo'));
+          if (infoSnap.exists()) profile = infoSnap.data();
+        }
       
       // Extraer información de ubicación del perfil
       let locationInfo = '';
       
-      if (profile.weddingInfo && profile.weddingInfo.celebrationPlace) {
-        locationInfo = profile.weddingInfo.celebrationPlace;
+      if (profile.celebrationPlace) {
+        locationInfo = profile.celebrationPlace;
       }
       
       const formattedLocation = locationInfo || 'Valencia';
@@ -130,10 +138,7 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
           const verifiedResults = await verifyProviderLinks(data);
           setAiResults(verifiedResults);
           setShowResults(true);
-          saveData('lovendaSuppliers', verifiedResults, {
-            collection: 'userSuppliers',
-            showNotification: false
-          });
+          saveData('lovendaSuppliers', verifiedResults, { firestore: false, showNotification: false });
           window.dispatchEvent(new Event('lovenda-suppliers'));
           return;
         }
@@ -157,14 +162,18 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
   // Función para buscar proveedores usando OpenAI directamente
   const fetchOpenAi = async () => {
     try {
-      const profile = loadData('lovendaProfile', { defaultValue: {}, collection: 'userProfile' });
+      let profile = {};
+        if (activeWedding) {
+          const infoSnap = await getDoc(doc(db, 'weddings', activeWedding, 'weddingInfo'));
+          if (infoSnap.exists()) profile = infoSnap.data();
+        }
       
       // Extraer datos relevantes del perfil
       const servicioSeleccionado = serviceFilter || '';
       let locationInfo = '';
       
-      if (profile.weddingInfo && profile.weddingInfo.celebrationPlace) {
-        locationInfo = profile.weddingInfo.celebrationPlace;
+      if (profile.celebrationPlace) {
+        locationInfo = profile.celebrationPlace;
       }
       
       const formattedLocation = locationInfo || 'Valencia';
@@ -205,7 +214,8 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
@@ -325,10 +335,7 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
       if (validResults.length > 0) {
         setAiResults(validResults);
         setShowResults(true);
-        saveData('lovendaSuppliers', validResults, {
-          collection: 'userSuppliers',
-          showNotification: false
-        });
+        saveData('lovendaSuppliers', validResults, { firestore: false, showNotification: false });
         window.dispatchEvent(new Event('lovenda-suppliers'));
       } else {
         setToast({ 

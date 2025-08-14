@@ -29,7 +29,8 @@ export default function Invitaciones() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_KEY}`
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+          'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID
         },
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',

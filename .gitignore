@@ -8,3 +8,4 @@ dist/
 
 # macOS metadata
 .DS_Store
+backend/logs/

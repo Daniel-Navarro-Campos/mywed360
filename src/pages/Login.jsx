@@ -1,20 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserContext } from '../context/UserContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  // Cargar email guardado si existe
+  const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('lovenda_login_email') || '' : '';
+  const [username, setUsername] = useState(savedEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [remember, setRemember] = useState(true);
-  const { login } = useUserContext();
+  const [remember, setRemember] = useState(!!savedEmail);
+  const { login, isAuthenticated, loading } = useUserContext();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/home');
+    }
+  }, [loading, isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
       await login(username, password, remember);
+      // Guarda o elimina el email según la preferencia
+      if (remember) {
+        localStorage.setItem('lovenda_login_email', username);
+      } else {
+        localStorage.removeItem('lovenda_login_email');
+      }
       navigate('/home');
     } catch (err) {
       setError('Usuario o contraseña inválidos');
@@ -45,7 +59,12 @@ export default function Login() {
               type="checkbox"
               id="remember"
               checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
+              onChange={(e) => {
+              setRemember(e.target.checked);
+              if (!e.target.checked) {
+                localStorage.removeItem('lovenda_login_email');
+              }
+            }}
               className="mr-2"
             />
             <label htmlFor="remember" className="text-sm">Recuérdame</label>

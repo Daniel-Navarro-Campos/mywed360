@@ -16,7 +16,8 @@ function Invitados() {
     { id: 2, name: 'Luis Martínez', phone: '987654321', address: 'Av. Luna 3', companion: 0, table: '', response: 'Pendiente' },
   ];
   const { activeWedding } = useWedding();
-  const { data: guests, addItem, updateItem, deleteItem } = useWeddingCollection('guests', activeWedding, sampleGuests);
+  const fallbackGuests = activeWedding ? [] : sampleGuests;
+  const { data: guests, addItem, updateItem, deleteItem } = useWeddingCollection('guests', activeWedding, fallbackGuests);
 
   // --- Utilidades duplicados ---
   const getStatusLabel = (guest) => {

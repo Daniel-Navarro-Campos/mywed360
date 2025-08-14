@@ -12,7 +12,9 @@ import cors from 'cors';
 import axios from 'axios';
 import mailRouter from './routes/mail.js';
 import aiRouter from './routes/ai.js';
+import aiAssignRouter from './routes/ai-assign.js';
 import aiImageRouter from './routes/ai-image.js';
+import aiSuppliersRouter from './routes/ai-suppliers.js';
 import emailInsightsRouter from './routes/email-insights.js';
 import notificationsRouter from './routes/notifications.js';
 import guestsRouter from './routes/guests.js';
@@ -71,7 +73,9 @@ app.use('/api/guests', guestsRouter);
 app.use('/api/events', eventsRouter);
 app.use('/api/roles', rolesRouter);
 app.use('/api/ai-image', aiImageRouter);
+app.use('/api/ai-suppliers', aiSuppliersRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/ai-assign', aiAssignRouter);
 app.use('/api/email-insights', emailInsightsRouter);
 
 app.get('/', (_req, res) => {

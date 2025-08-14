@@ -63,7 +63,7 @@ export default function DisenoWeb() {
     setError('');
     // Llamar a OpenAI para generar la web
     try {
-      if(!import.meta.env.VITE_OPENAI_KEY){
+      if(!import.meta.env.VITE_OPENAI_API_KEY){
         // Fallback de demo si no hay clave
         const demo = `<html><head><style>body{font-family:sans-serif;padding:2rem}</style></head><body><h1>${prompt}</h1><p>Ejemplo de web generada (sin IA).</p></body></html>`;
         setHtml(demo);
@@ -143,10 +143,10 @@ export default function DisenoWeb() {
       
       // Solicitud a la API
       // Verificar que exista la clave de OpenAI
-      const OPENAI_KEY = import.meta.env.VITE_OPENAI_KEY;
+      const OPENAI_KEY = import.meta.env.VITE_OPENAI_API_KEY;
       if(!OPENAI_KEY){
-        alert('Configura la variable de entorno VITE_OPENAI_KEY con tu clave de OpenAI.');
-        setError('Falta clave OpenAI – define VITE_OPENAI_KEY en tu .env');
+        alert('Configura la variable de entorno VITE_OPENAI_API_KEY con tu clave de OpenAI.');
+        setError('Falta clave OpenAI – define VITE_OPENAI_API_KEY en tu .env');
         setLoading(false);
         return;
       }
@@ -163,7 +163,8 @@ export default function DisenoWeb() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${OPENAI_KEY}` 
+          'Authorization': `Bearer ${OPENAI_KEY}`,
+          'OpenAI-Project': import.meta.env.VITE_OPENAI_PROJECT_ID 
         },
         body: JSON.stringify({ 
           model: modelName, // Modelo configurable vía VITE_OPENAI_MODEL
@@ -173,7 +174,7 @@ export default function DisenoWeb() {
       });
       
       if(response.status === 401){
-        throw new Error('Clave OpenAI inválida o no autorizada (401). Comprueba VITE_OPENAI_KEY');
+        throw new Error('Clave OpenAI inválida o no autorizada (401). Comprueba VITE_OPENAI_API_KEY');
       }
 
       const data = await response.json();
