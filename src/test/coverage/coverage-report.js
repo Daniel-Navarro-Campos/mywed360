@@ -173,7 +173,8 @@ function countCoverage(data) {
         if (branches[i] > 0) branchCovered++;
       }
       covered += branchCovered;
-      total += branches.length - 1; // Ajustar el total para branches
+      const branchTotal = branches.length - 1; // Ajustar el total para branches
+      total += branchTotal;
     }
   } 
   // Para otros tipos (statements, functions, lines)
