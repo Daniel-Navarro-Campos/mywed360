@@ -31,16 +31,15 @@ export const SYSTEM_TAGS = [
 export const getUserTags = (userId) => {
   const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
   try {
-    // Leer desde utilidades para evitar dependencias directas a _getStorage y facilitar el mocking en tests
+    // Siempre leer de storage para evitar inconsistencias en tests que modifican directamente localStorage
     const customTags = loadJson(storageKey, []);
-
-    // Actualizar caché (útil para acceso rápido y pruebas)
+    // Mantener caché actualizada para posibles accesos dentro del mismo tick
     runtimeCustomTags[userId] = customTags;
-
     return [...SYSTEM_TAGS, ...customTags];
   } catch (error) {
     console.error('Error al obtener etiquetas:', error);
-    return [...SYSTEM_TAGS];
+    // Fallback: usar caché si existe
+    return [...SYSTEM_TAGS, ...(runtimeCustomTags[userId] || [])];
   }
 };
 
@@ -50,11 +49,10 @@ export const getUserTags = (userId) => {
  * @returns {Array} - Array de objetos de etiqueta personalizados
  */
 export const getCustomTags = (userId) => {
+  const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
   try {
-    // Refrescar siempre desde storage para consistencia en tests
-    const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
     const fromStorage = loadJson(storageKey, []);
-    runtimeCustomTags[userId] = fromStorage; // cache interna
+    runtimeCustomTags[userId] = fromStorage;
     return fromStorage;
   } catch (error) {
     console.error('Error al obtener etiquetas personalizadas:', error);
@@ -73,17 +71,21 @@ export const createTag = (userId, tagName, color = '#64748b') => {
   try {
     const tags = getCustomTags(userId);
 
-    // Verificar duplicado exacto (case-insensitive) entre sistema y personalizadas
+    // Generar nombre único gestionando duplicados (case-insensitive)
     const allTags = [...SYSTEM_TAGS, ...tags];
-    const duplicate = allTags.some(t => t.name.toLowerCase() === tagName.toLowerCase());
-    if (duplicate) {
-      throw new Error('Ya existe una etiqueta con ese nombre');
+    const baseName = tagName.trim();
+
+    let suffix = 0;
+    let uniqueName = baseName;
+    while (allTags.some(t => t.name.toLowerCase() === uniqueName.toLowerCase())) {
+      suffix += 1;
+      uniqueName = `${baseName} (${suffix})`;
     }
 
     // Crear nueva etiqueta
     const newTag = {
       id: uuidv4(),
-      name: tagName,
+      name: uniqueName,
       color: color,
       createdAt: new Date().toISOString()
     };
@@ -106,13 +108,12 @@ export const createTag = (userId, tagName, color = '#64748b') => {
  * @returns {Object} - { success: boolean }
  */
 export const deleteTag = (userId, tagId) => {
-  try {
-    // Si es etiqueta del sistema, no se puede eliminar -> false
-    const isSystemTag = SYSTEM_TAGS.some(tag => tag.id === tagId);
-    if (isSystemTag) {
-      return false;
-    }
+  // No permitir eliminar etiquetas del sistema
+  if (SYSTEM_TAGS.some(tag => tag.id === tagId)) {
+    throw new Error('No se pueden eliminar etiquetas del sistema');
+  }
 
+  try {
     const tags = getCustomTags(userId);
 
     // Comprobar si la etiqueta existe realmente
@@ -144,7 +145,7 @@ export const deleteTag = (userId, tagId) => {
  * @private
  */
 const saveUserTags = (userId, tags) => {
-  // Sincronizar caché primero
+  // Actualizar caché primero para acceso inmediato
   runtimeCustomTags[userId] = tags;
   const storageKey = `${TAGS_STORAGE_KEY}_${userId}`;
   saveJson(storageKey, tags);
@@ -192,14 +193,13 @@ export const addTagToEmail = (userId, emailId, tagId) => {
 
     // Si no se encuentra, forzar recarga desde storage para evitar desincronización de caché
     if (!tagExists) {
-      runtimeCustomTags[userId] = undefined; // invalidar caché
+      delete runtimeCustomTags[userId]; // invalidar caché
       allTags = getUserTags(userId);
       tagExists = allTags.some(tag => tag.id === tagId);
     }
 
     if (!tagExists) {
-      // Etiqueta inexistente
-      return false;
+      throw new Error('La etiqueta especificada no existe');
     }
     
     // Obtener mapeo actual
@@ -210,13 +210,12 @@ export const addTagToEmail = (userId, emailId, tagId) => {
       mapping[emailId] = [];
     }
     
-    // Verificar si la etiqueta ya está asignada
-    if (mapping[emailId].includes(tagId)) {
-      return false; // Duplicado, no guardar ni modificar
+    // Verificar si la etiqueta ya está asignada (idempotente)
+    if (!mapping[emailId].includes(tagId)) {
+      mapping[emailId].push(tagId);
+      // Guardar mapeo actualizado únicamente si hay cambio
+      saveEmailTagsMapping(userId, mapping);
     }
-    mapping[emailId].push(tagId);
-    // Guardar mapeo actualizado
-    saveEmailTagsMapping(userId, mapping);
     return true;
   } catch (error) {
     console.error('Error al asignar etiqueta a correo:', error);
@@ -236,19 +235,17 @@ export const removeTagFromEmail = (userId, emailId, tagId) => {
     // Obtener mapeo actual
     const mapping = getEmailTagsMapping(userId);
     
-    // Si el correo no tiene etiquetas, no hay nada que hacer
+    // Si el correo no tiene etiquetas, simplemente retornar éxito
     if (!mapping[emailId]) {
-      return false;
+      return true;
     }
     
-    const originalLength = mapping[emailId].length;
-    // Filtrar la etiqueta a quitar
-    mapping[emailId] = mapping[emailId].filter(id => id !== tagId);
-    if (mapping[emailId].length === originalLength) {
-      return false; // No había la etiqueta
+    const newList = mapping[emailId].filter(id => id !== tagId);
+    if (newList.length !== mapping[emailId].length) {
+      // Hubo un cambio, guardar
+      mapping[emailId] = newList;
+      saveEmailTagsMapping(userId, mapping);
     }
-    // Guardar mapeo actualizado
-    saveEmailTagsMapping(userId, mapping);
     return true;
   } catch (error) {
     console.error('Error al quitar etiqueta de correo:', error);
