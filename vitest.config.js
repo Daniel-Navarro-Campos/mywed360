@@ -27,7 +27,17 @@ export default defineConfig({
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'backend/**/*.test.{js,ts}', 'backend/**/*.spec.{js,ts}'
     ],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/AdvancedEmailWorkflows.test.jsx', '**/EmailWorkflows.test.jsx'],
+    exclude: [
+      '**/node_modules/**', 
+      '**/dist/**', 
+      '**/test/**',
+      '**/backend/test/**',
+      '**/src/__tests__/**',
+      '**/cypress/**',
+      '**/*.perf.test.*',
+      '**/*.security.test.*',
+      '**/*.a11y.test.*'
+    ],
     coverage: {
       provider: 'v8', // Cambiar a v8 para mejor rendimiento y menos cuelgues
       reporter: ['text', 'json'],
