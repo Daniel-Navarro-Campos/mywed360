@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import sanitizeHtml from '../../utils/sanitizeHtml';
+import { safeRender, ensureNotPromise, safeDangerouslySetInnerHTML } from '../../utils/promiseSafeRenderer';
 // Importamos nuestros componentes personalizados en lugar de lucide-react
 import {
   IconArrowLeft as ArrowLeft,

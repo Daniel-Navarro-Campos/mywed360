@@ -1846,7 +1846,7 @@ ${bride} y ${groom}`;
             </div>
             <div className="p-4 bg-gray-100">
               <form onSubmit={handleAiSearch} className="flex flex-wrap gap-2 items-center mb-4">
-                <input type="text" placeholder="Describe lo que buscas..." value={aiQuery} onChange={e=>setAiQuery(e.target.value)} className="flex-1 border rounded px-2 py-1" data-testid="ai-search-input" />
+                <input type="text" placeholder="Describe lo que buscas..." value={aiQuery} onChange={e=>setAiQuery(e.target.value)} className="flex-1 border rounded px-2 py-1" data-testid="open-ai-search" />
                 <select value={serviceFilter} onChange={e=>setServiceFilter(e.target.value)} className="border rounded px-2 py-1">
                   <option value="">Servicio...</option>
                   <option>Catering</option>

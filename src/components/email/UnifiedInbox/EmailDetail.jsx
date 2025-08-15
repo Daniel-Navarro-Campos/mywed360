@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import sanitizeHtml from '../../../utils/sanitizeHtml';
-import { safeExecute } from '../../SafeRenderer';
+import { safeRender, ensureNotPromise, safeExecute, safeDangerouslySetInnerHTML } from '../../../utils/promiseSafeRenderer';
 import EmailComments from '../EmailComments';
 // Importación problemática eliminada temporalmente
 // import { Viewer } from 'react-tiff';

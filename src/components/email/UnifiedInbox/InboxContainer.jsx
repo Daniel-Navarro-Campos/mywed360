@@ -6,7 +6,7 @@ import * as EmailService from '../../../services/emailService';
 import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
 import { useUnifiedInboxMetrics } from '../../../hooks/useUnifiedInboxMetrics';
 import { emailCache } from '../../../utils/EmailCache';
-import SafeRenderer, { safeExecute } from '../../SafeRenderer';
+import { safeRender, ensureNotPromise, safeMap, safeExecute } from '../../../utils/promiseSafeRenderer';
 import InboxNavigation from './InboxNavigation';
 import EmailList from './EmailList';
 
@@ -406,18 +406,18 @@ const InboxContainer = () => {
           {/* Lista de emails */}
           <div className={`${selectedEmail ? 'hidden md:block md:w-1/3 lg:w-2/5' : 'w-full'} border-r overflow-auto`}>
             <EmailList
-              emails={filteredEmails}
-              loading={loading}
-              error={error}
-              selectedEmailId={selectedEmailId}
+              emails={safeRender(filteredEmails, [])}
+              loading={safeRender(loading, false)}
+              error={safeRender(error, null)}
+              selectedEmailId={safeRender(selectedEmailId, null)}
               onSelectEmail={handleSelectEmail}
               onDeleteEmail={handleDeleteEmail}
               onSearch={handleSearch}
-              searchTerm={searchTerm}
-              sortField={sortField}
-              sortDirection={sortDirection}
+              searchTerm={safeRender(searchTerm, '')}
+              sortField={safeRender(sortField, 'date')}
+              sortDirection={safeRender(sortDirection, 'desc')}
               onSortChange={handleSortChange}
-              currentFolder={currentFolder}
+              currentFolder={safeRender(currentFolder, 'inbox')}
             />
           </div>
           
@@ -436,9 +436,9 @@ const InboxContainer = () => {
                 />
               ) : (
                 <EmailDetail
-                  email={selectedEmail}
+                  email={safeRender(selectedEmail, null)}
                   onReply={() => handleReply(selectedEmail)}
-                  onDelete={() => handleDeleteEmail(selectedEmail.id)}
+                  onDelete={() => handleDeleteEmail(selectedEmail?.id)}
                   onMarkRead={handleMarkAsRead}
                   onBack={() => {
                     setSelectedEmail(null);
