@@ -10,6 +10,7 @@ import {
   Star as StarIcon
 } from 'lucide-react';
 import Button from '../../Button';
+import { safeRender, ensureNotPromise, safeMap } from '../../../utils/promiseSafeRenderer';
 
 /**
  * Componente que muestra una lista de emails con opciones de filtrado y ordenación
@@ -212,31 +213,31 @@ const EmailList = ({
           />
         ) : (
           <div className="divide-y divide-gray-100" data-testid="email-list">
-            {emails.map((email) => (
+            {safeMap(emails, []).map((email) => (
               <div
-                key={email.id}
-                onClick={() => onSelectEmail(email.id)}
+                key={safeRender(email.id, '')}
+                onClick={() => onSelectEmail(safeRender(email.id, ''))}
                 className={`grid grid-cols-12 gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  selectedEmailId === email.id ? 'bg-blue-50' : ''
-                } ${!email.read ? 'font-medium' : ''}`}
+                  selectedEmailId === safeRender(email.id, '') ? 'bg-blue-50' : ''
+                } ${!safeRender(email.read, false) ? 'font-medium' : ''}`}
               >
                 <div 
                   className="col-span-1 flex items-center justify-center" 
-                  onClick={(e) => handleToggleSelect(email.id, e)}
+                  onClick={(e) => handleToggleSelect(safeRender(email.id, ''), e)}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedEmailIds.includes(email.id)}
+                    checked={selectedEmailIds.includes(safeRender(email.id, ''))}
                     onChange={() => {}}
                     className="rounded"
                   />
                 </div>
                 <div className="col-span-3 sm:col-span-3 truncate">
-                  {currentFolder === 'sent' ? email.to : email.from}
+                  {currentFolder === 'sent' ? safeRender(email.to, '') : safeRender(email.from, '')}
                 </div>
                 <div className="col-span-6 sm:col-span-6 truncate flex items-center">
                   <span className="mr-2 truncate">
-                    {email.subject || '(Sin asunto)'}
+                    {safeRender(email.subject, '(Sin asunto)')}
                   </span>
                   {email.attachments && email.attachments.length > 0 && (
                     <span className="text-gray-500 text-xs">📎</span>

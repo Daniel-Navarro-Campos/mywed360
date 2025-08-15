@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Paperclip, Send } from 'lucide-react';
 import Button from '../Button';
-import { sendMail } from '../../services/emailService';
+import { sendMail } from '../../services/EmailService';
+import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
  * Modal para componer y enviar un nuevo correo electrónico
@@ -219,13 +220,13 @@ const ComposeEmailModal = ({ isOpen, onClose, userEmail, replyTo }) => {
             )}
             
             {/* Mensajes de error o éxito */}
-            {error && (
+            {safeRender(error, '') && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-md">
-                {error}
+                {safeRender(error, '')}
               </div>
             )}
             
-            {success && (
+            {safeRender(success, false) && (
               <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-md">
                 ¡Mensaje enviado con éxito!
               </div>

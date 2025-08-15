@@ -5,6 +5,7 @@ import Button from '../Button';
 import Card from '../Card';
 import * as EmailService from '../../services/EmailService';
 import useAuth from '../../hooks/useAuth';
+import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
  * Página de composición de correo electrónico pensada para las rutas
@@ -84,10 +85,10 @@ const ComposeEmail = () => {
           <h2 className="text-xl font-bold">Nuevo correo</h2>
         </div>
         <div className="p-4 space-y-4">
-          {error && (
+          {safeRender(error, '') && (
             <div className="flex items-center text-red-700 bg-red-50 border border-red-200 p-3 rounded-md">
               <AlertCircle size={18} className="mr-2" />
-              <span>{error}</span>
+              <span>{safeRender(error, '')}</span>
             </div>
           )}
 

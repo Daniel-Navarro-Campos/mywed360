@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getMails, deleteMail } from '../../services/EmailService';
 import EmailDetail from './EmailDetail';
+import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
  * Implementación simplificada de la bandeja de entrada de correos
@@ -122,20 +123,20 @@ export default function EmailInbox() {
             </tr>
           </thead>
           <tbody>
-            {displayed.map((email) => (
-              <tr key={email.id} role="row" onClick={() => setDetailEmail(email)}>
+            {safeMap(displayed, []).map((email) => (
+              <tr key={safeRender(email.id, '')} role="row" onClick={() => setDetailEmail(email)}>
                 <td>
                   <input
                     type="checkbox"
                     role="checkbox"
-                    checked={selectedIds.has(email.id)}
+                    checked={selectedIds.has(safeRender(email.id, ''))}
                     onChange={(e) => {
                       e.stopPropagation();
-                      toggleSelect(email.id);
+                      toggleSelect(safeRender(email.id, ''));
                     }}
                   />
                 </td>
-                <td>{email.subject}</td>
+                <td>{safeRender(email.subject, '(Sin asunto)')}</td>
               </tr>
             ))}
           </tbody>

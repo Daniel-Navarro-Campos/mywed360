@@ -8,6 +8,7 @@ import {
   addTagToEmail, 
   removeTagFromEmail 
 } from '../../services/tagService';
+import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
  * Componente para gestionar etiquetas de un correo electrónico
@@ -80,20 +81,20 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
     <div className="mt-2">
       {/* Etiquetas actuales */}
       <div className="flex flex-wrap gap-2 mb-2">
-        {tags.map((tag) => (
+        {safeMap(tags, []).map((tag) => (
           <div 
-            key={tag.id}
+            key={safeRender(tag.id, '')}
             className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
             style={{ 
-              backgroundColor: `${tag.color}20`,
-              color: tag.color,
-              borderColor: `${tag.color}50`,
+              backgroundColor: `${safeRender(tag.color, '#64748b')}20`,
+              color: safeRender(tag.color, '#64748b'),
+              borderColor: `${safeRender(tag.color, '#64748b')}50`,
               borderWidth: '1px'
             }}
           >
-            <span>{tag.name}</span>
+            <span>{safeRender(tag.name, '')}</span>
             <button 
-              onClick={() => handleRemoveTag(tag.id)}
+              onClick={() => handleRemoveTag(safeRender(tag.id, ''))}
               className="ml-1 rounded-full hover:bg-opacity-20 hover:bg-gray-600"
             >
               <X size={12} />
@@ -125,19 +126,19 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
       {isSelectingTag && (
         <div className="mt-1 p-2 border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
           <div className="space-y-1">
-            {allTags
-              .filter(tag => !tags.some(t => t.id === tag.id))
+            {safeMap(allTags, [])
+              .filter(tag => !safeMap(tags, []).some(t => safeRender(t.id, '') === safeRender(tag.id, '')))
               .map(tag => (
                 <div
-                  key={tag.id}
-                  onClick={() => handleAddTag(tag.id)}
+                  key={safeRender(tag.id, '')}
+                  onClick={() => handleAddTag(safeRender(tag.id, ''))}
                   className="flex items-center px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
                 >
                   <div 
                     className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: tag.color }}
+                    style={{ backgroundColor: safeRender(tag.color, '#64748b') }}
                   />
-                  <span className="text-sm">{tag.name}</span>
+                  <span className="text-sm">{safeRender(tag.name, '')}</span>
                 </div>
               ))}
               

@@ -10,6 +10,7 @@ import {
   SYSTEM_TAGS
 } from '../../services/tagService';
 import { toast } from 'react-toastify';
+import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
  * Componente para administrar todas las etiquetas del usuario
@@ -210,17 +211,17 @@ const TagsManager = () => {
               </p>
             )}
             
-            {tags.map((tag) => (
-              <div key={tag.id} className="flex items-center justify-between py-2 px-3 border border-gray-200 rounded-md">
+            {safeMap(tags, []).map((tag) => (
+              <div key={safeRender(tag.id, '')} className="flex items-center justify-between py-2 px-3 border border-gray-200 rounded-md">
                 <div className="flex items-center">
                   <div 
                     className="w-3 h-3 rounded-full mr-2"
-                    style={{ backgroundColor: tag.color }}
+                    style={{ backgroundColor: safeRender(tag.color, '#64748b') }}
                   />
-                  <span className="text-sm">{tag.name}</span>
+                  <span className="text-sm">{safeRender(tag.name, '')}</span>
                 </div>
                 <Button 
-                  onClick={() => handleDeleteTag(tag.id, tag.name)}
+                  onClick={() => handleDeleteTag(safeRender(tag.id, ''), safeRender(tag.name, ''))}
                   variant="danger"
                   className="text-xs py-1 px-2"
                   size="sm"

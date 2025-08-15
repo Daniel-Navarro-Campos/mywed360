@@ -25,6 +25,7 @@ import AccessTime from '@mui/icons-material/AccessTime';
 import InsertDriveFile from '@mui/icons-material/InsertDriveFile';
 import EmailRecommendationService from '../../services/EmailRecommendationService';
 import EmailRecommendationsPanel from './EmailRecommendationsPanel';
+import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
  * Componente para componer correos con recomendaciones inteligentes integradas
