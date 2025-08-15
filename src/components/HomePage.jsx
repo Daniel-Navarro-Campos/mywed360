@@ -1,18 +1,17 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useUserContext } from '../context/UserContext';
 import { Card } from './ui/Card';
 import { Progress } from './ui/Progress';
 import Nav from './Nav';
+import { Link } from 'react-router-dom';
 
 import { User, DollarSign, Calendar, Users, ChevronLeft, ChevronRight, Plus, Phone } from 'lucide-react';
 import Input from './Input';
 import ProviderSearchModal from './ProviderSearchModal';
 
-import inspo1 from '../assets/inspo1.jpg';
-import inspo2 from '../assets/inspo2.jpg';
-import inspo3 from '../assets/inspo3.jpg';
-import inspo4 from '../assets/inspo4.jpg';
+import { fetchWall } from '../services/wallService';
+import { fetchWeddingNews } from '../services/blogService';
 
 import PlannerDashboard from './PlannerDashboard';
 
@@ -29,6 +28,71 @@ export default function HomePage() {
     return <PlannerDashboard />;
   }
   const galleryRef = useRef(null);
+  const [newsPosts, setNewsPosts] = useState([]);
+  const [categoryImages, setCategoryImages] = useState([]);
+
+  // Cargar primera imagen de cada categoría
+  useEffect(() => {
+    const categories = ['decoración','cóctel','banquete','ceremonia'];
+    Promise.all(categories.map(cat=>fetchWall(1, cat))).then(results=>{
+      const imgs = results.map((arr,i)=>{
+        const first = arr[0];
+        if(first) return { src: first.url, alt: categories[i] };
+        return null;
+      }).filter(Boolean);
+      setCategoryImages(imgs);
+    }).catch(console.error);
+  }, []);
+
+  // Cargar últimas noticias (máx 3 por dominio y 4 con imagen)
+  useEffect(() => {
+    const loadNews = async () => {
+      try {
+        const desired = 4;
+        let page = 1;
+        const results = [];
+        const domainCounts = {};
+        while (results.length < desired && page <= 20) {
+          const batch = await fetchWeddingNews(page, 50, 'es');
+          for (const post of batch) {
+            if (!post.image) continue;
+            const domain = (() => {
+              try {
+                return new URL(post.url).hostname.replace(/^www\./, '');
+              } catch {
+                return 'unknown';
+              }
+            })();
+            if ((domainCounts[domain] || 0) >= 3) continue;
+            domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+            results.push(post);
+            if (results.length >= desired) break;
+          }
+          page++;
+        }
+
+        // fallback: si aún faltan, relajamos límite de dominio
+        if (results.length < desired) {
+          page = 1;
+          while (results.length < desired && page <= 20) {
+            const batch = await fetchWeddingNews(page, 50, 'es');
+            for (const post of batch) {
+              if (!post.image) continue;
+              if (results.some(x => x.url === post.url)) continue;
+              results.push(post);
+              if (results.length >= desired) break;
+            }
+            page++;
+          }
+        }
+
+        setNewsPosts(results.slice(0, desired));
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadNews();
+  }, []);
 
   const handleRedoTutorial = async () => {
     if (!confirm('Esto eliminará datos locales y creará una nueva boda de prueba. ¿Continuar?')) return;
@@ -143,7 +207,7 @@ export default function HomePage() {
         </section>
 
         {/* Quick Actions */}
-        <section className="z-10 p-6 flex flex-nowrap gap-4 w-full">
+        <section className="z-10 p-6 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
           {[
             { key: 'proveedor', label: 'Buscar proveedor', icon: User },
             { key: 'invitado', label: 'Añadir invitado', icon: Users },
@@ -156,8 +220,7 @@ export default function HomePage() {
                 key={idx}
                 role="button"
                 onClick={() => setActiveModal(action.key)}
-                data-testid={action.key === 'proveedor' ? 'open-ai-search' : undefined}
-                className="flex-1 flex items-center justify-between p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
+                className="flex items-center justify-between p-4 bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition transform hover:scale-105 cursor-pointer"
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="text-[var(--color-primary)]" />
@@ -190,7 +253,11 @@ export default function HomePage() {
         {/* Inspiration Gallery */}
         <section className="z-10 p-6 pb-12 relative">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-[var(--color-text)]">Inspiración para tu boda</h2>
+            <Link to="/inspiracion">
+              <button className="text-xl font-bold text-[var(--color-text)] hover:text-[var(--color-primary)]">
+                Inspiración para tu boda
+              </button>
+            </Link>
             <div className="flex space-x-2">
               <button onClick={scrollPrev} className="p-2 rounded-full bg-[var(--color-surface)]/80 backdrop-blur-md">
                 <ChevronLeft className="text-[var(--color-primary)]" />
@@ -204,12 +271,7 @@ export default function HomePage() {
             ref={galleryRef} 
             className="flex space-x-4 overflow-x-auto pb-4 snap-x scrollbar-hide"
           >
-            {[
-              { src: inspo1, alt: "Decoración floral" },
-              { src: inspo2, alt: "Mesa de banquete" },
-              { src: inspo3, alt: "Pastel de bodas" },
-              { src: inspo4, alt: "Ceremonia al aire libre" }
-            ].map((img, idx) => (
+            {categoryImages.map((img, idx) => (
               <div key={idx} className="snap-start flex-shrink-0 w-64 h-64 relative rounded-lg overflow-hidden">
                 <img 
                   src={img.src} 
@@ -224,29 +286,30 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Artículos de Inspiración */}
-        <section className="z-10 grid grid-cols-1 sm:grid-cols-2 gap-6 p-6">
-          {[
-            { title: "10 ideas para personalizar tu boda", source: "Blog de Bodas", url: "#" },
-            { title: "Tendencias en decoración para este año", source: "Revista Novias", url: "#" },
-            { title: "Guía de planificación paso a paso", source: "Lovenda", url: "#" },
-            { title: "Consejos para elegir proveedores", source: "Expertos en Bodas", url: "#" }
-          ].map((article, idx) => (
-            <Card key={idx} className="p-4 hover:shadow-lg transition">
-              <p className="text-lg font-medium text-[var(--color-text)]">
-                {article.title}
-              </p>
-              <p className="text-sm text-[color:var(--color-text)] mt-1">
-                {article.source}
-              </p>
-              <a
-                href={article.url}
-                className="inline-flex items-center text-[var(--color-primary)] mt-2"
-              >
-                Leer más
-              </a>
-            </Card>
-          ))}
+        {/* Blog Section */}
+        <section className="z-10 p-6 pb-2">
+          <div className="flex justify-between items-center mb-4">
+            <Link to="/blog">
+              <button className="text-xl font-bold text-[var(--color-text)] hover:text-[var(--color-primary)]">
+                Blog
+              </button>
+            </Link>
+          </div>
+        {newsPosts.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {newsPosts.map((post) => (
+                <Card key={post.id} onClick={() => window.open(post.url, '_blank')} className="cursor-pointer p-0 overflow-hidden bg-[var(--color-surface)]/80 backdrop-blur-md hover:shadow-lg transition">
+                  {post.image && (
+                    <img src={post.image} alt={post.title} className="w-full h-40 object-cover" />
+                  )}
+                  <div className="p-4 space-y-1">
+                    <h3 className="font-semibold text-[color:var(--color-text)] line-clamp-2">{post.title}</h3>
+                    <p className="text-sm text-[var(--color-text)]/70 line-clamp-2">{post.description}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
 
         <Nav active="home" />
