@@ -4,6 +4,7 @@ import Button from '../Button';
 import Card from '../Card';
 import * as EmailService from '../../services/emailService';
 import { safeExecute } from '../SafeRenderer';
+import { safeRender, ensureNotPromise, safeDangerouslySetInnerHTML } from '../../utils/promiseSafeRenderer';
 import * as AuthModule from '../../hooks/useAuth';
 const useAuth = AuthModule.useAuth || AuthModule.default || AuthModule;
 
@@ -224,17 +225,17 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
         </div>
         
         <div className="p-4 overflow-y-auto flex-grow">
-          {error && (
+          {safeRender(error) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center text-red-700" data-testid="error-message">
               <AlertCircle size={18} className="flex-shrink-0 mr-2" />
-              <span>{error}</span>
+              <span>{safeRender(error, '')}</span>
             </div>
           )}
           
-          {success && (
+          {safeRender(success) && (
             <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md flex items-center text-green-700" data-testid="success-message">
               <CheckCircle size={18} className="flex-shrink-0 mr-2" />
-              <span>{success}</span>
+              <span>{safeRender(success, '')}</span>
             </div>
           )}
           

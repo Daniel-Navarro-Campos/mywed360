@@ -308,14 +308,14 @@ const EmailDetail = ({ email, onReply, onDelete, onBack, onMarkRead }) => {
           <div className="flex-grow">
             <div className="flex items-start justify-between">
               <h1 className="text-xl font-medium mb-2">
-                {email.subject || '(Sin asunto)'}
+                {safeRender(email.subject, '(Sin asunto)')}
               </h1>
             </div>
             
             <div className="flex flex-wrap items-center mb-1">
-              <span className="font-medium mr-1">{email.from}</span>
+              <span className="font-medium mr-1">{safeRender(email.from, '')}</span>
               <span className="text-gray-500 text-sm mr-1">para</span>
-              <span className="mr-2">{email.to}</span>
+              <span className="mr-2">{safeRender(email.to, '')}</span>
               
               {email.cc && (
                 <>
@@ -326,7 +326,7 @@ const EmailDetail = ({ email, onReply, onDelete, onBack, onMarkRead }) => {
             </div>
             
             <div className="text-gray-500 text-sm mb-2">
-              {formatFullDate(email.date)}
+              {safeRender(formatFullDate(email.date), '')}
             </div>
             
             {emailCategories.length > 0 && (
@@ -346,10 +346,10 @@ const EmailDetail = ({ email, onReply, onDelete, onBack, onMarkRead }) => {
       
       {/* Contenido del email */}
       <div className="p-6 overflow-auto flex-grow">
-        {email.body ? (
+        {safeRender(email.body) ? (
           <div 
             className="prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: getSafeHtml(email.body) }}
+            dangerouslySetInnerHTML={safeDangerouslySetInnerHTML(getSafeHtml(safeRender(email.body, '')))}
           />
         ) : (
           <div className="text-gray-500 italic">
