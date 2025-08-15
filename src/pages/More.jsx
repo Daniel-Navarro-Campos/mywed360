@@ -67,6 +67,8 @@ export default function More() {
               <Link to="/diseno-web" className="block px-4 py-2 hover:bg-gray-100">Diseño Web</Link>
               <Link to="/disenos" className="block px-4 py-2 hover:bg-gray-100">Diseños</Link>
               <Link to="/ideas" className="block px-4 py-2 hover:bg-gray-100">Ideas</Link>
+              <Link to="/inspiracion" className="block px-4 py-2 hover:bg-gray-100">Galería de Inspiración</Link>
+              <Link to="/blog" className="block px-4 py-2 hover:bg-gray-100">Blog</Link>
             </div>
           )}
         </div>
