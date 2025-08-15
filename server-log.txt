@@ -24,3 +24,55 @@ OpenAIError: The OPENAI_API_KEY environment variable is missing or empty; either
 
 Node.js v22.16.0
 [2025-07-18T00:06:09.727Z] El proceso del servidor terminó con código: 1
+[2025-08-15T01:13:31.793Z] ===== INICIANDO SERVIDOR BACKEND =====
+[2025-08-15T01:13:31.801Z] Directorio actual: /Users/dani/Documents/myWed360/mywed360
+[2025-08-15T01:13:31.804Z] Proceso del servidor iniciado con PID: 22925
+[2025-08-15T01:13:31.804Z] El servidor debería estar escuchando en el puerto 4004
+[2025-08-15T01:13:31.805Z] Presiona Ctrl+C para detener el servidor
+[2025-08-15T01:13:33.355Z] [ERROR] ⚠️  GOOGLE_APPLICATION_CREDENTIALS not set. Firestore access will fail unless the emulator is running or Application Default Credentials are configured.
+[2025-08-15T01:13:33.612Z] [STDOUT] Intentando cargar configuración de Mailgun desde: /Users/dani/Documents/myWed360/mywed360/backend/.env
+[2025-08-15T01:13:33.613Z] [STDOUT] Configuración de Mailgun: {
+  apiKey: 'a42e6...',
+  domain: 'mywed360.com',
+  sendingDomain: 'mg.mywed360.com',
+  euRegion: 'true'
+}
+[2025-08-15T01:13:34.294Z] [STDOUT] 2025-08-15 03:13:34 [32minfo[39m: ✅ Cliente OpenAI inicializado para /api/ai-suppliers
+[2025-08-15T01:13:34.303Z] [STDOUT] ✅ .env loaded from /Users/dani/Documents/myWed360/mywed360/.env
+[2025-08-15T01:13:34.309Z] [STDOUT] ✅ Cliente OpenAI inicializado correctamente.
+[2025-08-15T01:13:34.310Z] [STDOUT] Lovenda backend up on http://localhost:4004
+[2025-08-15T01:13:43.224Z] [STDOUT] 2025-08-15 03:13:43 [32minfo[39m: GET /
+[2025-08-15T01:15:06.026Z] [STDOUT] 2025-08-15 03:15:06 [32minfo[39m: GET /api/wedding-news
+[2025-08-15T01:15:26.332Z] ===== INICIANDO SERVIDOR BACKEND =====
+[2025-08-15T01:15:26.337Z] Directorio actual: /Users/dani/Documents/myWed360/mywed360
+[2025-08-15T01:15:26.339Z] Proceso del servidor iniciado con PID: 25348
+[2025-08-15T01:15:26.340Z] El servidor debería estar escuchando en el puerto 4004
+[2025-08-15T01:15:26.340Z] Presiona Ctrl+C para detener el servidor
+[2025-08-15T01:15:27.240Z] [ERROR] ⚠️  GOOGLE_APPLICATION_CREDENTIALS not set. Firestore access will fail unless the emulator is running or Application Default Credentials are configured.
+[2025-08-15T01:15:27.413Z] [STDOUT] Intentando cargar configuración de Mailgun desde: /Users/dani/Documents/myWed360/mywed360/backend/.env
+[2025-08-15T01:15:27.414Z] [STDOUT] Configuración de Mailgun: {
+  apiKey: 'a42e6...',
+  domain: 'mywed360.com',
+  sendingDomain: 'mg.mywed360.com',
+  euRegion: 'true'
+}
+[2025-08-15T01:15:27.628Z] [STDOUT] 2025-08-15 03:15:27 [32minfo[39m: ✅ Cliente OpenAI inicializado para /api/ai-suppliers
+[2025-08-15T01:15:27.876Z] [STDOUT] ✅ .env loaded from /Users/dani/Documents/myWed360/mywed360/.env
+[2025-08-15T01:15:27.880Z] [STDOUT] ✅ Cliente OpenAI inicializado correctamente.
+[2025-08-15T01:15:27.881Z] [STDOUT] 2025-08-15 03:15:27 [31merror[39m: Error: listen EADDRINUSE: address already in use :::4004
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at Function.listen (/Users/dani/Documents/myWed360/mywed360/backend/node_modules/express/lib/application.js:635:24)
+    at file:///Users/dani/Documents/myWed360/mywed360/backend/index.js:157:7
+    at ModuleJob.run (node:internal/modules/esm/module_job:195:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:337:24)
+    at async loadESM (node:internal/process/esm_loader:34:7)
+    at async handleMainPromise (node:internal/modules/run_main:106:12)
+[2025-08-15T01:15:27.911Z] El proceso del servidor terminó con código: 0
+[2025-08-15T01:15:35.968Z] [STDOUT] 2025-08-15 03:15:35 [32minfo[39m: GET /
+[2025-08-15T01:15:48.676Z] [STDOUT] 2025-08-15 03:15:48 [32minfo[39m: GET /
+[2025-08-15T01:15:49.340Z] [STDOUT] 2025-08-15 03:15:49 [32minfo[39m: GET /api/wedding-news
+[2025-08-15T01:16:03.032Z] [STDOUT] 2025-08-15 03:16:03 [32minfo[39m: GET /api/wedding-news
+[2025-08-15T01:16:14.870Z] [STDOUT] 2025-08-15 03:16:14 [32minfo[39m: GET /api/wedding-news
+[2025-08-15T01:16:15.841Z] [STDOUT] 2025-08-15 03:16:15 [32minfo[39m: POST /api/instagram-wall

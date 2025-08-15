@@ -24,6 +24,8 @@ import mailgunDebugRoutes from './routes/mailgun-debug.js';
 import mailgunInboundRouter from './routes/mailgun-inbound.js';
 import mailgunEventsRouter from './routes/mailgun-events.js';
 import logger from './logger.js';
+import instagramWallRouter from './routes/instagram-wall.js';
+import weddingNewsRouter from './routes/wedding-news.js';
 
 // Load environment variables (root .env)
 const envPath = path.resolve(process.cwd(), '.env');
@@ -77,6 +79,8 @@ app.use('/api/ai-suppliers', aiSuppliersRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/ai-assign', aiAssignRouter);
 app.use('/api/email-insights', emailInsightsRouter);
+app.use('/api/instagram-wall', instagramWallRouter);
+app.use('/api/wedding-news', weddingNewsRouter);
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });
