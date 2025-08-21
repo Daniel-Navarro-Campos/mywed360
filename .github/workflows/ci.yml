@@ -41,7 +41,7 @@ jobs:
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           node -v | grep -E '^v20\.' || (echo "ERROR: Node 20 required but got $(node -v)" && exit 1)
-          npm -v | grep -E '^10\.' || (echo "ERROR: NPM 10 required but got $(npm -v)" && exit 1)
+          npm -v | grep -E '^1(0|1)\.' || (echo "ERROR: NPM 10/11 required but got $(npm -v)" && exit 1)
 
       - name: Install dependencies with engine-strict
         run: |
