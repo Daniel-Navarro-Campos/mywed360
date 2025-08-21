@@ -25,6 +25,11 @@ jobs:
           always-auth: true
           cache: 'npm'
 
+      - name: Install system libs for canvas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+
       - name: Force Node 20 environment
         run: |
           echo "PATH=/opt/hostedtoolcache/node/20.19.0/x64/bin:$PATH" >> $GITHUB_ENV
