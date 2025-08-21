@@ -5,9 +5,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "master", "suppliers-firestore-fix" ]
+    branches: [ "main", "master", "suppliers-firestore-fix", "Windows" ]
   pull_request:
-    branches: [ "main", "master", "suppliers-firestore-fix" ]
+    branches: [ "main", "master", "suppliers-firestore-fix", "Windows" ]
 
 jobs:
   build-and-test:
