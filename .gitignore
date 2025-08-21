@@ -6,6 +6,11 @@ dist/
 .env
 .env.local
 
+# Credenciales sensibles
+serviceAccount*.json
+.env
+.env.local
+
 # macOS metadata
 .DS_Store
 backend/logs/
