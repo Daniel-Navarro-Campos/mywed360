@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, suppliers-firestore-fix ]
+    branches: [ main, Windows, suppliers-firestore-fix ]
   pull_request:
-    branches: [ main, suppliers-firestore-fix ]
+    branches: [ main, Windows, suppliers-firestore-fix ]
   workflow_dispatch:
 
 jobs:
@@ -40,6 +40,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3-dev libxss1 libasound2-dev libxtst6 xauth
 
+      - name: Create test .env file
+        run: |
+          echo "VITE_FIREBASE_API_KEY=fake" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=fake" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=fake" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=fake" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=fake" >> .env
+          echo "VITE_FIREBASE_APP_ID=fake" >> .env
+          echo "VITE_FIREBASE_MEASUREMENT_ID=fake" >> .env
+          echo "MAILGUN_API_KEY=fake" >> .env
+          echo "MAILGUN_DOMAIN=fake" >> .env
+
       - name: Install dependencies with engine-strict
         run: |
           npm cache clean --force
@@ -48,9 +60,9 @@ jobs:
       - name: Start dev server and run Cypress tests
         uses: cypress-io/github-action@v5
         with:
-          start: npm run dev
+          start: npm run start:ci
           wait-on: 'http://localhost:5173'
-          wait-on-timeout: 120
+          wait-on-timeout: 180
           browser: electron
           record: false
           spec: cypress/e2e/email/*.cy.js

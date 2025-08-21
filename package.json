@@ -19,6 +19,7 @@
     "cy:run": "cypress run",
     "test:e2e": "start-server-and-test dev http://localhost:5173 cy:run",
     "test:e2e:interactive": "start-server-and-test dev http://localhost:5173 cy:open",
+    "start:ci": "concurrently -k \"node backend/index.js\" \"vite --host\"",
     "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --max-warnings 0",
     "lint:fix": "npm run lint -- --fix",
     "ensure:finance": "node scripts/ensureFinanceAll.js"
@@ -77,6 +78,7 @@
     "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "@firebase/rules-unit-testing": "^3.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
