@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, Windows, suppliers-firestore-fix ]
+    branches: [ "**" ]
   pull_request:
-    branches: [ main, Windows, suppliers-firestore-fix ]
+    branches: [ "**" ]
   workflow_dispatch:
 
 jobs:
