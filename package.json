@@ -49,6 +49,7 @@
     "firebase": "^10.6.0",
     "firebase-admin": "^13.4.0",
     "firebase-tools": "^14.8.0",
+    "openai": "^4.104.0",
     "form-data": "^4.0.4",
     "framer-motion": "^10.12.16",
     "gantt-task-react": "^0.3.9",
