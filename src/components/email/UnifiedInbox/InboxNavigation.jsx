@@ -35,10 +35,10 @@ const InboxNavigation = ({
 
   // Lista de carpetas principales con sus iconos y nombres
   const mainFolders = [
-    { id: 'inbox', name: 'Bandeja de entrada', icon: <Inbox size={18} /> },
-    { id: 'sent', name: 'Enviados', icon: <Send size={18} /> },
-    { id: 'important', name: 'Importantes', icon: <Star size={18} /> },
-    { id: 'trash', name: 'Papelera', icon: <Trash size={18} /> }
+    { id: 'inbox', name: 'Bandeja de entrada', icon: <Inbox size={18} />, system: true },
+    { id: 'sent', name: 'Enviados', icon: <Send size={18} />, system: true },
+    { id: 'important', name: 'Importantes', icon: <Star size={18} />, system: true },
+    { id: 'trash', name: 'Papelera', icon: <Trash size={18} />, system: true }
   ];
 
   // Etiquetas disponibles
@@ -71,10 +71,10 @@ const InboxNavigation = ({
               onClick={() => onFolderChange(folder.id)}
               className={`w-full text-left px-3 py-2 rounded flex items-center ${
                 currentFolder === folder.id
-                  ? 'bg-blue-100 text-blue-700 font-medium'
+                  ? 'active bg-blue-100 text-blue-700 font-medium'
                   : 'hover:bg-gray-100 text-gray-700'
-              }`}
-              data-testid={`folder-${folder.id}`}
+              } ${folder.system ? 'system-folder' : ''}`}
+              data-testid={`folder-item`}
             >
               <span className="mr-2">{folder.icon}</span>
               {folder.name}
