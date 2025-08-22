@@ -1,7 +1,23 @@
 import express from 'express';
 import axios from 'axios';
 import LRU from 'lru-cache';
-import { searchPins } from '@myno_21/pinterest-scraper'; // Nueva fuente Pinterest
+// Carga dinámica para evitar crash si la librería no es compatible o falta
+let pinterestSearchPins = null;
+async function loadPinterestScraper() {
+  if (pinterestSearchPins !== null) return pinterestSearchPins;
+  try {
+    const mod = await import('@myno_21/pinterest-scraper');
+    pinterestSearchPins = mod.searchPins || (mod.default && mod.default.searchPins);
+    if (typeof pinterestSearchPins !== 'function') {
+      console.warn('Pinterest scraper no expone searchPins; deshabilitado');
+      pinterestSearchPins = async () => [];
+    }
+  } catch (err) {
+    console.warn('Pinterest scraper no disponible:', err.message);
+    pinterestSearchPins = async () => [];
+  }
+  return pinterestSearchPins;
+}
 
 /*
   Prototipo de muro de inspiración (mezcla Instagram/Pinterest)
@@ -163,6 +179,8 @@ async function discoverPinterest(page = 1, query = 'wedding') {
   }
   // Fallback al scraper si no hay token o falló
   try {
+    // Obtenemos dinámicamente el scraper sólo si está disponible
+    const searchPins = await loadPinterestScraper();
     const pins = await searchPins(query);
     const offset = (page - 1) * 15;
     const slice = pins.slice(offset, offset + 15);
