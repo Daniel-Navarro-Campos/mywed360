@@ -32,15 +32,20 @@ export function safeRender(value, fallback = null) {
  * @param {Function} mapFn - Función de mapeo
  * @returns {Array} - Array mapeado con valores seguros
  */
-export function safeMap(array, mapFn) {
+export function safeMap(array, mapFn = (item) => item) {
   if (!Array.isArray(array)) {
     return [];
   }
   
-  return array.map((item, index) => {
-    const result = mapFn(item, index);
-    return ensureNotPromise(result);
-  }).filter(item => item !== null);
+  // Si mapFn no es una función válida, usa identidad
+  const mapper = typeof mapFn === 'function' ? mapFn : (item) => item;
+
+  return array
+    .map((item, index) => {
+      const result = mapper(item, index);
+      return ensureNotPromise(result);
+    })
+    .filter((item) => item !== null);
 }
 
 /**

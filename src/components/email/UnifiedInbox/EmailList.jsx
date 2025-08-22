@@ -213,7 +213,7 @@ const EmailList = ({
           />
         ) : (
           <div className="divide-y divide-gray-100" data-testid="email-list">
-            {safeMap(emails, []).map((email) => (
+            {safeMap(emails, (item) => item).map((email) => (
               <div
                 key={safeRender(email.id, '')}
                 onClick={() => onSelectEmail(safeRender(email.id, ''))}
