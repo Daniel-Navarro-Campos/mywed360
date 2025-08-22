@@ -123,7 +123,7 @@ export default function EmailInbox() {
             </tr>
           </thead>
           <tbody>
-            {safeMap(displayed, []).map((email) => (
+            {safeMap(displayed).map((email) => (
               <tr key={safeRender(email.id, '')} role="row" onClick={() => setDetailEmail(email)}>
                 <td>
                   <input

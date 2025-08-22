@@ -211,7 +211,7 @@ const TagsManager = () => {
               </p>
             )}
             
-            {safeMap(tags, []).map((tag) => (
+            {safeMap(tags).map((tag) => (
               <div key={safeRender(tag.id, '')} className="flex items-center justify-between py-2 px-3 border border-gray-200 rounded-md">
                 <div className="flex items-center">
                   <div 

@@ -81,7 +81,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
     <div className="mt-2">
       {/* Etiquetas actuales */}
       <div className="flex flex-wrap gap-2 mb-2">
-        {safeMap(tags, []).map((tag) => (
+        {safeMap(tags).map((tag) => (
           <div 
             key={safeRender(tag.id, '')}
             className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
@@ -126,8 +126,8 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
       {isSelectingTag && (
         <div className="mt-1 p-2 border rounded-md bg-white shadow-sm max-h-32 overflow-y-auto">
           <div className="space-y-1">
-            {safeMap(allTags, [])
-              .filter(tag => !safeMap(tags, []).some(t => safeRender(t.id, '') === safeRender(tag.id, '')))
+            {safeMap(allTags)
+              .filter(tag => !safeMap(tags).some(t => safeRender(t.id, '') === safeRender(tag.id, '')))
               .map(tag => (
                 <div
                   key={safeRender(tag.id, '')}
