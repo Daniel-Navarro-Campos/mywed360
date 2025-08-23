@@ -28,6 +28,11 @@ import logger from './logger.js';
 import instagramWallRouter from './routes/instagram-wall.js';
 import weddingNewsRouter from './routes/wedding-news.js';
 
+// Importar middleware de autenticación
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { requireAuth, requireMailAccess, optionalAuth } = require('./middleware/authMiddleware.js');
+
 // Load environment variables (root .env)
 const envPath = path.resolve(process.cwd(), '.env');
 let result = dotenv.config({ path: envPath });
@@ -68,22 +73,28 @@ app.use((req, _res, next) => {
 // Para que Mailgun (form-urlencoded) sea aceptado
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use('/api/mail', mailRouter);
-app.use('/api/mailgun-debug', mailgunDebugRoutes);
-app.use('/api/mailgun/events', mailgunEventsRouter);
-app.use('/api/mailgun/webhook', mailgunWebhookRouter);
-app.use('/api/inbound/mailgun', mailgunInboundRouter);
-app.use('/api/notifications', notificationsRouter);
-app.use('/api/guests', guestsRouter);
-app.use('/api/events', eventsRouter);
-app.use('/api/roles', rolesRouter);
-app.use('/api/ai-image', aiImageRouter);
-app.use('/api/ai-suppliers', aiSuppliersRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/ai-assign', aiAssignRouter);
-app.use('/api/email-insights', emailInsightsRouter);
-app.use('/api/instagram-wall', instagramWallRouter);
-app.use('/api/wedding-news', weddingNewsRouter);
+
+// Rutas públicas (sin autenticación)
+app.use('/api/mailgun/webhook', mailgunWebhookRouter); // Webhooks de Mailgun (verificación interna)
+app.use('/api/inbound/mailgun', mailgunInboundRouter); // Correos entrantes
+
+// Rutas que requieren autenticación específica para correo
+app.use('/api/mail', requireMailAccess, mailRouter);
+app.use('/api/mailgun/events', requireMailAccess, mailgunEventsRouter);
+app.use('/api/mailgun-debug', requireMailAccess, mailgunDebugRoutes);
+app.use('/api/email-insights', requireMailAccess, emailInsightsRouter);
+
+// Rutas que requieren autenticación general
+app.use('/api/notifications', requireAuth, notificationsRouter);
+app.use('/api/guests', requireAuth, guestsRouter);
+app.use('/api/events', requireAuth, eventsRouter);
+app.use('/api/roles', requireAuth, rolesRouter);
+app.use('/api/ai-image', requireAuth, aiImageRouter);
+app.use('/api/ai-suppliers', requireAuth, aiSuppliersRouter);
+app.use('/api/ai', requireAuth, aiRouter);
+app.use('/api/ai-assign', requireAuth, aiAssignRouter);
+app.use('/api/instagram-wall', optionalAuth, instagramWallRouter); // Puede ser público
+app.use('/api/wedding-news', optionalAuth, weddingNewsRouter); // Puede ser público
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });

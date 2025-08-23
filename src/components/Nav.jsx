@@ -3,7 +3,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import { useUserContext } from '../context/UserContext';
+import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
+import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
 
 // Devuelve los ítems de navegación según rol
 function getNavItems(role) {
@@ -134,8 +135,14 @@ function getNavItems(role) {
 
 */
 function Nav() {
+  // Sistema legacy (mantener durante migración)
   const { user } = useUserContext();
-  const role = user?.role || 'owner';
+  
+  // Nuevo sistema unificado
+  const { userProfile, hasRole } = useAuth();
+  
+  // Usar el nuevo sistema para el rol, con fallback al legacy
+  const role = userProfile?.role || user?.role || 'owner';
   const navItems = React.useMemo(() => getNavItems(role), [role]);
   
 

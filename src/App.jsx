@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserProvider, { useUserContext } from './context/UserContext';
-import { AuthProvider } from './hooks/useAuth'; // Importamos el AuthProvider
+import { AuthProvider } from './hooks/useAuth'; // Importamos el AuthProvider legacy
+import AuthMigrationWrapper from './components/auth/AuthMigrationWrapper'; // Nuevo sistema de autenticación
 import MainLayout from './components/MainLayout';
 import EmailNotification from './components/EmailNotification';
 import Login from './pages/Login';
@@ -73,20 +74,9 @@ function App() {
   // Mensaje de diagnóstico para verificar si la aplicación carga correctamente
   console.log('App component rendering...');
   return (
-    <UserProvider>
-      <AuthProvider>
-        <ToastContainer 
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
+    <AuthMigrationWrapper>
+      <UserProvider>
+        <AuthProvider>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         {/* Componente de notificaciones de correo - solo visible en rutas protegidas */}
         <Routes>
@@ -169,8 +159,9 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-      </AuthProvider>
-    </UserProvider>
+        </AuthProvider>
+      </UserProvider>
+    </AuthMigrationWrapper>
   );
 }
 

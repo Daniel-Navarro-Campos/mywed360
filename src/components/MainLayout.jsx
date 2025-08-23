@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { useUserContext } from '../context/UserContext';
+import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
+import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
 import Nav from './Nav';
 import ChatWidget from './ChatWidget';
 import DefaultAvatar from './DefaultAvatar';
@@ -15,12 +16,19 @@ import { useLocation } from 'react-router-dom';
 
 
 export default function MainLayout() {
-  const { logoUrl, logout, role } = useUserContext();
+  // Sistema legacy (mantener durante migración)
+  const { logoUrl, logout } = useUserContext();
+  
+  // Nuevo sistema unificado
+  const { hasRole, userProfile } = useAuth();
+  
+  // Usar el nuevo sistema para verificaciones de rol
+  const role = userProfile?.role || 'particular';
   const [openMenu, setOpenMenu] = useState(false);
   const location = useLocation();
   const hideSelectorRoutes = ['/home', '/tasks'];
   const hideSelector = hideSelectorRoutes.some(r => location.pathname.startsWith(r)) || location.pathname === '/bodas';
-  const isPlanner = (role || '').toLowerCase() === 'planner';
+  const isPlanner = hasRole('planner');
   const showWeddingSelector = isPlanner && !hideSelector;
   const { showOnboarding, completeOnboarding } = useOnboarding();
 
