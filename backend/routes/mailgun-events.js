@@ -8,9 +8,13 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 // Helper para crear el cliente de Mailgun de forma segura
 function createMailgun() {
-  const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
-  const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
-  const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
+  const RAW_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
+  const RAW_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
+  const RAW_EU = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
+
+  const MAILGUN_API_KEY = RAW_API_KEY ? RAW_API_KEY.trim() : RAW_API_KEY;
+  const MAILGUN_DOMAIN = RAW_DOMAIN ? RAW_DOMAIN.trim() : RAW_DOMAIN;
+  const MAILGUN_EU_REGION = RAW_EU ? RAW_EU.trim() : RAW_EU;
 
   // Logging enmascarado para diagnóstico sin exponer secretos
   try {
