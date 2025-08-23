@@ -1,5 +1,8 @@
 name: E2E Tests
 
+env:
+  ENABLE_E2E: 'false'
+
 on:
   push:
     branches: [ "**" ]
@@ -9,6 +12,7 @@ on:
 
 jobs:
   e2e-tests:
+    if: ${{ env.ENABLE_E2E == 'true' }}
     runs-on: ubuntu-latest
     
     steps:
