@@ -22,12 +22,14 @@ function createMailgunClients() {
   const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || process.env.MAILGUN_SENDING_DOMAIN;
   const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
 
-  console.log('Configuración de Mailgun:', {
-    apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.substring(0, 5) + '...' : 'no definida',
-    domain: MAILGUN_DOMAIN,
-    sendingDomain: MAILGUN_SENDING_DOMAIN,
-    euRegion: MAILGUN_EU_REGION
-  });
+  try {
+    console.log('Configuración de Mailgun:', {
+      apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.substring(0, 5) + '***' : 'no definida',
+      domain: MAILGUN_DOMAIN || 'no definido',
+      sendingDomain: MAILGUN_SENDING_DOMAIN || 'no definido',
+      euRegion: MAILGUN_EU_REGION,
+    });
+  } catch {}
 
   if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
     console.warn('Mailgun no configurado: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN. Se omitirá el envío real.');
@@ -71,8 +73,13 @@ router.get('/', async (req, res) => {
     const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     res.json(data);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching mails' });
+    console.error('Error en GET /api/mail:', err);
+    res.status(503).json({ 
+      success: false,
+      message: 'Fallo obteniendo correos',
+      error: err?.message || String(err),
+      hint: 'Verifica acceso a Firestore y filtros (folder/user). Si depende de Mailgun, revisa MAILGUN_* y región EU.',
+    });
   }
 });
 
@@ -159,8 +166,13 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ id: sentRef.id, to, subject, body, date, folder: 'sent', read: true, from: from });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error sending mail' });
+    console.error('Error en POST /api/mail:', err);
+    res.status(503).json({ 
+      success: false,
+      message: 'Fallo enviando correo',
+      error: err?.message || String(err),
+      hint: 'Si es envío real, verifica MAILGUN_API_KEY, MAILGUN_DOMAIN (p.ej. mg.mywed360.com) y MAILGUN_EU_REGION=true',
+    });
   }
 });
 
@@ -174,8 +186,8 @@ router.patch('/:id/read', async (req, res) => {
     await docRef.update({ read: true });
     res.json({ id, ...doc.data(), read: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating mail' });
+    console.error('Error en PATCH /api/mail/:id/read:', err);
+    res.status(503).json({ success: false, message: 'Fallo actualizando mail', error: err?.message || String(err) });
   }
 });
 
@@ -190,8 +202,8 @@ router.post('/:id/read', async (req, res) => {
     const updated = (await docRef.get()).data();
     res.json({ id, ...updated, read: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating mail' });
+    console.error('Error en POST /api/mail/:id/read:', err);
+    res.status(503).json({ success: false, message: 'Fallo actualizando mail', error: err?.message || String(err) });
   }
 });
 
@@ -202,8 +214,8 @@ router.delete('/:id', async (req, res) => {
     await db.collection('mails').doc(id).delete();
     res.status(204).end();
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error deleting mail' });
+    console.error('Error en DELETE /api/mail/:id:', err);
+    res.status(503).json({ success: false, message: 'Fallo eliminando mail', error: err?.message || String(err) });
   }
 });
 
