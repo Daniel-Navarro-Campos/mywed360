@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useUserContext } from '../context/UserContext';
+import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
+import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
 import { useNavigate, Link } from 'react-router-dom';
 
 export default function Login() {
@@ -9,20 +10,32 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [remember, setRemember] = useState(!!savedEmail);
+  // Sistema legacy (mantener durante migración)
   const { login, isAuthenticated, loading } = useUserContext();
+  
+  // Nuevo sistema unificado
+  const { login: unifiedLogin, isAuthenticated: unifiedAuth, isLoading } = useAuth();
+  
+  // Usar el nuevo sistema como principal, con fallback al legacy
+  const authLogin = unifiedLogin || login;
+  const authStatus = unifiedAuth !== undefined ? unifiedAuth : isAuthenticated;
+  const authLoading = isLoading !== undefined ? isLoading : loading;
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (!authLoading && authStatus) {
       navigate('/home');
     }
-  }, [loading, isAuthenticated, navigate]);
+  }, [authLoading, authStatus, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      await login(username, password, remember);
+      const result = await authLogin(username, password, remember);
+      if (result && !result.success) {
+        throw new Error(result.error?.message || 'Error de autenticación');
+      }
       // Guarda o elimina el email según la preferencia
       if (remember) {
         localStorage.setItem('lovenda_login_email', username);

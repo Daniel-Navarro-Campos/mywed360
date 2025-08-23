@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { useUserContext } from '../context/UserContext';
+import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
+import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
 import { Card } from './ui/Card';
 import { Progress } from './ui/Progress';
 import Nav from './Nav';
@@ -21,7 +22,16 @@ export default function HomePage() {
   const [guest, setGuest] = useState({name: '', side: 'novia', contact: ''});
   const [newMovement, setNewMovement] = useState({concept: '', amount: 0, date: '', type: 'expense'});
   const [activeModal, setActiveModal] = useState(null);
-  const { user, role, userName, weddingName, progress, logoUrl } = useUserContext();
+  // Sistema legacy (mantener durante migración)
+  const { user, userName, weddingName, progress, logoUrl } = useUserContext();
+  
+  // Nuevo sistema unificado
+  const { hasRole, userProfile, currentUser } = useAuth();
+  
+  // Usar el nuevo sistema para verificaciones de rol y datos de usuario
+  const role = userProfile?.role || user?.role;
+  const displayName = userProfile?.displayName || userName;
+  const email = currentUser?.email || user?.email;
 
   // Si el usuario es Wedding Planner mostramos dashboard específico
   if (role === 'planner') {

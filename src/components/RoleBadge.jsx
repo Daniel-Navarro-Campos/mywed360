@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { useUserContext } from '../context/UserContext';
+import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
+import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
 
 export default function RoleBadge() {
-  const { role } = useUserContext();
+  // Sistema legacy (mantener durante migración)
+  const legacyContext = useUserContext();
+  
+  // Nuevo sistema unificado
+  const { hasRole, userProfile } = useAuth();
+  
+  // Usar el nuevo sistema para verificaciones de rol
+  const role = userProfile?.role || legacyContext.role;
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
