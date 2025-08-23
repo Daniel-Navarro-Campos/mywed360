@@ -25,6 +25,13 @@ function createMailgun() {
     console.warn('Mailgun no configurado en mailgun-events: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN');
     return null;
   }
+  // Validación del dominio: debe ser algo como "mg.mywed360.com" (sin http://, sin https://, sin barras ni espacios)
+  const invalidDomain = /:\/\//.test(MAILGUN_DOMAIN) || /\//.test(MAILGUN_DOMAIN) || /\s/.test(MAILGUN_DOMAIN);
+  if (invalidDomain) {
+    console.warn('[mailgun-events] MAILGUN_DOMAIN parece inválido (contiene esquema/ruta/espacios):', MAILGUN_DOMAIN);
+    // Señalamos dominio inválido devolviendo null; el handler responderá 503 con hint
+    return { __invalidDomain: true };
+  }
   const hostCfg = MAILGUN_EU_REGION === 'true' ? { host: 'api.eu.mailgun.net' } : {};
   try {
     return mailgunJs({ apiKey: MAILGUN_API_KEY, domain: MAILGUN_DOMAIN, ...hostCfg });
@@ -55,6 +62,13 @@ router.get('/', async (req, res) => {
     const mailgun = createMailgun();
     if (!mailgun) {
       return res.status(503).json({ success: false, message: 'Mailgun no está configurado en el servidor' });
+    }
+    if (mailgun.__invalidDomain) {
+      return res.status(503).json({
+        success: false,
+        message: 'MAILGUN_DOMAIN inválido',
+        hint: 'Usa solo el dominio verificado, p.ej. mg.mywed360.com (sin https:// y sin rutas)'
+      });
     }
 
     const query = {
