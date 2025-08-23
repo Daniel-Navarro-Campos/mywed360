@@ -6,6 +6,21 @@ import path from 'path';
 // Cargar variables de entorno (buscando .env en raíz del proyecto)
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+// Sanea dominios: quita comillas, protocolo, rutas, espacios. Devuelve hostname en minúsculas
+function sanitizeDomain(input) {
+  if (!input) return input;
+  let s = String(input).trim();
+  // quita comillas envolventes
+  s = s.replace(/^['"]|['"]$/g, '');
+  // quita protocolo
+  s = s.replace(/^\s*https?:\/\//i, '');
+  // corta en primera '/'
+  s = s.split('/')[0];
+  // elimina espacios
+  s = s.replace(/\s+/g, '');
+  return s.toLowerCase();
+}
+
 // Helper para crear el cliente de Mailgun de forma segura
 function createMailgun() {
   const RAW_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
@@ -13,7 +28,8 @@ function createMailgun() {
   const RAW_EU = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
 
   const MAILGUN_API_KEY = RAW_API_KEY ? RAW_API_KEY.trim() : RAW_API_KEY;
-  const MAILGUN_DOMAIN = RAW_DOMAIN ? RAW_DOMAIN.trim() : RAW_DOMAIN;
+  const MAILGUN_DOMAIN_RAW_TRIM = RAW_DOMAIN ? RAW_DOMAIN.trim() : RAW_DOMAIN;
+  const MAILGUN_DOMAIN = MAILGUN_DOMAIN_RAW_TRIM ? sanitizeDomain(MAILGUN_DOMAIN_RAW_TRIM) : MAILGUN_DOMAIN_RAW_TRIM;
   const MAILGUN_EU_REGION = RAW_EU ? RAW_EU.trim() : RAW_EU;
 
   // Logging enmascarado para diagnóstico sin exponer secretos
@@ -29,11 +45,11 @@ function createMailgun() {
     console.warn('Mailgun no configurado en mailgun-events: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN');
     return null;
   }
-  // Validación del dominio: debe ser algo como "mg.mywed360.com" (sin http://, sin https://, sin barras ni espacios)
-  const invalidDomain = /:\/\//.test(MAILGUN_DOMAIN) || /\//.test(MAILGUN_DOMAIN) || /\s/.test(MAILGUN_DOMAIN);
-  if (invalidDomain) {
-    console.warn('[mailgun-events] MAILGUN_DOMAIN parece inválido (contiene esquema/ruta/espacios):', MAILGUN_DOMAIN);
-    // Señalamos dominio inválido devolviendo null; el handler responderá 503 con hint
+  // Validación con regex: solo letras, números, guiones y puntos; debe contener al menos un punto
+  const domainRegex = /^(?=.{1,253}$)(?!-)([a-z0-9-]+\.)+[a-z0-9-]+$/i;
+  const isValidDomain = !!MAILGUN_DOMAIN && domainRegex.test(MAILGUN_DOMAIN);
+  if (!isValidDomain) {
+    console.warn('[mailgun-events] MAILGUN_DOMAIN inválido tras saneado:', MAILGUN_DOMAIN_RAW_TRIM, '=>', MAILGUN_DOMAIN);
     return { __invalidDomain: true };
   }
   const hostCfg = MAILGUN_EU_REGION === 'true' ? { host: 'api.eu.mailgun.net' } : {};
@@ -71,7 +87,7 @@ router.get('/', async (req, res) => {
       return res.status(503).json({
         success: false,
         message: 'MAILGUN_DOMAIN inválido',
-        hint: 'Usa solo el dominio verificado, p.ej. mg.mywed360.com (sin https:// y sin rutas)'
+        hint: 'Usa solo el dominio verificado (hostname), p.ej. mg.mywed360.com. No incluyas https:// ni rutas.'
       });
     }
 
