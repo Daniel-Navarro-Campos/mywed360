@@ -14,6 +14,9 @@ import CustomFolders from '../../components/email/CustomFolders';
 import ManageFoldersModal from '../../components/email/ManageFoldersModal';
 import EmptyTrashModal from '../../components/email/EmptyTrashModal';
 import { useAuth } from '../../hooks/useAuth';
+import useEmailUsername from '../../hooks/useEmailUsername';
+import { auth } from '../../lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { 
   getUserFolders, 
   createFolder, 
@@ -37,6 +40,8 @@ import TagsManager from '../../components/email/TagsManager';
  * Permite ver, enviar y gestionar correos dentro de la plataforma Lovenda
  */
 const EmailInbox = () => {
+  // Base del backend (si está configurado)
+  const API_BASE = import.meta.env.VITE_BACKEND_BASE_URL || '';
   const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState(null);
@@ -54,8 +59,32 @@ const EmailInbox = () => {
   const [availableTags, setAvailableTags] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
   const [isFilteringByTag, setIsFilteringByTag] = useState(false);
+  const [error, setError] = useState('');
   const { currentUser, userProfile } = useAuth();
   const navigate = useNavigate();
+  const { getCurrentUsername } = useEmailUsername();
+  const [myEmail, setMyEmail] = useState('');
+  const [emailUsername, setEmailUsername] = useState('');
+
+  // Inicializa servicio de email usando el mismo patrón que MailboxPage
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) return;
+      try {
+        const username = await getCurrentUsername();
+        if (!username) return;
+        const email = `${username}@mywed360.com`;
+        setEmailUsername(username);
+        setMyEmail(email);
+        setUserEmailAddress(email);
+        await initEmailService({ uid: user.uid, emailUsername: username, myWed360Email: email });
+      } catch (e) {
+        console.error('Error inicializando servicio de email:', e);
+      }
+    });
+    return () => unsub();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Cargar emails al cambiar de carpeta
   useEffect(() => {
@@ -67,24 +96,44 @@ const EmailInbox = () => {
       try {
         setLoading(true);
         
-        // Inicializar servicio de email con el perfil del usuario actual
-        const emailAddress = await initEmailService(userProfile);
-        setUserEmailAddress(emailAddress);
-        
-        // Si es una carpeta personalizada
-        if (selectedCustomFolder) {
-          // Obtener correos de la carpeta seleccionada
-          const folderEmails = getEmailsInFolder(currentUser.uid, selectedCustomFolder);
-          
-          // Cargar todos los correos y filtrar por los IDs en la carpeta
-          const allEmails = await getMails('all');
-          const filteredEmails = allEmails.filter(email => folderEmails.includes(email.id));
-          setEmails(filteredEmails);
-        } else {
-          // Obtener correos de la carpeta del sistema
-          const emailData = await getMails(currentFolder);
-          setEmails(emailData);
+        // Usar email derivado del usuario autenticado (mismo patrón que MailboxPage)
+        const effectiveEmail = myEmail;
+        if (!effectiveEmail) {
+          setEmails([]);
+          return;
         }
+        
+        // Intentar cargar desde backend primero (si hay API_BASE)
+        if (API_BASE) {
+          if (selectedCustomFolder) {
+            const folderEmails = getEmailsInFolder(currentUser.uid, selectedCustomFolder);
+            const resAll = await fetch(`${API_BASE}/api/email/all?user=${encodeURIComponent(effectiveEmail)}`);
+            if (resAll.ok) {
+              const json = await resAll.json();
+              const filtered = (json.data || []).filter(email => folderEmails.includes(email.id));
+              setEmails(filtered);
+              return;
+            }
+            // Fallback a servicio local si falla
+            const allEmails = await getMails('all');
+            const filteredEmails = allEmails.filter(email => folderEmails.includes(email.id));
+            setEmails(filteredEmails);
+            return;
+          } else {
+            const res = await fetch(`${API_BASE}/api/email/${currentFolder}?user=${encodeURIComponent(effectiveEmail)}`);
+            if (res.ok) {
+              const json = await res.json();
+              setEmails(json.data || []);
+              return;
+            }
+          }
+        }
+        
+        // Fallback a servicio local si no hay API o falla
+        const emailData = selectedCustomFolder
+          ? (await getMails('all')).filter(email => getEmailsInFolder(currentUser.uid, selectedCustomFolder).includes(email.id))
+          : await getMails(currentFolder);
+        setEmails(emailData);
       } catch (error) {
         console.error('Error al cargar emails:', error);
       } finally {
@@ -195,7 +244,7 @@ const EmailInbox = () => {
 
     try {
       setLoading(true);
-      const res = await fetch(`/api/email/filter/tag/${tagId}`);
+      const res = await fetch(`${API_BASE}/api/email/filter/tag/${tagId}${userEmailAddress ? `?user=${encodeURIComponent(userEmailAddress)}` : ''}`);
       if (res.ok) {
         const json = await res.json();
         setEmails(json.data || []);
@@ -218,7 +267,7 @@ const EmailInbox = () => {
     setSelectedCustomFolder(null);
     try {
       setLoading(true);
-      const res = await fetch('/api/email/inbox');
+      const res = await fetch(`${API_BASE}/api/email/inbox${userEmailAddress ? `?user=${encodeURIComponent(userEmailAddress)}` : ''}`);
       if (res.ok) {
         const json = await res.json();
         setEmails(json.data || []);
@@ -239,7 +288,7 @@ const EmailInbox = () => {
     const fetchInitialData = async () => {
       try {
         // Bandeja de entrada
-        const inboxRes = await fetch('/api/email/inbox');
+        const inboxRes = await fetch(`${API_BASE}/api/email/inbox${userEmailAddress ? `?user=${encodeURIComponent(userEmailAddress)}` : ''}`);
         if (inboxRes.ok) {
           const inboxJson = await inboxRes.json();
           setEmails(inboxJson.data || []);
@@ -251,7 +300,7 @@ const EmailInbox = () => {
       }
 
       try {
-        const res = await fetch('/api/tags');
+        const res = await fetch(`${API_BASE}/api/tags${userEmailAddress ? `?user=${encodeURIComponent(userEmailAddress)}` : ''}`);
         if (res.ok) {
           const json = await res.json();
           setAvailableTags(json.data || []);
@@ -656,6 +705,16 @@ const EmailInbox = () => {
                 )}
               </Button>
               <Button
+                variant="primary"
+                size="sm"
+                className="flex-shrink-0"
+                data-testid="new-email-button"
+                onClick={() => setIsComposeOpen(true)}
+                title="Nuevo correo"
+              >
+                <Edit size={16} className="mr-1" /> Nuevo correo
+              </Button>
+              <Button
                 variant="outline"
                 size="sm"
                 className="flex-shrink-0"
@@ -793,7 +852,7 @@ const EmailInbox = () => {
         onClose={() => setShowEmptyTrashModal(false)}
         onConfirm={async () => {
           try {
-            await fetch('/api/email/trash/empty', { method: 'DELETE' });
+            await fetch(`${API_BASE}/api/email/trash/empty${userEmailAddress ? `?user=${encodeURIComponent(userEmailAddress)}` : ''}`, { method: 'DELETE' });
             setShowEmptyTrashModal(false);
             handleRefresh();
           } catch (e) {

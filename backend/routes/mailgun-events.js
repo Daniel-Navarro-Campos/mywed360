@@ -12,6 +12,15 @@ function createMailgun() {
   const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
   const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
 
+  // Logging enmascarado para diagnóstico sin exponer secretos
+  try {
+    console.log('[mailgun-events] Configuración detectada:', {
+      apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.slice(0, 5) + '***' : 'no definida',
+      domain: MAILGUN_DOMAIN || 'no definido',
+      euRegion: MAILGUN_EU_REGION,
+    });
+  } catch {}
+
   if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
     console.warn('Mailgun no configurado en mailgun-events: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN');
     return null;
@@ -58,12 +67,24 @@ router.get('/', async (req, res) => {
     };
 
     // Obtener eventos desde Mailgun
-    const data = await mailgun.events().get(query);
+    let data;
+    try {
+      data = await mailgun.events().get(query);
+    } catch (mgErr) {
+      const msg = mgErr?.message || String(mgErr);
+      console.error('Error Mailgun events().get:', msg);
+      return res.status(503).json({
+        success: false,
+        message: 'Fallo consultando eventos de Mailgun',
+        error: msg,
+        hint: 'Verifica MAILGUN_API_KEY, MAILGUN_DOMAIN (p.ej. mg.mywed360.com) y MAILGUN_EU_REGION=true',
+      });
+    }
 
-    return res.json({ success: true, items: data.items || [] });
+    return res.json({ success: true, items: (data && data.items) || [] });
   } catch (error) {
     console.error('Error al obtener eventos de Mailgun:', error);
-    return res.status(500).json({ success: false, message: 'Error al obtener eventos de Mailgun', error: error.message });
+    return res.status(503).json({ success: false, message: 'Error al obtener eventos de Mailgun', error: error.message });
   }
 });
 

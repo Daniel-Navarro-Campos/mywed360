@@ -150,6 +150,9 @@ function saveLocal(arr) {
 // Funciones de integración con Mailgun - Ahora usando Firebase Cloud Functions como proxy seguro
 // Flag para no seguir intentando si Mailgun/Firebase devuelve error permanente (CORS/404)
 let mailgunDisabled = false;
+// Control de errores backend para evitar spam de 500 y reintentos inmediatos
+let backendDisabledUntil = 0; // epoch ms hasta cuándo no intentamos backend
+const BACKEND_BACKOFF_MS = 30000; // 30s de backoff
 
 async function fetchMailgunEvents(userEmail, eventType = 'delivered') {
   if (mailgunDisabled) {
@@ -291,8 +294,21 @@ export async function getMails(folder = 'inbox') {
   
   if (USE_BACKEND) {
     try {
-      const res = await fetch(`${BASE}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
-      if (!res.ok) throw new Error('Error fetching mails');
+      const now = Date.now();
+      if (now < backendDisabledUntil) {
+        // Saltar intento durante backoff
+        return [];
+      }
+      // Añadir timeout para evitar cuelgues
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${BASE}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        console.warn(`Backend /api/mail devolvió ${res.status}. Activando backoff ${BACKEND_BACKOFF_MS}ms`);
+        backendDisabledUntil = Date.now() + BACKEND_BACKOFF_MS;
+        return [];
+      }
       const json = await res.json();
       // Si backend devuelve array directamente
       if (Array.isArray(json)) {
@@ -331,9 +347,12 @@ export async function getMails(folder = 'inbox') {
         return json;
       }
       // Si el backend responde pero success es false, lanzamos para caer al fallback
-      throw new Error(json.message || 'Error fetching mails');
+      console.warn('Respuesta backend inesperada en /api/mail (no es array). Activando backoff.');
+      backendDisabledUntil = Date.now() + BACKEND_BACKOFF_MS;
+      return [];
     } catch (error) {
       console.error('Error con backend, usando localStorage:', error);
+      backendDisabledUntil = Date.now() + BACKEND_BACKOFF_MS;
       // Fallback a localStorage si falla el backend
     }
   }

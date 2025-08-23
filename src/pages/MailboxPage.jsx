@@ -264,25 +264,37 @@ const ComposeModal = ({ onClose, from }) => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to, subject, body }),
+          body: JSON.stringify({ from, to, subject, body, html: body, text: body }),
         }
       );
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) {
+        let detail = '';
+        try {
+          const data = await resp.json();
+          detail = data?.error || data?.message || '';
+        } catch (_) {
+          try { detail = await resp.text(); } catch (_) {}
+        }
+        const msg = `HTTP ${resp.status}${detail ? ` - ${detail}` : ''}`;
+        throw new Error(msg);
+      }
       onClose();
     } catch (err) {
       console.error("Error enviando correo:", err);
-      setError("No se pudo enviar el correo");
+      setError(String(err?.message || err) || "No se pudo enviar el correo");
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-xl rounded-lg bg-white p-6 shadow-lg">
-        <h2 className="mb-4 text-lg font-semibold">Nuevo correo</h2>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 overflow-y-auto p-4">
+      <div className="w-full max-w-xl rounded-lg bg-white shadow-lg max-h-[90vh] flex flex-col">
+        <div className="p-6 pb-4">
+          <h2 className="text-lg font-semibold">Nuevo correo</h2>
+        </div>
 
-        <div className="space-y-4">
+        <div className="px-6 space-y-4 flex-1 overflow-y-auto">
           <input
             type="email"
             placeholder="Para"
@@ -310,8 +322,7 @@ const ComposeModal = ({ onClose, from }) => {
             </Alert>
           )}
         </div>
-
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="p-6 pt-4 mt-2 border-t flex justify-end gap-2 bg-white sticky bottom-0">
           <Button onClick={onClose} disabled={sending} variant="ghost">
             Cancelar
           </Button>
