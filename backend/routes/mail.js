@@ -16,11 +16,11 @@ console.log('Intentando cargar configuración de Mailgun desde:', localEnvPath);
 dotenv.config({ path: localEnvPath });
 
 // Obtener variables para Mailgun
-const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || 'a42e6604fb3e4b737f281cd3dbc6309a-0ce15100-24828154';
+const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
 // Probar tanto con el dominio de envío como con el dominio base
-const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || 'mywed360.com';
-const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || 'mg.mywed360.com';
-const MAILGUN_EU_REGION = process.env.VITE_MAILGUN_EU_REGION || 'true';
+const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
+const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || process.env.MAILGUN_SENDING_DOMAIN;
+const MAILGUN_EU_REGION = process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION;
 
 // Depurar variables
 console.log('Configuración de Mailgun:', {
