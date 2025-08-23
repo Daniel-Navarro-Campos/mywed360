@@ -45,14 +45,15 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn('⚠️  OPENAI_API_KEY not set. Chat AI endpoints will return 500.');
 }
 
-const PORT = 4004; // Forzar puerto 4004 para pruebas
+const PORT = process.env.PORT ? Number(process.env.PORT) : 4004; // Render inyecta PORT
 
 const app = express();
 
-// Configurar CORS para permitir credenciales y origen específico
+// Configurar CORS para permitir credenciales y origen configurable por entorno
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173';
 app.use(cors({
-  origin: 'http://localhost:5173',  // Origen específico en lugar de wildcard (*)
-  credentials: true,                // Permitir credenciales (cookies, headers de autenticación)
+  origin: ALLOWED_ORIGIN,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -84,6 +85,11 @@ app.use('/api/wedding-news', weddingNewsRouter);
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });
+});
+
+// Health check explícito para plataformas de despliegue
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
 app.get('/api/transactions', async (req, res) => {
