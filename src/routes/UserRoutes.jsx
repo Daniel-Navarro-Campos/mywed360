@@ -31,6 +31,8 @@ const UserRoutes = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/user/dashboard" replace />} />
         <Route path="/email" element={<EmailInbox />} />
+        {/** Alias para compatibilidad con enlaces antiguos */}
+        <Route path="/email/inbox" element={<EmailInbox />} />
         <Route path="/email/stats" element={<EmailStatistics />} />
         <Route path="/email/setup" element={<EmailSetup />} />
         <Route path="/proveedores" element={<Proveedores />} />
