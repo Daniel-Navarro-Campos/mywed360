@@ -6,16 +6,24 @@ import path from 'path';
 // Cargar variables de entorno (buscando .env en raíz del proyecto)
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
-const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN || 'mywed360.com';
-const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION) === 'true';
+// Helper para crear el cliente de Mailgun de forma segura
+function createMailgun() {
+  const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
+  const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
+  const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
 
-// Instanciar cliente de Mailgun (usa dominio principal)
-const mailgun = mailgunJs({
-  apiKey: MAILGUN_API_KEY,
-  domain: MAILGUN_DOMAIN,
-  ...(MAILGUN_EU_REGION && { host: 'api.eu.mailgun.net' })
-});
+  if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+    console.warn('Mailgun no configurado en mailgun-events: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN');
+    return null;
+  }
+  const hostCfg = MAILGUN_EU_REGION === 'true' ? { host: 'api.eu.mailgun.net' } : {};
+  try {
+    return mailgunJs({ apiKey: MAILGUN_API_KEY, domain: MAILGUN_DOMAIN, ...hostCfg });
+  } catch (e) {
+    console.error('No se pudo crear el cliente de Mailgun (events):', e.message);
+    return null;
+  }
+}
 
 const router = express.Router();
 
@@ -33,6 +41,11 @@ router.get('/', async (req, res) => {
 
     if (!recipient) {
       return res.status(400).json({ success: false, message: 'Parámetro "recipient" es obligatorio' });
+    }
+
+    const mailgun = createMailgun();
+    if (!mailgun) {
+      return res.status(503).json({ success: false, message: 'Mailgun no está configurado en el servidor' });
     }
 
     const query = {

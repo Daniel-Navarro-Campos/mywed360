@@ -15,34 +15,37 @@ const localEnvPath = path.join(__dirname, '..', '.env');
 console.log('Intentando cargar configuración de Mailgun desde:', localEnvPath);
 dotenv.config({ path: localEnvPath });
 
-// Obtener variables para Mailgun
-const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
-// Probar tanto con el dominio de envío como con el dominio base
-const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
-const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || process.env.MAILGUN_SENDING_DOMAIN;
-const MAILGUN_EU_REGION = process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION;
+// Helper para crear clientes de Mailgun de forma perezosa y segura
+function createMailgunClients() {
+  const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
+  const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
+  const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || process.env.MAILGUN_SENDING_DOMAIN;
+  const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
 
-// Depurar variables
-console.log('Configuración de Mailgun:', {
-  apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.substring(0, 5) + '...' : 'no definida',
-  domain: MAILGUN_DOMAIN,
-  sendingDomain: MAILGUN_SENDING_DOMAIN,
-  euRegion: MAILGUN_EU_REGION
-});
+  console.log('Configuración de Mailgun:', {
+    apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.substring(0, 5) + '...' : 'no definida',
+    domain: MAILGUN_DOMAIN,
+    sendingDomain: MAILGUN_SENDING_DOMAIN,
+    euRegion: MAILGUN_EU_REGION
+  });
 
-// Configurar Mailgun con el dominio base
-const mailgun = mailgunJs({
-  apiKey: MAILGUN_API_KEY,
-  domain: MAILGUN_DOMAIN,
-  ...(MAILGUN_EU_REGION === 'true' && { host: 'api.eu.mailgun.net' })
-});
+  if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+    console.warn('Mailgun no configurado: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN. Se omitirá el envío real.');
+    return { mailgun: null, mailgunAlt: null };
+  }
 
-// Configurar Mailgun alternativo con el dominio de envío
-const mailgunAlt = mailgunJs({
-  apiKey: MAILGUN_API_KEY,
-  domain: MAILGUN_SENDING_DOMAIN,
-  ...(MAILGUN_EU_REGION === 'true' && { host: 'api.eu.mailgun.net' })
-});
+  const commonHostCfg = MAILGUN_EU_REGION === 'true' ? { host: 'api.eu.mailgun.net' } : {};
+  try {
+    const mailgun = mailgunJs({ apiKey: MAILGUN_API_KEY, domain: MAILGUN_DOMAIN, ...commonHostCfg });
+    const mailgunAlt = MAILGUN_SENDING_DOMAIN
+      ? mailgunJs({ apiKey: MAILGUN_API_KEY, domain: MAILGUN_SENDING_DOMAIN, ...commonHostCfg })
+      : null;
+    return { mailgun, mailgunAlt };
+  } catch (e) {
+    console.error('No se pudieron crear los clientes de Mailgun:', e.message);
+    return { mailgun: null, mailgunAlt: null };
+  }
+}
 
 const router = express.Router();
 
@@ -90,34 +93,44 @@ router.post('/', async (req, res) => {
     };
     
     try {
-      // Enviar correo real usando Mailgun
-      console.log('Enviando correo real con Mailgun:', {
-        from: mailData.from,
-        to: mailData.to,
-        subject: mailData.subject
-      });
-      
-      // Intentar enviar correo con diferentes configuraciones de Mailgun
-      let result = null;
-      
-      try {
-        // Primero intentar con el dominio principal
-        result = await mailgun.messages().send(mailData);
-        console.log('Correo enviado exitosamente con dominio principal:', result);
-      } catch (primaryError) {
-        console.error('Error al enviar con dominio principal:', primaryError);
-        
-        // Si falla, intentar con el dominio alternativo
+      // Crear clientes Mailgun de forma perezosa
+      const { mailgun, mailgunAlt } = createMailgunClients();
+
+      // Si no hay configuración, omitir envío real y continuar
+      if (!mailgun) {
+        console.warn('Mailgun no disponible. Se omite envío real y se continúa con registro en BD.');
+      } else {
+        console.log('Enviando correo real con Mailgun:', {
+          from: mailData.from,
+          to: mailData.to,
+          subject: mailData.subject
+        });
+
+        // Intentar enviar correo con diferentes configuraciones de Mailgun
+        let result = null;
         try {
-          result = await mailgunAlt.messages().send(mailData);
-          console.log('Correo enviado exitosamente con dominio alternativo:', result);
-        } catch (altError) {
-          console.error('Error al enviar con dominio alternativo:', altError);
-          throw new Error('No se pudo enviar el correo con ninguna configuración de Mailgun');
+          // Primero intentar con el dominio principal
+          result = await mailgun.messages().send(mailData);
+          console.log('Correo enviado exitosamente con dominio principal:', result);
+        } catch (primaryError) {
+          console.error('Error al enviar con dominio principal:', primaryError?.message || primaryError);
+
+          // Si falla y existe cliente alternativo, intentar con el dominio alternativo
+          if (mailgunAlt) {
+            try {
+              result = await mailgunAlt.messages().send(mailData);
+              console.log('Correo enviado exitosamente con dominio alternativo:', result);
+            } catch (altError) {
+              console.error('Error al enviar con dominio alternativo:', altError?.message || altError);
+              throw new Error('No se pudo enviar el correo con ninguna configuración de Mailgun');
+            }
+          } else {
+            throw new Error('No hay configuración de dominio de envío alternativo disponible');
+          }
         }
       }
     } catch (mailError) {
-      console.error('Error al enviar correo real:', mailError);
+      console.error('Error al enviar correo real:', mailError?.message || mailError);
       // Si falla el envío real, continuamos con la simulación para mantener la funcionalidad
       console.warn('Fallback a simulación de correo...');
     }
