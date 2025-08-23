@@ -141,6 +141,7 @@ const EmailDetail = ({ email, onBack, onReply, onDelete, onMoveToFolder, folders
               <Button 
                 variant="ghost" 
                 size={isSmallScreen ? "xs" : "sm"} 
+                data-testid="move-to-folder-button" 
                 onClick={() => setIsFolderModalOpen(true)}
                 title="Mover a carpeta"
                 aria-label="Mover a carpeta"

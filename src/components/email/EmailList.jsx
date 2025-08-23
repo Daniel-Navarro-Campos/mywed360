@@ -121,6 +121,7 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
     return (
       <div 
         className="flex flex-col items-center justify-center h-64 text-gray-700"
+        data-testid="empty-folder-message"
         role="status"
         aria-live="polite"
       >
@@ -139,6 +140,7 @@ const EmailList = ({ emails, loading, selectedEmailId, onSelectEmail, folder, he
     return (
       <div
         style={style}
+        data-testid="email-list-item"
         key={email.id}
         className={`py-3 px-2 cursor-pointer transition-colors hover:bg-gray-50 divide-y divide-gray-200 ${
           selectedEmailId === email.id ? 'bg-blue-50 ring-2 ring-blue-400' : ''

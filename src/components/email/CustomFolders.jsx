@@ -72,7 +72,7 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
             setIsEditing(false);
             setNewFolderName('');
           }}
-          className="text-blue-600 hover:text-blue-800"
+          className="text-blue-600 hover:text-blue-800" data-testid="new-folder-button"
           title="Crear carpeta"
         >
           <FolderPlus size={16} />
@@ -89,7 +89,7 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 className="flex-grow py-1 px-2 text-sm border rounded"
-                placeholder="Nombre de carpeta"
+                data-testid="folder-name-input" placeholder="Nombre de carpeta"
                 autoFocus
               />
               <button 
@@ -108,7 +108,7 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
               </button>
             </div>
           ) : (
-            <div 
+            <div data-testid="folder-item" 
               className={`flex items-center justify-between py-1 px-2 rounded-md cursor-pointer ${
                 activeFolder === folder.id ? 'bg-blue-100' : 'hover:bg-gray-100'
               }`}
@@ -153,7 +153,7 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
                         onDeleteFolder(folder.id);
                         setShowMenuForId(null);
                       }}
-                      className="flex items-center w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600"
+                      className="flex items-center w-full text-left px-3 py-2 hover:bg-gray-100 text-red-600" data-testid="delete-folder-button"
                     >
                       <Trash2 size={14} className="mr-2" /> Eliminar
                     </button>
@@ -167,8 +167,8 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
       
       {/* Formulario para nueva carpeta */}
       {isCreating && (
-        <div className="flex items-center px-1 mt-1">
-          <input
+        <div className="flex items-center px-1 mt-1" data-testid="create-folder-modal">
+          <input data-testid="folder-name-input"
             type="text"
             value={newFolderName}
             onChange={(e) => setNewFolderName(e.target.value)}
@@ -177,7 +177,7 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
             autoFocus
           />
           <button 
-            onClick={handleCreateFolder}
+            data-testid="save-folder-button" onClick={handleCreateFolder}
             className="p-1 text-green-600 hover:text-green-800"
             title="Guardar"
           >
@@ -200,7 +200,7 @@ const CustomFolders = ({ folders = [], onSelectFolder, activeFolder, onCreateFol
           <Button
             variant="ghost"
             size="sm"
-            className="mt-1"
+            className="mt-1" data-testid="new-folder-button"
             onClick={() => setIsCreating(true)}
           >
             <Plus size={14} className="mr-1" /> Crear carpeta

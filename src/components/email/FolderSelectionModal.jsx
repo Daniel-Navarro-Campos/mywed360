@@ -153,7 +153,7 @@ const FolderSelectionModal = ({
         
         {/* Lista de carpetas */}
         <div 
-          className="p-2 max-h-64 overflow-y-auto"
+          className="p-2 max-h-64 overflow-y-auto" data-testid="folder-menu"
           aria-label="Lista de carpetas disponibles"
           role="listbox"
           id="folder-list"
@@ -174,7 +174,7 @@ const FolderSelectionModal = ({
                 className={`flex items-center px-3 py-2 rounded-md hover:bg-gray-100 
                   ${focusedFolderIndex === index ? 'bg-gray-100 ring-2 ring-blue-500' : ''} 
                   cursor-pointer transition-colors`}
-                role="option"
+                data-testid="folder-menu-item" role="option"
                 aria-selected={focusedFolderIndex === index}
                 tabIndex="0"
               >

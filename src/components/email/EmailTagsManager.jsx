@@ -33,21 +33,35 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
   }, [currentUser, emailId]);
   
   // Añadir etiqueta al correo
-  const handleAddTag = (tagId) => {
+  const handleAddTag = async (tagId) => {
     if (!currentUser || !emailId) return;
     
     try {
-      // Añadir etiqueta
-      addTagToEmail(currentUser.uid, emailId, tagId);
-      
-      // Actualizar etiquetas del correo
-      const updatedTags = getEmailTagsDetails(currentUser.uid, emailId);
+      // Llamar a backend
+      try {
+        await fetch(`/api/email/${emailId}/tag`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tagId })
+        });
+      } catch(_) {}
+
+      // Sincronizar - obtener detalles actualizados del correo
+      let updatedTags = [];
+      try {
+        const res = await fetch(`/api/email/${emailId}`);
+        if (res.ok) {
+          const json = await res.json();
+          updatedTags = json.data?.tagsDetails || json.data?.tags || [];
+        }
+      } catch(_) {}
+      // Fallback local
+      if (updatedTags.length === 0) {
+        addTagToEmail(currentUser.uid, emailId, tagId);
+        updatedTags = getEmailTagsDetails(currentUser.uid, emailId);
+      }
       setTags(updatedTags);
-      
-      // Cerrar selector
       setIsSelectingTag(false);
-      
-      // Notificar cambio
       if (onTagsChange) {
         onTagsChange(updatedTags);
       }
@@ -57,18 +71,31 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
   };
   
   // Quitar etiqueta del correo
-  const handleRemoveTag = (tagId) => {
+  const handleRemoveTag = async (tagId) => {
     if (!currentUser || !emailId) return;
     
     try {
-      // Quitar etiqueta
-      removeTagFromEmail(currentUser.uid, emailId, tagId);
-      
-      // Actualizar etiquetas del correo
-      const updatedTags = getEmailTagsDetails(currentUser.uid, emailId);
+      // Llamar a backend
+      try {
+        await fetch(`/api/email/${emailId}/tag/${tagId}`, {
+          method: 'DELETE'
+        });
+      } catch(_) {}
+
+      // Obtener detalles actualizados
+      let updatedTags = [];
+      try {
+        const res = await fetch(`/api/email/${emailId}`);
+        if (res.ok) {
+          const json = await res.json();
+          updatedTags = json.data?.tagsDetails || json.data?.tags || [];
+        }
+      } catch(_) {}
+      if (updatedTags.length === 0) {
+        removeTagFromEmail(currentUser.uid, emailId, tagId);
+        updatedTags = getEmailTagsDetails(currentUser.uid, emailId);
+      }
       setTags(updatedTags);
-      
-      // Notificar cambio
       if (onTagsChange) {
         onTagsChange(updatedTags);
       }
@@ -85,6 +112,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
           <div 
             key={safeRender(tag.id, '')}
             className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+            data-testid="email-tag"
             style={{ 
               backgroundColor: `${safeRender(tag.color, '#64748b')}20`,
               color: safeRender(tag.color, '#64748b'),
@@ -95,7 +123,8 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
             <span>{safeRender(tag.name, '')}</span>
             <button 
               onClick={() => handleRemoveTag(safeRender(tag.id, ''))}
-              className="ml-1 rounded-full hover:bg-opacity-20 hover:bg-gray-600"
+              className="ml-1 rounded-full hover:bg-opacity-20 hover:bg-gray-600 remove-tag-button"
+              data-testid="remove-tag-button"
             >
               <X size={12} />
             </button>
@@ -106,6 +135,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         {!isSelectingTag ? (
           <button 
             onClick={() => setIsSelectingTag(true)}
+            data-testid="tag-menu-button"
             className="inline-flex items-center rounded-full border border-dashed border-gray-300 px-2.5 py-0.5 text-xs text-gray-500 hover:border-gray-400 hover:bg-gray-50"
           >
             <Plus size={12} className="mr-1" /> 
@@ -114,6 +144,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
         ) : (
           <button 
             onClick={() => setIsSelectingTag(false)}
+            data-testid="tag-menu-button"
             className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-700"
           >
             <X size={12} className="mr-1" /> 
@@ -132,6 +163,7 @@ const EmailTagsManager = ({ emailId, onTagsChange }) => {
                 <div
                   key={safeRender(tag.id, '')}
                   onClick={() => handleAddTag(safeRender(tag.id, ''))}
+                  data-testid="tag-option"
                   className="flex items-center px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
                 >
                   <div 

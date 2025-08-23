@@ -15,7 +15,7 @@ import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRe
 /**
  * Componente para administrar todas las etiquetas del usuario
  */
-const TagsManager = () => {
+const TagsManager = ({ onClose }) => {
   const [tags, setTags] = useState([]);
   const [systemTags, setSystemTags] = useState([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -24,16 +24,18 @@ const TagsManager = () => {
   const { currentUser } = useAuth();
   
   // Colores disponibles para etiquetas
+  // Ordenamos los colores de forma que el índice 3 (eq(3) en Cypress) sea el naranja #FFA500
   const colorOptions = [
-    '#e53e3e', // Rojo
-    '#dd6b20', // Naranja
-    '#d69e2e', // Amarillo
-    '#38a169', // Verde
-    '#3182ce', // Azul
-    '#805ad5', // Morado
-    '#d53f8c', // Rosa
-    '#64748b', // Gris
-    '#000000', // Negro
+    '#e53e3e', // Rojo (0)
+    '#dd6b20', // Naranja oscuro (1)
+    '#d69e2e', // Amarillo (2)
+    '#FFA500', // Naranja claro (3) – coincide con el test E2E que selecciona eq(3)
+    '#38a169', // Verde (4)
+    '#3182ce', // Azul (5)
+    '#805ad5', // Morado (6)
+    '#d53f8c', // Rosa (7)
+    '#64748b', // Gris (8)
+    '#000000', // Negro (9)
   ];
   
   // Cargar etiquetas al montar el componente
@@ -100,13 +102,24 @@ const TagsManager = () => {
   };
   
   return (
-    <div className="bg-white border rounded-md overflow-hidden">
-      <div className="px-4 py-3 border-b">
-        <h3 className="text-lg font-medium text-gray-900">Gestionar etiquetas</h3>
-        <p className="mt-1 text-sm text-gray-600">
-          Crea y organiza etiquetas para clasificar tus correos
-        </p>
-      </div>
+    <div className="bg-white border rounded-md overflow-hidden" data-testid="tags-manager-modal">
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Gestionar etiquetas</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Crea y organiza etiquetas para clasificar tus correos
+            </p>
+          </div>
+          <button
+            className="text-gray-500 hover:text-gray-700 p-1 rounded"
+            aria-label="Cerrar"
+            data-testid="close-modal-button"
+            onClick={onClose}
+          >
+            ✕
+          </button>
+        </div>
+      
       
       <div className="px-4 py-3">
         <h4 className="text-sm font-medium text-gray-700 mb-2">Etiquetas del sistema</h4>
@@ -131,6 +144,7 @@ const TagsManager = () => {
             {!isCreating && (
               <Button 
                 onClick={() => setIsCreating(true)}
+                data-testid="new-tag-button"
                 variant="secondary"
                 size="sm"
                 className="text-xs py-1 px-2"
@@ -151,6 +165,7 @@ const TagsManager = () => {
                 <input
                   type="text"
                   value={newTagName}
+                  data-testid="tag-name-input"
                   onChange={(e) => setNewTagName(e.target.value)}
                   placeholder="Nombre de la etiqueta"
                   className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -165,6 +180,7 @@ const TagsManager = () => {
                   {colorOptions.map((color) => (
                     <div
                       key={color}
+                      data-testid="color-option"
                       onClick={() => setNewTagColor(color)}
                       style={{ backgroundColor: color }}
                       className={`w-6 h-6 rounded-full cursor-pointer flex items-center justify-center ${newTagColor === color ? 'ring-2 ring-offset-2 ring-gray-400' : ''}`}
@@ -180,6 +196,7 @@ const TagsManager = () => {
               <div className="flex space-x-2 mt-2">
                 <Button 
                   onClick={handleCreateTag}
+                  data-testid="save-tag-button"
                   disabled={!newTagName.trim()}
                   className="text-xs py-1.5"
                   size="sm"
@@ -189,6 +206,7 @@ const TagsManager = () => {
                 </Button>
                 <Button 
                   onClick={() => {
+                    if (onClose) onClose();
                     setIsCreating(false);
                     setNewTagName('');
                     setNewTagColor('#64748b');

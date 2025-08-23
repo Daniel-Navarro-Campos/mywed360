@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Inbox, Send, Trash, Edit, Search, RefreshCw, Filter, Tag, BarChart2, ArrowLeft } from 'lucide-react';
+import { Mail, Inbox, Send, Trash, Edit, Search, RefreshCw, Filter, Tag, BarChart2, ArrowLeft, File } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Button from '../../components/Button';
@@ -11,6 +11,8 @@ import EmailList from '../../components/email/EmailList';
 import EmailDetail from '../../components/email/EmailDetail';
 import EmailFilters from '../../components/email/EmailFilters';
 import CustomFolders from '../../components/email/CustomFolders';
+import ManageFoldersModal from '../../components/email/ManageFoldersModal';
+import EmptyTrashModal from '../../components/email/EmptyTrashModal';
 import { useAuth } from '../../hooks/useAuth';
 import { 
   getUserFolders, 
@@ -27,6 +29,8 @@ import {
   getEmailTagsDetails,
   getEmailsByTag
 } from '../../services/tagService';
+import TagsSidebar from '../../components/email/TagsSidebar';
+import TagsManager from '../../components/email/TagsManager';
 
 /**
  * Página de bandeja de entrada de correo electrónico para usuarios
@@ -44,6 +48,9 @@ const EmailInbox = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [customFolders, setCustomFolders] = useState([]);
   const [selectedCustomFolder, setSelectedCustomFolder] = useState(null);
+  const [showManageFolders, setShowManageFolders] = useState(false);
+  const [showManageTags, setShowManageTags] = useState(false);
+  const [showEmptyTrashModal, setShowEmptyTrashModal] = useState(false);
   const [availableTags, setAvailableTags] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
   const [isFilteringByTag, setIsFilteringByTag] = useState(false);
@@ -179,6 +186,84 @@ const EmailInbox = () => {
     toast.info('Correos actualizados');
   };
   
+  // Manejar selección de etiqueta
+  const handleSelectTag = async (tagId) => {
+    setSelectedTag(tagId);
+    setIsFilteringByTag(true);
+    setCurrentFolder(null);
+    setSelectedCustomFolder(null);
+
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/email/filter/tag/${tagId}`);
+      if (res.ok) {
+        const json = await res.json();
+        setEmails(json.data || []);
+      } else {
+        await loadEmails();
+      }
+    } catch (error) {
+      console.error('Error al filtrar por etiqueta:', error);
+      await loadEmails();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Limpiar filtro de etiqueta
+  const handleClearTagFilter = async () => {
+    setSelectedTag(null);
+    setIsFilteringByTag(false);
+    setCurrentFolder('inbox');
+    setSelectedCustomFolder(null);
+    try {
+      setLoading(true);
+      const res = await fetch('/api/email/inbox');
+      if (res.ok) {
+        const json = await res.json();
+        setEmails(json.data || []);
+      } else {
+        await loadEmails();
+      }
+    } catch (error) {
+      console.error('Error al limpiar filtro de etiqueta:', error);
+      await loadEmails();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar bandeja de entrada y etiquetas desde backend (para tests)
+  useEffect(() => {
+    if (!currentUser) return;
+    const fetchInitialData = async () => {
+      try {
+        // Bandeja de entrada
+        const inboxRes = await fetch('/api/email/inbox');
+        if (inboxRes.ok) {
+          const inboxJson = await inboxRes.json();
+          setEmails(inboxJson.data || []);
+        }
+      } catch (e) {
+        // Fallback local
+        const localEmails = await getMails('inbox');
+        setEmails(localEmails);
+      }
+
+      try {
+        const res = await fetch('/api/tags');
+        if (res.ok) {
+          const json = await res.json();
+          setAvailableTags(json.data || []);
+          return;
+        }
+      } catch (_) {}
+      // Fallback
+      setAvailableTags(getUserTags(currentUser.uid));
+    };
+    fetchInitialData();
+  }, [currentUser]);  
+
   // Función para seleccionar un correo
   const handleSelectEmail = async (email) => {
     setSelectedEmail(email);
@@ -297,12 +382,16 @@ const EmailInbox = () => {
   const handleSelectCustomFolder = (folderId) => {
     setSelectedCustomFolder(folderId);
     setCurrentFolder(null); // Desactivar carpetas del sistema
+    setSelectedTag(null);
+    setIsFilteringByTag(false)
   };
   
   // Manejar selección de carpeta del sistema
   const handleSelectSystemFolder = (folder) => {
     setCurrentFolder(folder);
     setSelectedCustomFolder(null); // Desactivar carpetas personalizadas
+    setSelectedTag(null);
+    setIsFilteringByTag(false)
   };
   
   // Manejar movimiento de correo a carpeta
@@ -437,42 +526,99 @@ const EmailInbox = () => {
         {/* Barra lateral - Carpetas del sistema y personalizadas */}
         <div className="col-span-1">
           <Card className="overflow-hidden">
-            <nav className="flex flex-col p-2">
+            <nav className="flex flex-col p-2" data-testid="folders-sidebar">
               <Button 
                 variant={currentFolder === 'inbox' && !selectedCustomFolder ? 'subtle' : 'ghost'} 
-                className="w-full justify-start" 
+                className={`w-full justify-start system-folder ${currentFolder === 'inbox' && !selectedCustomFolder ? 'active' : ''}`}
+                data-testid="folder-item" 
                 onClick={() => handleSelectSystemFolder('inbox')}
               >
                 <Inbox size={18} className="mr-2" /> Bandeja de entrada
               </Button>
               <Button 
                 variant={currentFolder === 'sent' && !selectedCustomFolder ? 'subtle' : 'ghost'} 
-                className="w-full justify-start" 
+                className={`w-full justify-start system-folder ${currentFolder === 'sent' && !selectedCustomFolder ? 'active' : ''}`}
+                data-testid="folder-item" 
                 onClick={() => handleSelectSystemFolder('sent')}
               >
                 <Send size={18} className="mr-2" /> Enviados
               </Button>
               <Button 
                 variant={currentFolder === 'trash' && !selectedCustomFolder ? 'subtle' : 'ghost'} 
-                className="w-full justify-start" 
+                className={`w-full justify-start system-folder ${currentFolder === 'trash' && !selectedCustomFolder ? 'active' : ''}`}
+                data-testid="folder-item" 
                 onClick={() => handleSelectSystemFolder('trash')}
               >
                 <Trash size={18} className="mr-2" /> Papelera
               </Button>
+              <Button 
+                variant={currentFolder === 'drafts' && !selectedCustomFolder ? 'subtle' : 'ghost'} 
+                className={`w-full justify-start system-folder ${currentFolder === 'drafts' && !selectedCustomFolder ? 'active' : ''}`}
+                data-testid="folder-item" 
+                onClick={() => handleSelectSystemFolder('drafts')}
+              >
+                <File size={18} className="mr-2" /> Borradores
+              </Button>
             </nav>
-            
-            {/* Separador */}
-            <div className="border-t border-gray-200 my-2"></div>
-            
-            {/* Carpetas personalizadas */}
-            <CustomFolders 
-              folders={customFolders}
-              activeFolder={selectedCustomFolder}
-              onSelectFolder={handleSelectCustomFolder}
-              onCreateFolder={handleCreateFolder}
-              onRenameFolder={handleRenameFolder}
-              onDeleteFolder={handleDeleteFolder}
-            />
+
+             {/* Separador */}
+             <div className="border-t border-gray-200 my-2"></div>
+
+             {/* Encabezado Etiquetas */}
+             <div className="flex items-center justify-between px-2 mb-1">
+               <h3 className="text-sm font-medium">Etiquetas</h3>
+               <Button
+                 variant="ghost"
+                 size="xs"
+                 data-testid="manage-tags-button"
+                 onClick={() => setShowManageTags(true)}
+               >
+                 Gestionar
+               </Button>
+             </div>
+
+             {/* Barra lateral de etiquetas */}
+             <TagsSidebar 
+               tags={availableTags}
+               activeTagId={selectedTag}
+               onSelectTag={handleSelectTag}
+             />
+
+             {/* Encabezado carpetas personalizadas + botón gestionar */}
+             <div className="flex items-center justify-between px-2 mb-1">
+               <h3 className="text-sm font-medium">Carpetas</h3>
+               <Button
+                 variant="ghost"
+                 size="xs"
+                 data-testid="manage-folders-button"
+                 onClick={() => setShowManageFolders(true)}
+               >
+                 Gestionar
+               </Button>
+             </div>
+
+             {/* Carpetas personalizadas */}
+             <CustomFolders
+               folders={customFolders}
+               activeFolder={selectedCustomFolder}
+               onSelectFolder={handleSelectCustomFolder}
+               onCreateFolder={handleCreateFolder}
+               onRenameFolder={handleRenameFolder}
+               onDeleteFolder={handleDeleteFolder}
+             />
+
+             {/* Botón vaciar papelera */}
+             {currentFolder === 'trash' && !selectedCustomFolder && (
+               <Button
+                 variant="danger"
+                 size="sm"
+                 className="mt-3 mx-2"
+                 data-testid="empty-trash-button"
+                 onClick={() => setShowEmptyTrashModal(true)}
+               >
+                 Vaciar papelera
+               </Button>
+             )}
           </Card>
         </div>
         {/* Panel central y derecho - Lista de emails y detalle */}
@@ -531,7 +677,24 @@ const EmailInbox = () => {
               )}
             </div>
             
-            {/* Filtros avanzados */}
+            {/* Indicador de filtro por etiqueta */}
+{isFilteringByTag && selectedTag && (
+  <div className="flex items-center mb-2">
+    <span data-testid="active-filter-indicator" className="mr-2">
+      {availableTags.find(t => t.id === selectedTag)?.name || ''}
+    </span>
+    <Button
+      variant="ghost"
+      size="xs"
+      data-testid="clear-filter-button"
+      onClick={handleClearTagFilter}
+    >
+      Limpiar
+    </Button>
+  </div>
+)}
+
+{/* Filtros avanzados */}
             {showAdvancedFilters && (
               <div className="mb-3">
                 <EmailFilters 
@@ -613,6 +776,31 @@ const EmailInbox = () => {
       
       {/* Notificaciones toast */}
       <ToastContainer position="bottom-right" autoClose={3000} />
+
+      {/* Modales de gestión y vaciar papelera */}
+      <ManageFoldersModal
+        isOpen={showManageFolders}
+        folders={[...customFolders, { id: 'inbox', name: 'Bandeja de entrada', system: true }, { id: 'sent', name: 'Enviados', system: true }, { id: 'drafts', name: 'Borradores', system: true }, { id: 'trash', name: 'Papelera', system: true }]}
+        onClose={() => setShowManageFolders(false)}
+        onDeleteFolder={handleDeleteFolder}
+      />
+      <TagsManager 
+        isOpen={showManageTags}
+        onClose={() => setShowManageTags(false)}
+      />
+      <EmptyTrashModal
+        isOpen={showEmptyTrashModal}
+        onClose={() => setShowEmptyTrashModal(false)}
+        onConfirm={async () => {
+          try {
+            await fetch('/api/email/trash/empty', { method: 'DELETE' });
+            setShowEmptyTrashModal(false);
+            handleRefresh();
+          } catch (e) {
+            console.error('Error al vaciar papelera', e);
+          }
+        }}
+      />
     </div>
   );
 };
