@@ -8,6 +8,8 @@ import { doc as fsDoc, setDoc, getDoc, getDocs, collection as fsCollection, onSn
 import { db } from '../firebaseConfig';
 import { saveData, loadData, subscribeSyncState, getSyncState } from '../services/SyncService';
 import { useWedding } from '../context/WeddingContext';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 // Utilidad para normalizar IDs de mesas
 export const normalizeId = (id) => {

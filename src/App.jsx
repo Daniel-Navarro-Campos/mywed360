@@ -25,7 +25,7 @@ import AdminRoutes from './routes/AdminRoutes';
 import UserRoutes from './routes/UserRoutes';
 
 import Perfil from './pages/Perfil';
-import SeatingPlan from './pages/SeatingPlan';
+import SeatingPlanRefactored from './components/seating/SeatingPlanRefactored';
 import Invitaciones from './pages/Invitaciones';
 import Contratos from './pages/Contratos';
 
@@ -98,7 +98,7 @@ function App() {
               <Route path="bodas/:id" element={<BodaDetalle />} />
               <Route path="finance" element={<Finance />} />
               <Route path="invitados" element={<Invitados />} />
-              <Route path="invitados/seating" element={<SeatingPlan />} />
+              <Route path="invitados/seating" element={<SeatingPlanRefactored />} />
               <Route path="invitados/invitaciones" element={<Invitaciones />} />
               <Route path="proveedores" element={<Proveedores />} />
               <Route path="proveedores/contratos" element={<Contratos />} />
