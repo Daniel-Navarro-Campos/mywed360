@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import { ArrowLeft, CheckCircle, Circle } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Progress } from '../components/ui/Progress';
@@ -81,7 +81,8 @@ function formatDateEs(dateVal) {
 
 export default function BodaDetalle() {
   const { id } = useParams();
-  const { role } = useUserContext();
+  const { currentUser } = useAuth();
+  const role = currentUser?.role;
   const [wedding, setWedding] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();

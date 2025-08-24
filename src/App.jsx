@@ -2,7 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import UserProvider, { useUserContext } from './context/UserContext';
+import UserProvider from './context/UserContext'; // Legacy - mantener durante migración
+import { useAuth } from './hooks/useAuthUnified';
 import { AuthProvider } from './hooks/useAuth'; // Importamos el AuthProvider legacy
 import AuthMigrationWrapper from './components/auth/AuthMigrationWrapper'; // Nuevo sistema de autenticación
 import MainLayout from './components/MainLayout';
@@ -55,8 +56,8 @@ import RSVPConfirm from './pages/RSVPConfirm';
 import AcceptInvitation from './pages/AcceptInvitation';
 
 function ProtectedRoute() {
-  const { isAuthenticated, loading } = useUserContext();
-  if (loading) {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
     // Mientras se resuelve el estado de autenticación, no hagas redirecciones prematuras
     return null; // Se podría mostrar un spinner si se desea
   }

@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui';
 import PageWrapper from '../../components/PageWrapper';
 import { Button } from '../../components/ui';
-import { useUserContext } from '../../context/UserContext';
+import { useAuth } from '../../hooks/useAuthUnified';
 
 const AyudaCeremonia = () => {
-  const { user } = useUserContext();
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('lecturas');
   const [readings, setReadings] = useState([
     { id: 1, title: 'Lectura 1', content: 'Texto de la primera lectura...', duration: '3 min', status: 'draft' },

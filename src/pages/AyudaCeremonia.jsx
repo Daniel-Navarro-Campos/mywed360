@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import { MessageSquare, Clock, RefreshCcw } from 'lucide-react';
 import PageWrapper from '../components/PageWrapper';
 
@@ -11,7 +11,8 @@ const sampleBlocks = [
 ];
 
 export default function AyudaCeremonia() {
-  const { role } = useUserContext();
+  const { currentUser } = useAuth();
+  const role = currentUser?.role;
   const allowed = ['ayudante', 'wedding_planner', 'admin'];
   if (!allowed.includes(role)) {
     return <div className="p-6 text-red-600">Acceso denegado. Solo ayudantes o wedding planners.</div>;

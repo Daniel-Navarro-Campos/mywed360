@@ -5,12 +5,12 @@ import { useNavigate } from 'react-router-dom';
 import WeddingFormModal from '../components/WeddingFormModal';
 import { Card } from '../components/ui/Card';
 import { Progress } from '../components/ui/Progress';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import { useWedding } from '../context/WeddingContext';
 
 
 export default function Bodas() {
-  const { user } = useUserContext();
+  const { currentUser } = useAuth();
   const { setActiveWedding } = useWedding();
   const [weddings, setWeddings] = useState([]);
   const [loading, setLoading] = useState(true);

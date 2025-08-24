@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from './useAuthUnified';
 
 /**
  * Hook personalizado para gestionar el estado del onboarding del usuario
@@ -12,7 +12,7 @@ import { useUserContext } from '../context/UserContext';
  * }}
  */
 export const useOnboarding = () => {
-  const { user } = useUserContext();
+  const { currentUser } = useAuth();
   // Si existe flag en localStorage, mostramos onboarding sí o sí
   const forceFlag = typeof window !== 'undefined' ? localStorage.getItem('forceOnboarding') === '1' : false;
   const [showOnboarding, setShowOnboarding] = useState(forceFlag);
@@ -24,7 +24,7 @@ export const useOnboarding = () => {
   // Verificar si el usuario ya completó el onboarding
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (user?.role && ['planner', 'assistant'].includes(user.role)) {
+      if (currentUser?.role && ['planner', 'assistant'].includes(currentUser.role)) {
         // No mostrar tutorial para wedding planners ni ayudantes
         setShowOnboarding(false);
         setOnboardingCompleted(true);
@@ -35,7 +35,7 @@ export const useOnboarding = () => {
         setLoading(false);
         return;
       }
-      if (!user?.uid) {
+      if (!currentUser?.uid) {
         setLoading(false);
         return;
       }

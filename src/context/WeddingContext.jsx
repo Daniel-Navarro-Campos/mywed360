@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useUserContext } from './UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 
@@ -35,7 +35,7 @@ async function ensureFinance(weddingId){
 
 export default function WeddingProvider({ children }) {
   const [weddings, setWeddings] = useState([]);
-  const { user } = useUserContext();
+  const { currentUser } = useAuth();
   const [activeWedding, setActiveWeddingState] = useState(() => {
     return localStorage.getItem('lovenda_active_wedding') || '';
   });
@@ -44,13 +44,13 @@ export default function WeddingProvider({ children }) {
   useEffect(() => {
     let unsubscribe;
     async function listenWeddings() {
-      if (!user) return; // espera a que cargue usuario
+      if (!currentUser) return; // espera a que cargue usuario
       try {
         const { db } = await import('../firebaseConfig');
         const { collection, query, where, onSnapshot } = await import('firebase/firestore');
 
-        const plannersQ = query(collection(db, 'weddings'), where('plannerIds', 'array-contains', user.uid));
-        const ownersQ = query(collection(db, 'weddings'), where('ownerIds', 'array-contains', user.uid));
+        const plannersQ = query(collection(db, 'weddings'), where('plannerIds', 'array-contains', currentUser.uid));
+        const ownersQ = query(collection(db, 'weddings'), where('ownerIds', 'array-contains', currentUser.uid));
 
         let plannerDocs = [];
         let ownerDocs = [];
@@ -82,7 +82,7 @@ export default function WeddingProvider({ children }) {
       }
     }
     listenWeddings();
-  }, [user]);
+  }, [currentUser]);
 
   const setActiveWedding = (id) => {
     setActiveWeddingState(id);

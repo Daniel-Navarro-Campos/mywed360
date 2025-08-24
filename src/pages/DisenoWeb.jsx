@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 
 export default function DisenoWeb() {
-  const { user } = useUserContext();
-  const uid = user?.uid || 'dev';
+  const { currentUser } = useAuth();
+  const uid = currentUser?.uid || 'dev';
   const [prompt, setPrompt] = useState('');
   const [html, setHtml] = useState('');
   const [profile, setProfile] = useState(null);

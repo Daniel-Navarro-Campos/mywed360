@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { doc, getDoc, setDoc, collection, getDocs, addDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import { Plus, Trash, Zap } from 'lucide-react';
 
 /*
@@ -10,8 +10,8 @@ import { Plus, Trash, Zap } from 'lucide-react';
 */
 
 export default function WebEditor() {
-  const { user } = useUserContext();
-  const uid = user?.uid || 'dev';
+  const { currentUser } = useAuth();
+  const uid = currentUser?.uid || 'dev';
 
   const [info, setInfo] = useState({
     coupleName: '',

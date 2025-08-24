@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useUserContext } from '../../context/UserContext';
+import { useAuth } from '../../hooks/useAuthUnified';
 import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { createWedding, getWeddingIdForOwner } from '../../services/WeddingService';
 import { googleCalendarService } from '../../services/GoogleCalendarService';
@@ -10,7 +10,7 @@ import { ChevronRight, ChevronLeft, Check, Calendar, Users, ShoppingBag, Setting
  * Tutorial de onboarding para nuevos usuarios
  */
 const OnboardingTutorial = ({ onComplete }) => {
-  const { user } = useUserContext();
+  const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [profileData, setProfileData] = useState({
     nombres: '',
@@ -25,10 +25,10 @@ const OnboardingTutorial = ({ onComplete }) => {
   // Carga datos del perfil si existen
   useEffect(() => {
     const fetchProfileData = async () => {
-      if (!user?.uid) return;
+      if (!currentUser?.uid) return;
       
       try {
-        const profileDoc = await getDoc(doc(db, 'users', user.uid));
+        const profileDoc = await getDoc(doc(db, 'users', currentUser.uid));
         if (profileDoc.exists()) {
           const data = profileDoc.data();
           if (data.weddingInfo) {

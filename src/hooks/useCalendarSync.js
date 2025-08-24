@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { googleCalendarService } from '../services/GoogleCalendarService';
 import { collection, doc, setDoc, getDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from './useAuthUnified';
 
 /**
  * Hook personalizado para gestionar la sincronización bidireccional con Google Calendar
  * @returns {Object} - Objeto con métodos y estado de sincronización
  */
 export const useCalendarSync = () => {
-  const { user } = useUserContext();
+  const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [syncedCalendars, setSyncedCalendars] = useState([]);
@@ -37,7 +37,7 @@ export const useCalendarSync = () => {
     };
 
     loadSyncStatus();
-  }, [user]);
+  }, [currentUser]);
 
   // Inicializar Google Calendar API
   useEffect(() => {

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui';
 import { Button } from '../components/ui';
 import { Input } from '../components/ui';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import { toast } from 'react-toastify';
 import useRoles from '../hooks/useRoles';
 import { Users, X } from 'lucide-react';
@@ -376,8 +376,9 @@ function LegacyPerfil() {
     sendPasswordReset, 
     updateUserEmail,
     updateUserPassword,
-    reauthenticate
-  } = useUserContext();
+    reauthenticate,
+    currentUser
+  } = useAuth();
   
   const [activeTab, setActiveTab] = useState('profile');
   // Estado para mostrar/ocultar menú lateral en pantallas pequeñas

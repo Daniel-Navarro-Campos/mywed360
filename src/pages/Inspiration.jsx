@@ -2,14 +2,14 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { trackInteraction } from '../services/inspirationService';
 import { fetchWall } from '../services/wallService';
 import { saveData, loadData } from '../services/SyncService';
-import { useUserContext } from '../context/UserContext';
+import { useAuth } from '../hooks/useAuthUnified';
 import Spinner from '../components/Spinner';
 import InspirationGallery from '../components/gallery/InspirationGallery';
 import SearchBar from '../components/SearchBar';
 
 export default function Inspiration() {
-  const { user } = useUserContext();
-  const userId = user?.id || 'anon';
+  const { currentUser } = useAuth();
+  const userId = currentUser?.id || 'anon';
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
