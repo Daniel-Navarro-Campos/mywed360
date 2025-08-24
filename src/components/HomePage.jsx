@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
 import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
@@ -104,7 +104,7 @@ export default function HomePage() {
     loadNews();
   }, []);
 
-  const handleRedoTutorial = async () => {
+  const handleRedoTutorial = useCallback(async () => {
     if (!confirm('Esto eliminará datos locales y creará una nueva boda de prueba. ¿Continuar?')) return;
     try {
       // 1. Limpiar almacenamiento y marcar flag para mostrar tutorial
@@ -117,54 +117,82 @@ export default function HomePage() {
       console.error(err);
       toast.error('No se pudo reiniciar el tutorial');
     }
-  };
+  }, []);
   const scrollAmount = 300;
 
-  const scrollPrev = () => {
+  const scrollPrev = useCallback(() => {
     galleryRef.current?.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-  };
+  }, []);
 
-  const scrollNext = () => {
+  const scrollNext = useCallback(() => {
     galleryRef.current?.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-  };
+  }, []);
 
-  // --- Métricas dinámicas ---
-  const guestsArr = (() => {
-    try { return JSON.parse(localStorage.getItem('lovendaGuests') || '[]'); } catch { return []; }
-  })();
-  const confirmedCount = guestsArr.filter(g => ((g.response || g.status || '').toLowerCase() === 'confirmado')).length;
-  const totalGuests = guestsArr.length;
+  // --- Métricas dinámicas (memoizadas para performance) ---
+  const guestsMetrics = useMemo(() => {
+    try {
+      const guestsArr = JSON.parse(localStorage.getItem('lovendaGuests') || '[]');
+      const confirmedCount = guestsArr.filter(g => ((g.response || g.status || '').toLowerCase() === 'confirmado')).length;
+      return { guestsArr, confirmedCount, totalGuests: guestsArr.length };
+    } catch {
+      return { guestsArr: [], confirmedCount: 0, totalGuests: 0 };
+    }
+  }, []);
 
-  const tasksCompletedMap = (() => { try { return JSON.parse(localStorage.getItem('tasksCompleted') || '{}'); } catch { return {}; } })();
-  const meetingsArr = (() => { try { return JSON.parse(localStorage.getItem('lovendaMeetings') || '[]'); } catch { return []; } })();
-  const longTasksArr = (() => { try { return JSON.parse(localStorage.getItem('lovendaLongTasks') || '[]'); } catch { return []; } })();
-  const allTasks = [...meetingsArr, ...longTasksArr];
-  const tasksTotal = allTasks.length;
-  const tasksCompleted = allTasks.filter(t => tasksCompletedMap[t.id]).length;
+  const tasksMetrics = useMemo(() => {
+    try {
+      const tasksCompletedMap = JSON.parse(localStorage.getItem('tasksCompleted') || '{}');
+      const meetingsArr = JSON.parse(localStorage.getItem('lovendaMeetings') || '[]');
+      const longTasksArr = JSON.parse(localStorage.getItem('lovendaLongTasks') || '[]');
+      const allTasks = [...meetingsArr, ...longTasksArr];
+      const tasksTotal = allTasks.length;
+      const tasksCompleted = allTasks.filter(t => tasksCompletedMap[t.id]).length;
+      return { tasksTotal, tasksCompleted };
+    } catch {
+      return { tasksTotal: 0, tasksCompleted: 0 };
+    }
+  }, []);
 
-  const providersArr = (() => { try { return JSON.parse(localStorage.getItem('lovendaProviders') || '[]'); } catch { return []; } })();
-  const providersTotalNeeded = 8; // puede venir de ajustes
-  const providersAssigned = providersArr.length;
+  const providersMetrics = useMemo(() => {
+    try {
+      const providersArr = JSON.parse(localStorage.getItem('lovendaProviders') || '[]');
+      const providersTotalNeeded = 8; // puede venir de ajustes
+      const providersAssigned = providersArr.length;
+      return { providersAssigned, providersTotalNeeded };
+    } catch {
+      return { providersAssigned: 0, providersTotalNeeded: 8 };
+    }
+  }, []);
 
-  const movements = (() => { try { return JSON.parse(localStorage.getItem('quickMovements') || '[]'); } catch { return []; } })();
-  const spent = movements.filter(m => m.type !== 'income').reduce((sum, m) => sum + (m.amount || 0), 0);
+  const financeMetrics = useMemo(() => {
+    try {
+      const movements = JSON.parse(localStorage.getItem('quickMovements') || '[]');
+      const spent = movements.filter(m => m.type !== 'income').reduce((sum, m) => sum + (m.amount || 0), 0);
+      return { movements, spent };
+    } catch {
+      return { movements: [], spent: 0 };
+    }
+  }, []);
   const budgetTotal = 15000; // placeholder
 
-  const statsNovios = [
-    { label: 'Invitados confirmados', value: confirmedCount, icon: Users },
-    { label: 'Presupuesto gastado', value: `€${spent.toLocaleString()}` + (budgetTotal ? ` / €${budgetTotal.toLocaleString()}` : ''), icon: DollarSign },
-    { label: 'Proveedores contratados', value: `${providersAssigned} / ${providersTotalNeeded}`, icon: User },
-    { label: 'Tareas completadas', value: `${tasksCompleted} / ${tasksTotal}`, icon: Calendar },
-  ];
+  const statsNovios = useMemo(() => [
+    { label: 'Invitados confirmados', value: guestsMetrics.confirmedCount, icon: Users },
+    { label: 'Presupuesto gastado', value: `€${financeMetrics.spent.toLocaleString()}` + (budgetTotal ? ` / €${budgetTotal.toLocaleString()}` : ''), icon: DollarSign },
+    { label: 'Proveedores contratados', value: `${providersMetrics.providersAssigned} / ${providersMetrics.providersTotalNeeded}`, icon: User },
+    { label: 'Tareas completadas', value: `${tasksMetrics.tasksCompleted} / ${tasksMetrics.tasksTotal}`, icon: Calendar },
+  ], [guestsMetrics, financeMetrics, providersMetrics, tasksMetrics, budgetTotal]);
 
-  const statsPlanner = [
-    { label: 'Tareas asignadas', value: `${tasksTotal}`, icon: Calendar },
-    { label: 'Proveedores asignados', value: providersAssigned, icon: User },
-    { label: 'Invitados confirmados', value: confirmedCount, icon: Users },
-    { label: 'Presupuesto gastado', value: `€${spent.toLocaleString()}` + (budgetTotal ? ` / €${budgetTotal.toLocaleString()}` : ''), icon: DollarSign },
-  ];
+  const statsPlanner = useMemo(() => [
+    { label: 'Tareas asignadas', value: `${tasksMetrics.tasksTotal}`, icon: Calendar },
+    { label: 'Proveedores asignados', value: providersMetrics.providersAssigned, icon: User },
+    { label: 'Invitados confirmados', value: guestsMetrics.confirmedCount, icon: Users },
+    { label: 'Presupuesto gastado', value: `€${financeMetrics.spent.toLocaleString()}` + (budgetTotal ? ` / €${budgetTotal.toLocaleString()}` : ''), icon: DollarSign },
+  ], [guestsMetrics, financeMetrics, providersMetrics, tasksMetrics, budgetTotal]);
 
-  const statsCommon = role === 'particular' ? statsNovios : statsPlanner;
+  const statsCommon = useMemo(() => 
+    role === 'particular' ? statsNovios : statsPlanner,
+    [role, statsNovios, statsPlanner]
+  );
 
   return (
     <React.Fragment>
