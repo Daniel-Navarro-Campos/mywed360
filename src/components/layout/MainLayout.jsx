@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, User, Mail, Settings, LogOut, Search } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuthUnified';
 import EmailNotificationBadge from '../email/EmailNotificationBadge';
 
 /**

@@ -4,7 +4,7 @@ import { Sparkles, Plus, Settings } from 'lucide-react';
 
 // Firebase
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc, getFirestore } from 'firebase/firestore';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuthUnified';
 import { db } from '../lib/firebase';
 
 // Componentes

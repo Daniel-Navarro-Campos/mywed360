@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tag, X, Plus, Check } from 'lucide-react';
 import Button from '../Button';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuthUnified';
 import { 
   getUserTags, 
   getEmailTagsDetails, 

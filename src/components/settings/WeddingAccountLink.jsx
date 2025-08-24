@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Check, AlertTriangle, Send as SendIcon, Users } from 'lucide-react';
 import Button from '../Button';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuthUnified';
 import {
   createWedding,
   invitePartner,

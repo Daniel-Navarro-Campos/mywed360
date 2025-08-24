@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { useAuth } from '../../../hooks/useAuth';
+import { useAuth } from '../../../hooks/useAuthUnified';
 import * as EmailService from '../../../services/emailService';
 import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
 import { useUnifiedInboxMetrics } from '../../../hooks/useUnifiedInboxMetrics';

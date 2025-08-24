@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuthUnified';
 import { toast } from 'react-toastify';
 import useRoles from '../hooks/useRoles';
 import { Users, X } from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
+
 import { auth, db } from '../firebaseConfig'; // respaldo para UID
 import 'react-toastify/dist/ReactToastify.css';
 import { invitePlanner, getWeddingIdForOwner } from '../services/WeddingService';

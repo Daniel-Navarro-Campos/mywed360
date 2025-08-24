@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash } from 'lucide-react';
 import * as CommentService from '../../services/commentService';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuthUnified';
 
 /**
  * Panel de comentarios internos para un email.

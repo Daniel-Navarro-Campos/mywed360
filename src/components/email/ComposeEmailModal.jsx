@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Paperclip, Send } from 'lucide-react';
 import Button from '../Button';
-import { sendMail } from '../../services/EmailService';
+import * as emailService from '../../services/emailService';
 import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**

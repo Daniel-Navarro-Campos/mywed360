@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuthUnified';
 
 // Contexto específico para preferencias de usuario y datos de perfil
 // Diferente del contexto de autenticación en /context/UserContext.jsx

@@ -13,7 +13,7 @@ import EmailFilters from '../../components/email/EmailFilters';
 import CustomFolders from '../../components/email/CustomFolders';
 import ManageFoldersModal from '../../components/email/ManageFoldersModal';
 import EmptyTrashModal from '../../components/email/EmptyTrashModal';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuthUnified';
 import useEmailUsername from '../../hooks/useEmailUsername';
 import { auth } from '../../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';

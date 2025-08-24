@@ -27,7 +27,7 @@ import {
   InputLabel
 } from '@mui/material';
 import { Search, Edit, Delete, Mail, Key, Shield, Download } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuthUnified';
 
 /**
  * Panel de gestión de usuarios para administradores

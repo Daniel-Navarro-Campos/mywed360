@@ -17,7 +17,7 @@ import TrackingModal from '../components/proveedores/tracking/TrackingModal';
 // Importar hooks personalizados
 import useProveedores from '../hooks/useProveedores';
 import useAISearch from '../hooks/useAISearch';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuthUnified';
 
 const Proveedores = () => {
   // Diagnóstico: verificar que la versión nueva se carga en el navegador
