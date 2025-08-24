@@ -228,7 +228,7 @@ export default function Proveedores() {
 
   // Verificar la operatividad de enlaces de proveedores
 const verifyProviderLinks = async (providers) => {
-  console.log('Verificando validez de enlaces de proveedores...');
+  // Verificando validez de enlaces de proveedores
   // Normalizar proveedores para asegurarnos de que todos tienen los mismos campos
   const normalizedProviders = providers.map((provider) => ({
     title: provider.title || provider.name || 'Proveedor sin nombre',

@@ -146,10 +146,10 @@ const GestionProveedores = () => {
         const proveedorRef = doc(db, `users/${userId}/proveedores`, datosProveedor.id);
         const { id, ...datosActualizar } = datosProveedor;
         await updateDoc(proveedorRef, datosActualizar);
-        console.log('Proveedor actualizado correctamente');
+        // Proveedor actualizado correctamente
       } else {
         // Si no tiene ID, crear nuevo
-        console.log('Creando nuevo proveedor para usuario:', userId);
+        // Creando nuevo proveedor
         const proveedoresRef = collection(db, `users/${userId}/proveedores`);
         const docRef = await addDoc(proveedoresRef, {
           ...datosProveedor,

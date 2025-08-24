@@ -20,8 +20,7 @@ import EmailComposer from '../EmailComposer';
  * @returns {JSX.Element} Componente contenedor de la bandeja unificada
  */
 const InboxContainer = () => {
-  // Mensaje de diagnóstico para verificar si el componente se renderiza
-  console.log('InboxContainer component rendering...');
+  // Componente contenedor principal para la bandeja de entrada unificada
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { trackOperation } = useEmailMonitoring();
