@@ -324,30 +324,23 @@ const InboxContainer = () => {
     setReplyingToEmail(email);
   }, []);
   
-  // Manejador para enviar email
-  const handleSendEmail = useCallback(async (emailData) => {
-    try {
-      await EmailService.sendMail(emailData);
-      toast.success('Email enviado correctamente');
-      setIsComposingEmail(false);
-      setReplyingToEmail(null);
-      
-      // Registrar la acción
-      logUserInteraction('send_email', { 
-        recipientCount: emailData.to.split(',').length,
-        hasAttachments: !!emailData.attachments?.length,
-        subjectLength: emailData.subject?.length || 0
-      });
-      
-      // Invalidar la caché de enviados
-      emailCache.invalidateFolder('sent');
-      
-      // Refrescar lista de emails
-      setRefreshTrigger(prev => prev + 1);
-    } catch (err) {
-      console.error('Error al enviar email:', err);
-      toast.error('Error al enviar el email');
-    }
+  // Callback después de que EmailComposer haya enviado el email correctamente
+  const handleEmailSent = useCallback((emailInfo) => {
+    // emailInfo contiene los datos devueltos por EmailService.sendEmail en EmailComposer
+    toast.success('Email enviado correctamente');
+    setIsComposingEmail(false);
+    setReplyingToEmail(null);
+
+    // Registrar interacción
+    logUserInteraction('send_email', {
+      recipientCount: emailInfo?.to?.split(',').length || 0,
+      hasAttachments: !!emailInfo?.attachments?.length,
+      subjectLength: emailInfo?.subject?.length || 0
+    });
+
+    // Invalidar caché de enviados y refrescar vista
+    emailCache.invalidateFolder('sent');
+    setRefreshTrigger(prev => prev + 1);
   }, [logUserInteraction]);
   
   // Manejador para eliminar un email
@@ -426,7 +419,7 @@ const InboxContainer = () => {
               {isComposingEmail ? (
                 <EmailComposer
                   replyTo={replyingToEmail}
-                  onSend={handleSendEmail}
+                  onSend={handleEmailSent}
                   onClose={() => {
                     setIsComposingEmail(false);
                     setReplyingToEmail(null);
