@@ -63,7 +63,7 @@ export const useOnboarding = () => {
     };
 
     checkOnboardingStatus();
-  }, [user, forceFlag]);
+  }, [currentUser, forceFlag]);
 
   // Función para marcar el onboarding como completado
   const completeOnboarding = () => {
