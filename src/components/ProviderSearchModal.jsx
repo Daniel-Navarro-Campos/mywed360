@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, RefreshCcw, Star, MapPin } from 'lucide-react';
 import { saveData } from '../services/SyncService';
 import { doc, getDoc } from 'firebase/firestore';
@@ -38,15 +38,15 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Servicios comunes para bodas
-  const commonServices = [
+  // Servicios comunes para bodas (memoizado para performance)
+  const commonServices = useMemo(() => [
     'Catering', 'Fotógrafo', 'Música', 'Flores',
     'Vestidos', 'Decoración', 'Lugar', 'Transporte',
     'Invitaciones', 'Pasteles', 'Joyería', 'Detalles'
-  ];
+  ], []);
 
-  // Verificar la operatividad de enlaces de proveedores
-  const verifyProviderLinks = async (providers) => {
+  // Verificar la operatividad de enlaces de proveedores (memoizada)
+  const verifyProviderLinks = useCallback(async (providers) => {
     console.log('Verificando validez de enlaces de proveedores...');
     
     // Crear un array de proveedores normalizados (asegurar que todos tienen campos consistentes)
@@ -88,10 +88,10 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
     }
     
     return validProviders;
-  };
+  }, [serviceFilter]);
 
-  // Manejar búsqueda con IA
-  const handleAiSearch = async (e) => {
+  // Manejar búsqueda con IA (memoizada)
+  const handleAiSearch = useCallback(async (e) => {
     e.preventDefault();
     if (!aiQuery.trim()) return;
     setAiLoading(true);
@@ -157,7 +157,7 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
     } finally {
       setAiLoading(false);
     }
-  };
+  }, [aiQuery, activeWedding, serviceFilter, budgetRange, verifyProviderLinks]);
 
   // Función para buscar proveedores usando OpenAI directamente
   const fetchOpenAi = async () => {
@@ -352,12 +352,12 @@ export default function ProviderSearchModal({ onClose, onSelectProvider }) {
     }
   };
 
-  const selectProvider = (item) => {
+  const selectProvider = useCallback((item) => {
     if (onSelectProvider) {
       onSelectProvider(item);
     }
     onClose();
-  };
+  }, [onSelectProvider, onClose]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[999]" onMouseDownCapture={(e)=>{if(e.target===e.currentTarget) onClose();}}>
