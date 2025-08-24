@@ -63,6 +63,13 @@ export default function UserProvider({ children }) {
       if (firebaseUser) {
         let role = 'particular';
         try {
+          // Validar que db esté inicializado correctamente
+          if (!db) {
+            console.warn('🚫 Firestore no está inicializado, usando rol por defecto');
+            setUser({ ...firebaseUser, role });
+            return;
+          }
+          
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             role = userDoc.data().role || 'particular';
@@ -79,7 +86,8 @@ export default function UserProvider({ children }) {
           console.warn('🔍 No se pudo obtener/crear el doc de usuario:', {
             code: err?.code,
             message: err?.message,
-            uid: firebaseUser?.uid
+            uid: firebaseUser?.uid,
+            dbInitialized: !!db
           });
           // Continuar con rol por defecto si hay error
         }

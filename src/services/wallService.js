@@ -74,9 +74,11 @@ export async function fetchWall(page = 1, query = 'wedding') {
 
     return obj;
   };
-  // Circuit breaker: evitar spam de requests fallidos
-  const lastFailureKey = 'wallService_lastFailure';
+  // Circuit breaker mejorado: evitar spam de requests fallidos
+  const lastFailureKey = `wallService_lastFailure_${page}_${query}`;
+  const lastRequestKey = `wallService_lastRequest_${page}_${query}`;
   const lastFailure = localStorage.getItem(lastFailureKey);
+  const lastRequest = localStorage.getItem(lastRequestKey);
   const now = Date.now();
   
   // Si falló hace menos de 5 minutos, usar datos demo directamente
@@ -84,6 +86,15 @@ export async function fetchWall(page = 1, query = 'wedding') {
     console.log('🔄 wallService: usando datos demo (circuit breaker activo)');
     return DEMO_IMAGES;
   }
+  
+  // Evitar requests duplicados en menos de 1 segundo (React Strict Mode)
+  if (lastRequest && (now - parseInt(lastRequest)) < 1000) {
+    console.log('🔄 wallService: request duplicado evitado, usando datos demo');
+    return DEMO_IMAGES;
+  }
+  
+  // Marcar timestamp del request
+  localStorage.setItem(lastRequestKey, now.toString());
   
   try {
     const resp = await axios.post(`${API_BASE}/api/instagram/wall`, { page, query });

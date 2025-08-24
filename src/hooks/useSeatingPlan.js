@@ -65,14 +65,20 @@ export const useSeatingPlan = () => {
     
     const loadHallDimensions = async () => {
       try {
-        const cfgRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet', 'config');
+        // Corregir referencia: usar colección/documento/colección/documento (número par de segmentos)
+        const cfgRef = fsDoc(db, 'weddings', activeWedding, 'seatingPlan', 'banquet');
         const snap = await getDoc(cfgRef);
         if (snap.exists()) {
-          const { width, height } = snap.data();
+          const data = snap.data();
+          const { width, height } = data?.config || data || {};
           if (width && height) setHallSize({ width, height });
         }
       } catch (err) {
-        console.warn('No se pudieron cargar dimensiones del salón:', err);
+        console.warn('🚫 No se pudieron cargar dimensiones del salón:', {
+          error: err?.message,
+          code: err?.code,
+          activeWedding
+        });
       }
     };
     
