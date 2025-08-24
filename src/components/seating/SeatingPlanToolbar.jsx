@@ -10,7 +10,7 @@ import {
   Download, 
   FileImage, 
   Settings, 
-  Grid3X3, 
+  Grid, 
   Users, 
   Maximize, 
   Palette,
@@ -105,7 +105,7 @@ const SeatingPlanToolbar = ({
               className="flex items-center gap-1 px-2 py-1 text-sm rounded hover:bg-gray-100"
               title="Configurar ceremonia"
             >
-              <Grid3X3 className="h-4 w-4" />
+              <Grid className="h-4 w-4" />
               <span className="hidden sm:inline">Ceremonia</span>
             </button>
           ) : (

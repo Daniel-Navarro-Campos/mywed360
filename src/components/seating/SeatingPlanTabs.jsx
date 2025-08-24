@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Church, Utensils, Users, Grid3X3 } from 'lucide-react';
+import { Church, Utensils, Users, Grid } from 'lucide-react';
 
 const SeatingPlanTabs = ({
   activeTab,

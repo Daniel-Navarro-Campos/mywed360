@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { X, Grid3X3, Users, Maximize, Palette, Zap } from 'lucide-react';
+import { X, Grid, Users, Maximize, Palette, Zap } from 'lucide-react';
 
 const Modal = ({ isOpen, onClose, title, children, icon: Icon }) => {
   if (!isOpen) return null;
@@ -61,7 +61,7 @@ const SeatingPlanModals = ({
         isOpen={ceremonyConfigOpen}
         onClose={onCloseCeremonyConfig}
         title="Configurar Ceremonia"
-        icon={Grid3X3}
+        icon={Grid}
       >
         <CeremonyConfigForm
           onGenerate={onGenerateSeatGrid}
