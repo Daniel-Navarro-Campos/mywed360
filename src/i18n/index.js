@@ -53,23 +53,24 @@ i18n
     // Namespace por defecto
     defaultNS: 'common',
     
-    // Configuración de interpolación
+    // Configuración de interpolación (nuevo formato)
     interpolation: {
       escapeValue: false, // React ya escapa por defecto
-      formatSeparator: ',',
-      format: function(value, format, lng) {
-        if (format === 'uppercase') return value.toUpperCase();
-        if (format === 'lowercase') return value.toLowerCase();
-        if (format === 'currency') {
-          return new Intl.NumberFormat(lng, {
-            style: 'currency',
-            currency: 'EUR'
-          }).format(value);
-        }
-        if (format === 'date') {
-          return new Intl.DateTimeFormat(lng).format(new Date(value));
-        }
-        return value;
+      formatSeparator: ','
+    },
+    
+    // Configuración de formateo (nuevo formato)
+    formatting: {
+      uppercase: (value) => value.toUpperCase(),
+      lowercase: (value) => value.toLowerCase(),
+      currency: (value, lng) => {
+        return new Intl.NumberFormat(lng, {
+          style: 'currency',
+          currency: 'EUR'
+        }).format(value);
+      },
+      date: (value, lng) => {
+        return new Intl.DateTimeFormat(lng).format(new Date(value));
       }
     },
     
