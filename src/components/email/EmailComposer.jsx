@@ -108,8 +108,8 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
       return false;
     }
     
-    if (!body || body.trim().length < 5) {
-      setError('El mensaje es demasiado corto');
+    if (!body || body.trim().length === 0) {
+      setError('El mensaje no puede estar vacío');
       return false;
     }
     
