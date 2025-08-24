@@ -55,6 +55,9 @@ import WeddingSite from './pages/WeddingSite';
 import RSVPConfirm from './pages/RSVPConfirm';
 import AcceptInvitation from './pages/AcceptInvitation';
 
+// Importar configuración de i18n
+import './i18n';
+
 function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {

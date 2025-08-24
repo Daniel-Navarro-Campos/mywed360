@@ -5,9 +5,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
 import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
+import LanguageSelector from './ui/LanguageSelector';
+import useTranslations from '../hooks/useTranslations';
 
 // Devuelve los ítems de navegación según rol
-function getNavItems(role) {
+function getNavItems(role, t) {
   const roleMap = {
     'pareja': 'owner',
     'wedding-planner': 'planner',
@@ -20,28 +22,28 @@ function getNavItems(role) {
   switch (normalizedRole) {
     case 'owner':
       return [
-        { path: '/home', label: 'Inicio' },
-        { path: '/tasks', label: 'Tareas' },
-        { path: '/finance', label: 'Finanzas' },
+        { path: '/home', label: t('navigation.home') },
+        { path: '/tasks', label: t('navigation.tasks') },
+        { path: '/finance', label: t('navigation.finance') },
         { path: '/more', label: 'Más' },
       ];
     case 'planner':
       return [
-        { path: '/home', label: 'Inicio' },
-        { path: '/tasks', label: 'Tareas' },
+        { path: '/home', label: t('navigation.home') },
+        { path: '/tasks', label: t('navigation.tasks') },
         { path: '/bodas', label: 'Bodas' },
         { path: '/more', label: 'Más' },
       ];
     case 'assistant':
       return [
-        { path: '/tasks', label: 'Tareas' },
+        { path: '/tasks', label: t('navigation.tasks') },
         { path: '/protocolo', label: 'Protocolo' },
         { path: '/more', label: 'Más' },
       ];
     default:
       return [
-        { path: '/home', label: 'Inicio' },
-        { path: '/tasks', label: 'Tareas' },
+        { path: '/home', label: t('navigation.home') },
+        { path: '/tasks', label: t('navigation.tasks') },
         { path: '/more', label: 'Más' },
       ];
   }
@@ -141,41 +143,54 @@ function Nav() {
   // Nuevo sistema unificado
   const { userProfile, hasRole } = useAuth();
   
+  // Hook de traducciones
+  const { t } = useTranslations();
+  
   // Usar el nuevo sistema para el rol, con fallback al legacy
   const role = userProfile?.role || user?.role || 'owner';
-  const navItems = React.useMemo(() => getNavItems(role), [role]);
+  const navItems = React.useMemo(() => getNavItems(role, t), [role, t]);
   
 
   const navigate = useNavigate();
   const location = useLocation();
 
   return (
-    <nav className='fixed bottom-0 w-full bg-[var(--color-primary)] text-[color:var(--color-text)] shadow-md flex justify-around p-3 z-50'>
-      {navItems.map(({ path, label }, idx) => {
-        const isActive = location.pathname.startsWith(path);
-        return (
-          <button
-            key={idx}
-            onClick={() => navigate(path)}
-            className='relative'
-          >
-            <motion.span
-              animate={{ scale: isActive ? 1.1 : 1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className={isActive ? 'text-[var(--color-accent)] font-semibold' : 'text-[color:var(--color-text)]'}
+    <nav className='fixed bottom-0 w-full bg-[var(--color-primary)] text-[color:var(--color-text)] shadow-md flex justify-between items-center p-3 z-50'>
+      {/* Navegación principal */}
+      <div className='flex justify-around flex-1'>
+        {navItems.map(({ path, label }, idx) => {
+          const isActive = location.pathname.startsWith(path);
+          return (
+            <button
+              key={idx}
+              onClick={() => navigate(path)}
+              className='relative'
             >
-              {label}
-            </motion.span>
-            {isActive && (
               <motion.span
-                className='absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-1 bg-[var(--color-accent)] rounded'
-                layoutId='activeUnderline'
-              />
-            )}
-          </button>
-        );
-      })}
-
+                animate={{ scale: isActive ? 1.1 : 1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className={isActive ? 'text-[var(--color-accent)] font-semibold' : 'text-[color:var(--color-text)]'}
+              >
+                {label}
+              </motion.span>
+              {isActive && (
+                <motion.span
+                  className='absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-1 bg-[var(--color-accent)] rounded'
+                  layoutId='activeUnderline'
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+      
+      {/* Selector de idioma */}
+      <div className='ml-2'>
+        <LanguageSelector 
+          variant="minimal" 
+          className="text-[color:var(--color-text)]" 
+        />
+      </div>
     </nav>
   );
 }
