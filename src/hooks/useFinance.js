@@ -68,19 +68,19 @@ export default function useFinance() {
     [budget.total]
   );
 
-  const totalSpent = useMemo(() => 
-    transactions
+  const totalSpent = useMemo(() => {
+    if (!Array.isArray(transactions)) return 0;
+    return transactions
       .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
-    [transactions]
-  );
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transactions]);
 
-  const totalIncome = useMemo(() => 
-    transactions
+  const totalIncome = useMemo(() => {
+    if (!Array.isArray(transactions)) return 0;
+    return transactions
       .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
-    [transactions]
-  );
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [transactions]);
 
   const currentBalance = useMemo(() => 
     totalIncome - totalSpent + expectedIncome,
@@ -88,10 +88,13 @@ export default function useFinance() {
   );
 
   const budgetUsage = useMemo(() => {
+    if (!Array.isArray(budget.categories)) return [];
     return budget.categories.map(category => {
-      const spent = transactions
-        .filter(t => t.type === 'expense' && t.category === category.name)
-        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const spent = Array.isArray(transactions) 
+        ? transactions
+            .filter(t => t.type === 'expense' && t.category === category.name)
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+        : 0;
       
       return {
         ...category,
@@ -126,7 +129,7 @@ export default function useFinance() {
     
     try {
       setIsLoading(true);
-      const infoSnap = await getDoc(doc(db, 'weddings', activeWedding, 'weddingInfo'));
+      const infoSnap = await getDoc(doc(db, 'weddings', activeWedding, 'info', 'weddingInfo'));
       if (infoSnap.exists()) {
         const info = infoSnap.data();
         if (info?.numGuests) {

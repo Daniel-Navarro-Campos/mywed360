@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Paperclip, Send, AlertCircle, Plus, Trash2, CheckCircle } from 'lucide-react';
+import { X, Paperclip, Send, AlertCircle, Plus, Trash2, CheckCircle, ChevronDown } from 'lucide-react';
 import Button from '../Button';
 import Card from '../Card';
 import * as EmailService from '../../services/emailService';
 import { safeExecute } from '../SafeRenderer';
 import { safeRender, ensureNotPromise, safeDangerouslySetInnerHTML } from '../../utils/promiseSafeRenderer';
-import * as AuthModule from '../../hooks/useAuth';
-const useAuth = AuthModule.useAuth || AuthModule.default || AuthModule;
+import { useAuth } from '../../hooks/useAuthUnified';
 
 /**
  * Componente para redactar y enviar nuevos emails desde la dirección personalizada del usuario
@@ -19,7 +18,7 @@ const useAuth = AuthModule.useAuth || AuthModule.default || AuthModule;
  * @returns {React.ReactElement} Componente para redactar emails
  */
 const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
-  const { profile } = useAuth();
+  const { userProfile } = useAuth();
   const [to, setTo] = useState(initialValues.to || '');
   const [cc, setCc] = useState(initialValues.cc || '');
   const [subject, setSubject] = useState(initialValues.subject || '');
@@ -36,8 +35,8 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
   // Inicializar el email del usuario
   useEffect(() => {
     const initializeEmail = async () => {
-      if (profile) {
-        const email = await EmailService.initEmailService(profile);
+      if (userProfile) {
+        const email = await EmailService.initEmailService(userProfile);
         setUserEmail(email);
       }
     };
@@ -55,7 +54,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
     };
     
     loadTemplates();
-  }, [profile]);
+  }, [userProfile]);
   
   // Aplicar plantilla seleccionada
   const applyTemplate = (template) => {
@@ -147,7 +146,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
     }
     
     // Verificar si el usuario tiene configurada dirección personalizada
-    if (profile && !profile.emailUsername && !profile.myWed360Email && !profile.emailAlias) {
+    if (userProfile && !userProfile.emailUsername && !userProfile.myWed360Email && !userProfile.emailAlias) {
       if (window.confirm('No tienes configurada una dirección de correo personalizada. ¿Deseas configurarla ahora?')) {
         window.location.href = '/email/setup';
         return;
@@ -174,7 +173,9 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
         
         // Esperar un momento para mostrar el mensaje de éxito antes de cerrar
         setTimeout(() => {
-          onClose();
+          if (typeof onClose === 'function') {
+            onClose();
+          }
           resetForm();
         }, 1500);
       } else {
@@ -202,7 +203,9 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
   
   // Cerrar y resetear
   const handleClose = () => {
-    onClose();
+    if (typeof onClose === 'function') {
+      onClose();
+    }
     resetForm();
   };
   
@@ -269,7 +272,7 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                   myWed360
                 </span>
-              ) : profile && !profile.emailUsername ? (
+              ) : userProfile && !userProfile.emailUsername ? (
                 <a 
                   href="/email/setup" 
                   className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full hover:bg-amber-200 transition-colors"

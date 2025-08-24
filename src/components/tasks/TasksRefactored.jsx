@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ViewMode } from 'gantt-task-react';
-import { subscribeSyncState, getSyncState } from '../../services/SyncService';
+import { subscribeSyncState, getSyncState, loadData } from '../../services/SyncService';
 import { Cloud, CloudOff, RefreshCw, Download } from 'lucide-react';
 
 // Importar componentes separados
@@ -16,15 +16,17 @@ import { Calendar } from 'react-big-calendar';
 import { useFirestoreCollection } from '../../hooks/useFirestoreCollection';
 import { useWedding } from '../../context/WeddingContext';
 
-// Definir un fallback en caso de error
-const useFirestoreCollectionSafe = (params) => {
+// Función helper para cargar datos de Firestore de forma segura
+const loadFirestoreData = async (path) => {
   try {
-    return useFirestoreCollection(params);
+    // Esta función no usa hooks, solo carga datos
+    const data = await loadData(path);
+    return data || {};
   } catch (error) {
-    console.error('Error al usar useFirestoreCollection:', error);
-    return { data: [], isLoading: false, error: error };
+    console.error('Error cargando datos de Firestore:', error);
+    return {};
   }
-}
+};
 
 // Componente principal Tasks refactorizado
 export default function Tasks() {
@@ -116,10 +118,12 @@ export default function Tasks() {
 
   // Cargar tareas completadas de Firestore/Storage sin bloquear render
   useEffect(() => {
+    if (!activeWedding) return;
+    
     let isMounted = true;
     (async () => {
       try {
-        const data = await useFirestoreCollectionSafe(`weddings/${activeWedding}/tasksCompleted`);
+        const data = await loadFirestoreData(`weddings/${activeWedding}/tasksCompleted`);
         if (isMounted && data && typeof data === 'object' && !Array.isArray(data)) {
           setCompleted(data);
         }

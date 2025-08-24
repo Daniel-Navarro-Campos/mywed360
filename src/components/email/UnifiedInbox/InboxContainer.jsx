@@ -427,7 +427,7 @@ const InboxContainer = () => {
                 <EmailComposer
                   replyTo={replyingToEmail}
                   onSend={handleSendEmail}
-                  onCancel={() => {
+                  onClose={() => {
                     setIsComposingEmail(false);
                     setReplyingToEmail(null);
                   }}

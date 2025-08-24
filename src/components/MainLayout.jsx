@@ -32,6 +32,18 @@ export default function MainLayout() {
   const showWeddingSelector = isPlanner && !hideSelector;
   const { showOnboarding, completeOnboarding } = useOnboarding();
 
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openMenu && !event.target.closest('[data-user-menu]')) {
+        setOpenMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openMenu]);
+
   // Mostrar loading mientras se inicializa la autenticación
   if (isLoading) {
     return (
@@ -56,24 +68,58 @@ export default function MainLayout() {
   return (
     <WeddingProvider>
       <div className="relative min-h-screen flex flex-col bg-[var(--color-bg)] text-[color:var(--color-text)] font-sans">
-        <div className="absolute top-4 right-4 z-20 flex items-center space-x-4">
+        <div className="absolute top-4 right-4 z-50 flex items-center space-x-4">
           {(import.meta.env.PROD || import.meta.env.VITE_SHOW_ROLE_BADGE === 'true') && <RoleBadge /> }
           <div className="hidden md:block">
             <GlobalSearch />
           </div>
           {/* Avatar y menú de usuario */}
-          <div className="relative">
-            <DefaultAvatar onClick={() => setOpenMenu(!openMenu)} className="w-8 h-8 text-gray-800 cursor-pointer" />
+          <div className="relative" data-user-menu>
+            <div 
+              onClick={() => setOpenMenu(!openMenu)} 
+              className={`w-10 h-10 rounded-full cursor-pointer transition-all duration-200 hover:ring-2 hover:ring-blue-300 ${
+                openMenu ? 'ring-2 ring-blue-500 bg-blue-50' : 'bg-gray-100 hover:bg-gray-200'
+              } flex items-center justify-center`}
+              title="Menú de usuario"
+            >
+              <DefaultAvatar className="w-6 h-6 text-gray-600" />
+            </div>
             {openMenu && (
-              <div className="absolute right-0 mt-2 bg-white border rounded shadow p-2 space-y-1 min-w-[180px]">
-                <Link to="/perfil" onClick={() => setOpenMenu(false)} className="block px-2 py-1 hover:bg-gray-100">Perfil</Link>
-                <Link to="/notificaciones" onClick={() => setOpenMenu(false)} className="block px-2 py-1 hover:bg-gray-100">Notificaciones</Link>
-                <Link to="/user/email" onClick={() => setOpenMenu(false)} className="block px-2 py-1 hover:bg-gray-100">Buzón de Emails</Link>
-                <div className="px-2 py-1 hover:bg-gray-100 rounded">
-                  <DarkModeToggle className="w-full text-left" />
+              <div className="absolute right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-1 space-y-1 min-w-[200px] z-50">
+                <Link 
+                  to="/perfil" 
+                  onClick={() => setOpenMenu(false)} 
+                  className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  👤 Perfil
+                </Link>
+                <Link 
+                  to="/notificaciones" 
+                  onClick={() => setOpenMenu(false)} 
+                  className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  🔔 Notificaciones
+                </Link>
+                <Link 
+                  to="/email" 
+                  onClick={() => setOpenMenu(false)} 
+                  className="flex items-center px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  📧 Buzón de Emails
+                </Link>
+                <div className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">🌙 Modo oscuro</span>
+                    <DarkModeToggle className="ml-2" />
+                  </div>
                 </div>
-                <div className="border-t border-gray-200 my-1"></div>
-                <button onClick={logout} className="w-full text-left px-2 py-1 hover:bg-gray-100 text-red-600">Cerrar sesión</button>
+                <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                <button 
+                  onClick={() => { logout(); setOpenMenu(false); }} 
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-md transition-colors flex items-center"
+                >
+                  🚪 Cerrar sesión
+                </button>
               </div>
             )}
           </div>

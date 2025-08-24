@@ -4,6 +4,8 @@
 // Servicio de correo con soporte para Mailgun, backend y fallback a localStorage
 // Estructura Mail: { id, from, to, subject, body, date, folder, read, attachments }
 
+import { auth } from '../config/firebaseConfig';
+
 const BASE = import.meta.env.VITE_BACKEND_BASE_URL || import.meta.env.VITE_BACKEND_URL;
 const MAILGUN_API_KEY = import.meta.env.VITE_MAILGUN_API_KEY;
 const MAILGUN_DOMAIN = import.meta.env.VITE_MAILGUN_DOMAIN || 'mywed360.com';
@@ -13,6 +15,23 @@ export const USE_MAILGUN = !!MAILGUN_API_KEY;
 // Permitimos usar backend aunque Mailgun esté configurado
 export const USE_BACKEND = !!BASE;
 const STORAGE_KEY = 'lovenda_mails';
+
+/**
+ * Obtiene el token de autenticación del usuario actual
+ * @returns {Promise<string|null>} Token de autenticación o null
+ */
+const getAuthToken = async () => {
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      return await user.getIdToken();
+    }
+    return null;
+  } catch (error) {
+    console.warn('Error obteniendo token de autenticación:', error);
+    return null;
+  }
+};
 
 // Obtener dirección de correo personalizada del usuario según su perfil
 const getUserEmailAddress = (profile) => {
@@ -276,7 +295,20 @@ export async function getMails(folder = 'inbox') {
         
         try {
           const backendUrl = BASE || 'http://localhost:4004';
-          const res = await fetch(`${backendUrl}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
+          const token = await getAuthToken();
+          
+          const headers = {
+            'Content-Type': 'application/json'
+          };
+          
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
+          const res = await fetch(`${backendUrl}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+            headers
+          });
+          
           if (res.ok) {
             const json = await res.json();
             if (Array.isArray(json)) {
