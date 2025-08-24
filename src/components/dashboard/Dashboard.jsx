@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { TouchBackend } from 'react-dnd-touch-backend';
@@ -9,8 +9,8 @@ import { WidgetSelector } from './WidgetSelector';
 import { WidgetTypes } from './widgets/WidgetTypes';
 import { useWidgets } from '../../hooks/useWidgets';
 
-// Animation variants
-const container = {
+// Animation variants (memoizadas para performance)
+const containerVariants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -20,7 +20,7 @@ const container = {
   }
 };
 
-const item = {
+const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   show: { 
     opacity: 1, 
@@ -51,8 +51,18 @@ export function Dashboard() {
   
   const [isEditing, setIsEditing] = useState(false);
   
-  // Set up the appropriate drag and drop backend based on device type
-  const dndBackend = isMobile ? TouchBackend : HTML5Backend;
+  // Set up the appropriate drag and drop backend based on device type (memoizado)
+  const dndBackend = useMemo(() => isMobile ? TouchBackend : HTML5Backend, []);
+  
+  // Memoizar función de toggle editing
+  const toggleEditing = useCallback(() => {
+    setIsEditing(!isEditing);
+  }, [isEditing]);
+  
+  // Memoizar función de activar editing mode
+  const startEditing = useCallback(() => {
+    setIsEditing(true);
+  }, []);
   
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
@@ -71,7 +81,7 @@ export function Dashboard() {
           </p>
         </div>
         <button
-          onClick={() => setIsEditing(!isEditing)}
+          onClick={toggleEditing}
           className={`px-4 py-2 rounded-md transition-all flex items-center gap-2 ${
             isEditing
               ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -98,7 +108,7 @@ export function Dashboard() {
       
       <DndProvider backend={dndBackend}>
         <motion.div 
-          variants={container}
+          variants={containerVariants}
           initial="hidden"
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
@@ -107,7 +117,7 @@ export function Dashboard() {
             {widgets.map((widget, index) => (
               <motion.div
                 key={widget.id}
-                variants={item}
+                variants={itemVariants}
                 layout
                 transition={{
                   type: "spring",
@@ -128,7 +138,7 @@ export function Dashboard() {
             
             {isEditing && (
               <motion.div
-                variants={item}
+                variants={itemVariants}
                 initial="hidden"
                 animate="show"
                 exit="exit"
@@ -163,7 +173,7 @@ export function Dashboard() {
           <h3 className="mt-2 text-lg font-medium text-gray-700">No hay widgets en tu panel</h3>
           <p className="mt-1">Haz clic en "Personalizar" para agregar widgets a tu panel de control.</p>
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={startEditing}
             className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
