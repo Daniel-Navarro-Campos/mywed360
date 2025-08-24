@@ -74,12 +74,27 @@ export async function fetchWall(page = 1, query = 'wedding') {
 
     return obj;
   };
+  // Circuit breaker: evitar spam de requests fallidos
+  const lastFailureKey = 'wallService_lastFailure';
+  const lastFailure = localStorage.getItem(lastFailureKey);
+  const now = Date.now();
+  
+  // Si falló hace menos de 5 minutos, usar datos demo directamente
+  if (lastFailure && (now - parseInt(lastFailure)) < 5 * 60 * 1000) {
+    console.log('🔄 wallService: usando datos demo (circuit breaker activo)');
+    return DEMO_IMAGES;
+  }
+  
   try {
     const resp = await axios.post(`${API_BASE}/api/instagram/wall`, { page, query });
     const data = resp.data.map(normalize);
+    // Limpiar flag de fallo si la request fue exitosa
+    localStorage.removeItem(lastFailureKey);
     return data.length ? data : DEMO_IMAGES;
   } catch (err) {
-    console.error('wallService error', err);
+    // Marcar timestamp del fallo para activar circuit breaker
+    localStorage.setItem(lastFailureKey, now.toString());
+    console.warn('🚫 wallService: endpoint no disponible, usando datos demo');
     return DEMO_IMAGES;
   }
 }

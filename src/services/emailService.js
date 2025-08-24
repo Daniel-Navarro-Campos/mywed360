@@ -262,6 +262,18 @@ export async function getMails(folder = 'inbox') {
         }
         // Si Mailgun no devuelve nada, intentamos backend/Firestore como fallback
         console.info('Mailgun no devolvió eventos, usando backend como fallback');
+        
+        // Circuit breaker: evitar spam de requests 401
+        const backendFailureKey = 'emailService_backendFailure';
+        const lastBackendFailure = localStorage.getItem(backendFailureKey);
+        const now = Date.now();
+        
+        // Si falló hace menos de 2 minutos, retornar array vacío
+        if (lastBackendFailure && (now - parseInt(lastBackendFailure)) < 2 * 60 * 1000) {
+          console.log('🔄 emailService: backend no disponible (circuit breaker activo)');
+          return [];
+        }
+        
         try {
           const backendUrl = BASE || 'http://localhost:4004';
           const res = await fetch(`${backendUrl}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
@@ -270,9 +282,14 @@ export async function getMails(folder = 'inbox') {
             if (Array.isArray(json)) {
               return json;
             }
+          } else {
+            // Marcar fallo del backend para activar circuit breaker
+            localStorage.setItem(backendFailureKey, now.toString());
           }
         } catch (err) {
-          console.warn('Fallback backend también falló:', err);
+          // Marcar fallo del backend para activar circuit breaker
+          localStorage.setItem(backendFailureKey, now.toString());
+          console.warn('🚫 emailService: backend no disponible:', err.message || err);
         }
         return inboxMails;
       }

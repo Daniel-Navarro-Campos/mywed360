@@ -76,7 +76,12 @@ export default function UserProvider({ children }) {
           }
         } catch (err) {
           // No interrumpas la sesión por problemas de permisos / offline
-          console.warn('No se pudo obtener/crear el doc de usuario:', err?.code || err);
+          console.warn('🔍 No se pudo obtener/crear el doc de usuario:', {
+            code: err?.code,
+            message: err?.message,
+            uid: firebaseUser?.uid
+          });
+          // Continuar con rol por defecto si hay error
         }
         setUser({ ...firebaseUser, role });
       } else {
