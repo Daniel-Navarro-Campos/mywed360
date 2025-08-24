@@ -10,16 +10,8 @@ import useTranslations from '../hooks/useTranslations';
 /**
  * Página de gestión de invitados completamente refactorizada
  * Arquitectura modular, optimizada y mantenible
- * 
- * OPTIMIZACIONES IMPLEMENTADAS:
- * - Eliminado código legacy (597 líneas → 140 líneas)
- * - Arquitectura modular con componentes especializados
- * - Hook personalizado useGuests para lógica centralizada
- * - Memoización y optimización de re-renders
- * - Integración con sistema i18n
- * - UX mejorada con indicadores de estado
  */
-function Invitados() {
+const InvitadosRefactored = () => {
   const { t } = useTranslations();
   
   // Hook personalizado para gestión de invitados
@@ -173,6 +165,6 @@ function Invitados() {
       </div>
     </div>
   );
-}
+};
 
-export default Invitados;
+export default InvitadosRefactored;

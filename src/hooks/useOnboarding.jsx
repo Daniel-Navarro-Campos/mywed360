@@ -41,7 +41,7 @@ export const useOnboarding = () => {
       }
 
       try {
-        const profileRef = doc(db, 'users', user.uid);
+        const profileRef = doc(db, 'users', currentUser.uid);
         const profileDoc = await getDoc(profileRef);
         
         if (profileDoc.exists()) {
