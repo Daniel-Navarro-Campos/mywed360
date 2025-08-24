@@ -3,7 +3,7 @@
  * Verifica tokens de Firebase Auth y gestiona permisos
  */
 
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
@@ -373,7 +373,7 @@ const createAuthError = (code, message, statusCode = 401) => {
   };
 };
 
-module.exports = {
+export {
   authMiddleware,
   requireAuth,
   requireAdmin,
@@ -386,3 +386,5 @@ module.exports = {
   verifyFirebaseToken,
   getUserProfile
 };
+
+export default authMiddleware;
