@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Search, Mail, Edit2, Trash2, RefreshCcw, Plus, User, Phone, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { Card } from '../components/ui';
 import { Button } from '../components/ui';
@@ -19,20 +19,21 @@ function Invitados() {
   const fallbackGuests = activeWedding ? [] : sampleGuests;
   const { data: guests, addItem, updateItem, deleteItem } = useWeddingCollection('guests', activeWedding, fallbackGuests);
 
-  // --- Utilidades duplicados ---
-  const getStatusLabel = (guest) => {
+  // --- Utilidades duplicados (memoizadas) ---
+  const getStatusLabel = useCallback((guest) => {
     if (guest.status) {
       if (guest.status === 'accepted') return 'Sí';
       if (guest.status === 'rejected') return 'No';
       return 'Pendiente';
     }
     return guest.response || 'Pendiente';
-  };
-  const normalize = (str = '') => str.trim().toLowerCase();
-  const phoneClean = (str = '') => str.replace(/\s+/g, '').replace(/[^0-9+]/g, '');
+  }, []);
+  
+  const normalize = useCallback((str = '') => str.trim().toLowerCase(), []);
+  const phoneClean = useCallback((str = '') => str.replace(/\s+/g, '').replace(/[^0-9+]/g, ''), []);
 
-  // --- Enviar invitaciones vía WhatsApp con enlace RSVP ---
-  const bulkInvite = async () => {
+  // --- Enviar invitaciones vía WhatsApp con enlace RSVP (memoizadas) ---
+  const bulkInvite = useCallback(async () => {
     if (!window.confirm('Se abrirá WhatsApp en una pestaña por invitado con número. ¿Continuar?')) return;
     for (const guest of guests) {
       const phone = phoneClean(guest.phone);
@@ -46,21 +47,22 @@ function Invitados() {
         console.error('Error generando enlace RSVP', err);
       }
     }
-  };
+  }, [guests, phoneClean]);
 
-  const inviteWhatsApp = (guest) => {
+  const inviteWhatsApp = useCallback((guest) => {
     const phone = phoneClean(guest.phone);
     if(!phone){ alert('Invitado sin teléfono'); return; }
     const txt = encodeURIComponent(`¡Hola ${guest.name}! Nos encantaría contar contigo en nuestra boda. ¿Puedes confirmar tu asistencia?`);
     window.open(`https://wa.me/${phone}?text=${txt}`, '_blank');
-  };
-  const inviteEmail = (guest) => {
+  }, [phoneClean]);
+  
+  const inviteEmail = useCallback((guest) => {
     const email = guest.email || '';
     if(!email){ alert('Invitado sin email'); return; }
     const subject = encodeURIComponent('Invitación a nuestra boda');
     const body = encodeURIComponent(`Hola ${guest.name},\n\nNos complace invitarte a nuestra boda. Esperamos contar contigo. Por favor confirma tu asistencia.\n\n¡Gracias!`);
     window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
-  };
+  }, []);
 
   // ---- Sincronización híbrida ----
   // Estado de sincronización
@@ -118,8 +120,8 @@ function Invitados() {
     }
   }, []);
 
-  // Importar invitados usando la Contact Picker API
-  const importFromContacts = async () => {
+  // Importar invitados usando la Contact Picker API (memoizada)
+  const importFromContacts = useCallback(async () => {
     if (navigator.contacts && navigator.contacts.select) {
       try {
         const picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
@@ -145,9 +147,9 @@ function Invitados() {
     } else {
       alert('La API de Contactos no está disponible en este dispositivo.');
     }
-  };
+  }, [guests, normalize, phoneClean, addItem]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!editingGuest.name.trim()) return;
     const exists = editingGuest.id && guests.some(g => g.id === editingGuest.id);
     if (exists) {
@@ -167,13 +169,13 @@ function Invitados() {
     }
     setModalOpen(false);
     setEditingGuest(null);
-  };
+  }, [editingGuest, guests, normalize, phoneClean, updateItem, addItem, setModalOpen, setEditingGuest]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (window.confirm('¿Eliminar invitado?')) {
       await deleteItem(id);
     }
-  };
+  }, [deleteItem]);
 
   const filtered = guests.filter(g => {
     const name = (g.name || '').toLowerCase();
