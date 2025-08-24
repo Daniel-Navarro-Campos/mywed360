@@ -539,6 +539,9 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// Exportar AuthError como named export
+export { AuthError };
+
 export default {
   login,
   register,
