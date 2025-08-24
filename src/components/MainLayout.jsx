@@ -20,7 +20,7 @@ export default function MainLayout() {
   const { logoUrl, logout } = useUserContext();
   
   // Nuevo sistema unificado
-  const { hasRole, userProfile } = useAuth();
+  const { hasRole, userProfile, isLoading } = useAuth();
   
   // Usar el nuevo sistema para verificaciones de rol
   const role = userProfile?.role || 'particular';
@@ -28,9 +28,21 @@ export default function MainLayout() {
   const location = useLocation();
   const hideSelectorRoutes = ['/home', '/tasks'];
   const hideSelector = hideSelectorRoutes.some(r => location.pathname.startsWith(r)) || location.pathname === '/bodas';
-  const isPlanner = hasRole('planner');
+  const isPlanner = userProfile && hasRole ? hasRole('planner') : false;
   const showWeddingSelector = isPlanner && !hideSelector;
   const { showOnboarding, completeOnboarding } = useOnboarding();
+
+  // Mostrar loading mientras se inicializa la autenticación
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showOnboarding) {
     return (
