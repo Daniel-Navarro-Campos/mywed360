@@ -507,9 +507,13 @@ function sanitizeHtml(html = '') {
 }
 
 export async function sendMail({ to, subject = '', body = '', attachments = [] }) {
+  const sendId = Math.random().toString(36).substr(2, 9);
+  console.log(`🚀 [${sendId}] Iniciando envío de email a: ${to}`);
+  
   // --- Validaciones previas ---
   // Destinatario requerido
   if (!to || to.trim() === '') {
+    console.log(`❌ [${sendId}] Error: Destinatario vacío`);
     return { success: false, error: 'Destinatario es obligatorio' };
   }
   // Máximo 50 destinatarios
@@ -536,6 +540,7 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
 
   // Intentar enviar con Mailgun si está configurado
   if (USE_MAILGUN) {
+    console.log(`📧 [${sendId}] Intentando envío con Mailgun`);
     try {
       const mailgunResponse = await sendMailWithMailgun({
         from: CURRENT_USER_EMAIL,
@@ -544,6 +549,8 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
         body,
         attachments
       });
+      
+      console.log(`✅ [${sendId}] Mailgun exitoso:`, mailgunResponse.messageId);
       
       // Crear objeto de correo enviado para compatibilidad
       const mailSent = {
@@ -563,6 +570,7 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
       mails.push(mailSent);
       saveLocal(mails);
       
+      console.log(`💾 [${sendId}] Email guardado en localStorage con folder: sent`);
       return { success: true, ...mailSent };
     } catch (error) {
       console.error('Error con Mailgun, usando fallback:', error);
@@ -596,6 +604,7 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
   }
   
   // Fallback local
+  console.log(`💾 [${sendId}] Usando fallback localStorage`);
   const mails = loadLocal();
   const mailSent = {
     id: uuid(),
@@ -609,6 +618,8 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
     attachments: attachments || []
   };
   mails.push(mailSent);
+  console.log(`💾 [${sendId}] Email guardado en localStorage (fallback) con folder: sent`);
+  console.log(`📊 [${sendId}] Total emails en localStorage:`, mails.length);
   
   // Simulamos recepción para pruebas locales
   // Solo si el destinatario es del mismo dominio

@@ -350,6 +350,43 @@ const InboxContainer = () => {
     }
   }, [logUserInteraction]);
   
+  // Manejador para enviar un email
+  const handleSendEmail = useCallback(async (emailData) => {
+    try {
+      const result = await EmailService.sendEmail(emailData);
+      
+      if (result && (result.success || result.id)) {
+        toast.success('Email enviado correctamente');
+        
+        // Cerrar el compositor
+        setIsComposingEmail(false);
+        setReplyingToEmail(null);
+        
+        // Registrar la acción
+        logUserInteraction('send_email', { 
+          to: emailData.to, 
+          subject: emailData.subject 
+        });
+        
+        // Invalidar caché para refrescar la bandeja de salida
+        emailCache.invalidateFolder('sent');
+        
+        // Si estamos en la carpeta 'sent', refrescar para mostrar el nuevo email
+        if (currentFolder === 'sent') {
+          setRefreshTrigger(prev => prev + 1);
+        }
+        
+        return result;
+      } else {
+        throw new Error('Error al enviar el email');
+      }
+    } catch (err) {
+      console.error('Error al enviar email:', err);
+      toast.error('Error al enviar el email');
+      throw err;
+    }
+  }, [currentFolder, logUserInteraction]);
+  
   // Manejador para eliminar un email
   const handleDeleteEmail = useCallback(async (emailId) => {
     try {
