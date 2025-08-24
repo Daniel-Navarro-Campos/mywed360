@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { useFirestoreCollection } from '../hooks/useFirestoreCollection';
@@ -33,9 +33,12 @@ function Finance() {
   const [extras, setExtras] = React.useState(0);
   const [giftPerGuest, setGiftPerGuest] = React.useState(0);
   const [guestCount, setGuestCount] = React.useState(0);
-  const monthlyContrib = monthlyA + monthlyB;
+  const monthlyContrib = useMemo(() => monthlyA + monthlyB, [monthlyA, monthlyB]);
 
-  const expectedIncome = giftPerGuest * guestCount + extras + initA + initB + monthlyContrib;
+  const expectedIncome = useMemo(() => 
+    giftPerGuest * guestCount + extras + initA + initB + monthlyContrib,
+    [giftPerGuest, guestCount, extras, initA, initB, monthlyContrib]
+  );
 
   // Balance se calcula dinámicamente a partir de todas las transacciones (movimientos manuales + IA + banco)
   const [manualOpen, setManualOpen] = useState(false);
@@ -80,33 +83,34 @@ function Finance() {
     { name: 'Flores', amount: 1500 },
     { name: 'Luna de miel', amount: 5000 },
   ]);
-  const emergencyAmount = Math.round(totalBudget * 0.1);
+  const emergencyAmount = useMemo(() => Math.round(totalBudget * 0.1), [totalBudget]);
 
 
-  const addCategory = () => {
+  const addCategory = useCallback(() => {
     const name = prompt('Nombre de la categoría');
     if (name && !categories.find(c => c.name === name)) {
       setCategories([...categories, { name, amount: 0 }]);
     }
-  };
-  const updateCategory = (idx, value) => {
+  }, [categories]);
+  
+  const updateCategory = useCallback((idx, value) => {
     const next = [...categories];
     next[idx].amount = Number(value);
     setCategories(next);
-  };
+  }, [categories]);
 
-  // --- Cargar movimientos IA/externos con SyncService ---
-const loadStoredMovements = () => {
-  try {
-    return loadData('movements', {
-      defaultValue: [],
-      docPath: activeWedding ? `weddings/${activeWedding}/finance/main` : undefined
-    });
-  } catch(error) { 
-    console.error('Error al cargar movimientos:', error);
-    return []; 
-  }
-};
+  // --- Cargar movimientos IA/externos con SyncService (memoizada) ---
+  const loadStoredMovements = useCallback(() => {
+    try {
+      return loadData('movements', {
+        defaultValue: [],
+        docPath: activeWedding ? `weddings/${activeWedding}/finance/main` : undefined
+      });
+    } catch(error) { 
+      console.error('Error al cargar movimientos:', error);
+      return []; 
+    }
+  }, [activeWedding]);
 
 /* upcomingExpenses, upcomingIncomes y pendingExpenses se calculan dinámicamente más abajo */
   const initialHistory = [
@@ -138,20 +142,22 @@ const loadStoredMovements = () => {
   const [bankTransactions, setBankTransactions] = useState([]);
   const [loadingBank, setLoadingBank] = useState(false);
 
-  useEffect(() => {
-    async function fetchTx () {
-      try {
-        setLoadingBank(true);
-        const data = await getTransactions({});
-        setBankTransactions(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Error fetching bank transactions', err);
-      } finally {
-        setLoadingBank(false);
-      }
+  // Memoizar función de obtener transacciones bancarias
+  const fetchTx = useCallback(async () => {
+    try {
+      setLoadingBank(true);
+      const data = await getTransactions({});
+      setBankTransactions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching bank transactions', err);
+    } finally {
+      setLoadingBank(false);
     }
-    fetchTx();
   }, []);
+
+  useEffect(() => {
+    fetchTx();
+  }, [fetchTx]);
 
   // Unificar transacciones locales (historial + IA) y del banco
   const transactions = useMemo(() => {
