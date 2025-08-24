@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Paperclip, Send } from 'lucide-react';
 import Button from '../Button';
-import * as emailService from '../../services/emailService';
+import * as EmailService from '../../services/emailService';
 import { safeRender, ensureNotPromise, safeMap } from '../../utils/promiseSafeRenderer';
 
 /**
@@ -56,7 +56,7 @@ const ComposeEmailModal = ({ isOpen, onClose, userEmail, replyTo }) => {
       setSending(true);
       setError('');
       
-      await sendMail({ 
+      await EmailService.sendMail({ 
         to, 
         subject, 
         body, 
