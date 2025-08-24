@@ -116,7 +116,7 @@ export default function FinanceOverview({ stats, syncStatus, budgetUsage }) {
               <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Alertas de presupuesto */}
