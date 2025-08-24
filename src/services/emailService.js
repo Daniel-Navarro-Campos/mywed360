@@ -4,7 +4,7 @@
 // Servicio de correo con soporte para Mailgun, backend y fallback a localStorage
 // Estructura Mail: { id, from, to, subject, body, date, folder, read, attachments }
 
-import { auth } from '../config/firebaseConfig';
+import { auth } from '../firebaseConfig';
 
 const BASE = import.meta.env.VITE_BACKEND_BASE_URL || import.meta.env.VITE_BACKEND_URL;
 const MAILGUN_API_KEY = import.meta.env.VITE_MAILGUN_API_KEY;
@@ -267,6 +267,15 @@ export async function getMails(folder = 'inbox') {
     } catch (err) {
       console.warn('Error obteniendo correos "all":', err);
       // Continuar con flujo normal si algo falla
+    }
+  }
+  
+  // Para carpeta 'sent', siempre buscar primero en localStorage
+  if (folder === 'sent') {
+    const localMails = loadLocal();
+    const sentMails = localMails.filter(mail => mail.folder === 'sent');
+    if (sentMails.length > 0) {
+      return sentMails.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
   }
   

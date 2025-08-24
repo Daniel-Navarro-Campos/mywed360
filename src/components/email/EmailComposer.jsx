@@ -138,6 +138,12 @@ const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
   
   // Enviar el email
   const handleSend = async () => {
+    // Prevenir envío duplicado
+    if (sending) {
+      console.log('Envío ya en progreso, ignorando...');
+      return;
+    }
+    
     setError('');
     setSuccess('');
     
