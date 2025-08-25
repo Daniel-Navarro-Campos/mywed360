@@ -293,7 +293,8 @@ const authMiddleware = (options = {}) => {
             ]
           };
           
-          const userPermissions = rolePermissions[userRole] || [];
+          // Si el rol no está definido en rolePermissions, usar los permisos de 'particular' por defecto
+          const userPermissions = rolePermissions[userRole] || rolePermissions['particular'];
           const hasAllPermissions = permissions.every(permission => 
             userPermissions.includes('*') || userPermissions.includes(permission)
           );
