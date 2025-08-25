@@ -56,7 +56,7 @@ const InboxNavigation = ({
         <Button
           onClick={onComposeNew}
           className="w-full mb-4 flex items-center justify-center"
-          primary={true}
+          variant="primary"
           data-testid="compose-button"
         >
           <Plus size={16} className="mr-2" />

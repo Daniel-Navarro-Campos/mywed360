@@ -5,6 +5,8 @@
 // Estructura Mail: { id, from, to, subject, body, date, folder, read, attachments }
 
 import { auth } from '../firebaseConfig';
+// Mantener actualizada la caché de emails en memoria
+import { emailCache } from '../utils/EmailCache';
 
 const BASE = import.meta.env.VITE_BACKEND_BASE_URL || import.meta.env.VITE_BACKEND_URL;
 const MAILGUN_API_KEY = import.meta.env.VITE_MAILGUN_API_KEY;
@@ -270,17 +272,20 @@ export async function getMails(folder = 'inbox') {
     }
   }
   
-  // Para carpeta 'sent', siempre buscar primero en localStorage
+  // Carpeta "sent": combinar localStorage + Mailgun + Backend
+  let collectedSent = [];
   if (folder === 'sent') {
-    const localMails = loadLocal();
-    const sentMails = localMails.filter(mail => mail.folder === 'sent');
-    if (sentMails.length > 0) {
-      return sentMails.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }
+    const localMails = loadLocal().filter(mail => mail.folder === 'sent');
+    collectedSent.push(...localMails);
   }
   
   if (USE_MAILGUN) {
     try {
+      if (folder === 'sent') {
+        // Eventos "accepted" representan mensajes enviados correctamente
+        const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'accepted');
+        collectedSent.push(...mapMailgunEventsToMails(events, 'sent'));
+      }
       // Para bandeja de entrada, obtenemos los correos recibidos
       if (folder === 'inbox') {
         const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'delivered');
@@ -334,16 +339,9 @@ export async function getMails(folder = 'inbox') {
         }
         return inboxMails;
       }
-      // Para enviados, obtenemos los correos enviados por este usuario
-      else if (folder === 'sent') {
-        // Consulta diferente para correos enviados
-        const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'accepted');
-        return mapMailgunEventsToMails(events, folder);
-      }
-      else {
-        // Otras carpetas (borradores, spam, etc)
-        return [];
-      }
+      // Para otras carpetas dentro del dominio Mailgun no se realiza un retorno temprano.
+      // Cualquier dato adicional será procesado en los bloques posteriores (backend o localStorage)
+      // para permitir la combinación con correos locales y evitar pérdida de mensajes recién enviados.
     } catch (error) {
       console.error('Error con Mailgun, usando fallback:', error);
       // Fallback al método normal si falla Mailgun
@@ -415,7 +413,33 @@ export async function getMails(folder = 'inbox') {
     }
   }
   
-  // Fallback local
+    // Si estamos en "sent" y hemos acumulado datos de varias fuentes, devolverlos
+  if (folder === 'sent') {
+    // El backend podría haber añadido elementos en la sección anterior; si no, intentar ahora
+    if (USE_BACKEND && collectedSent.length === 0) {
+      try {
+        const backendMails = await (async () => {
+          const res = await fetch(`${BASE}/api/mail?folder=sent&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
+          if (res.ok) {
+            return await res.json();
+          }
+          return [];
+        })();
+        collectedSent.push(...backendMails);
+      } catch (e) {
+        console.warn('Backend sent falló como fallback:', e);
+      }
+    }
+    // Deduplicar por id
+    const unique = new Map();
+    collectedSent.forEach(m => {
+      if (!unique.has(m.id)) unique.set(m.id, m);
+    });
+    const merged = Array.from(unique.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+    return merged;
+  }
+
+  // Fallback local genérico
   const mails = loadLocal();
   return mails.filter(m => m.folder === folder && 
     (folder === 'sent' ? m.from === CURRENT_USER_EMAIL : m.to === CURRENT_USER_EMAIL));
@@ -569,8 +593,12 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
       const mails = loadLocal();
       mails.push(mailSent);
       saveLocal(mails);
-      
-      console.log(`💾 [${sendId}] Email guardado en localStorage con folder: sent`);
+
+      // Actualizar caché en memoria para que la UI refleje inmediatamente el nuevo correo
+      const cachedSent = emailCache.getEmails('sent') || [];
+      emailCache.setEmails('sent', [mailSent, ...cachedSent]);
+       
+      console.log(`💾 [${sendId}] Email guardado en localStorage y caché (folder: sent)`);
       return { success: true, ...mailSent };
     } catch (error) {
       console.error('Error con Mailgun, usando fallback:', error);
@@ -597,6 +625,34 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
         return { success: false, error: message };
       }
       const jsonBackend = await res.json();
+
+      // Si el backend respondió correctamente, creamos una entrada local para mostrarla al instante
+      if (jsonBackend && (jsonBackend.success || jsonBackend.id || jsonBackend.data)) {
+        const mailSent = {
+          // Intentar usar el id devuelto por el backend, si no existe generamos uno
+          id: jsonBackend.id || jsonBackend.data?.id || uuid(),
+          from: CURRENT_USER_EMAIL,
+          to,
+          subject,
+          body,
+          date: new Date().toISOString(),
+          folder: 'sent',
+          read: true,
+          attachments: attachments || []
+        };
+
+        // Guardar en localStorage para que la carpeta "Enviados" se actualice de inmediato
+        const mails = loadLocal();
+        mails.push(mailSent);
+        saveLocal(mails);
+
+        // Actualizar caché en memoria
+        const cachedSent = emailCache.getEmails('sent') || [];
+        emailCache.setEmails('sent', [mailSent, ...cachedSent]);
+ 
+        return { success: true, ...mailSent };
+      }
+
       return jsonBackend;
     } catch (error) {
       console.error('Error con backend, usando localStorage:', error);

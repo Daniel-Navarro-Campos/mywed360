@@ -338,10 +338,21 @@ const InboxContainer = () => {
       subjectLength: emailInfo?.subject?.length || 0
     });
 
-    // Invalidar caché de enviados y refrescar vista
+    // 1) Actualización optimista de la UI para mostrar inmediatamente el correo enviado
+    if (['sent', 'all'].includes(currentFolder)) {
+      setEmails(prev => {
+        if (!prev) return [emailInfo];
+        const exists = prev.some(e => e.id === emailInfo.id);
+        return exists ? prev : [emailInfo, ...prev];
+      });
+    }
+
+    // 2) Invalidar la caché de "sent" para forzar una recarga real en segundo plano
     emailCache.invalidateFolder('sent');
+
+    // 3) Disparar recarga de datos (loadEmails se ejecutará al cambiar refreshTrigger)
     setRefreshTrigger(prev => prev + 1);
-  }, [logUserInteraction]);
+  }, [currentFolder, logUserInteraction]);
   
   // Manejador para eliminar un email
   const handleDeleteEmail = useCallback(async (emailId) => {
