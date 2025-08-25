@@ -10,11 +10,49 @@ if (!admin.apps.length) {
   try {
     // En producción, usar las credenciales del entorno
     if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
-      });
+      let rawKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+      let serviceAccountObj;
+      try {
+        serviceAccountObj = JSON.parse(rawKey);
+      } catch (jsonErr) {
+        try {
+          const decoded = Buffer.from(rawKey, 'base64').toString('utf8');
+          serviceAccountObj = JSON.parse(decoded);
+        } catch (b64Err) {
+          serviceAccountObj = null;
+        }
+      }
+      if (serviceAccountObj) {
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccountObj),
+          projectId: process.env.FIREBASE_PROJECT_ID || serviceAccountObj.project_id || 'lovenda-98c77'
+        });
+      } else {
+        // Fallback a archivo
+        const fs = await import('fs');
+        const path = await import('path');
+        const rootPath = path.resolve(process.cwd(), 'serviceAccount.json');
+        const secretPath = '/etc/secrets/serviceAccount.json';
+        const svcPath = fs.existsSync(rootPath)
+          ? rootPath
+          : fs.existsSync(secretPath)
+          ? secretPath
+          : null;
+        if (svcPath) {
+          const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccountFile),
+            projectId:
+              process.env.FIREBASE_PROJECT_ID || serviceAccountFile.project_id || 'lovenda-98c77'
+          });
+          console.log(`[AuthMiddleware] Firebase Admin inicializado con serviceAccount.json (${svcPath})`);
+        } else {
+          admin.initializeApp({
+            projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
+          });
+          console.warn('[AuthMiddleware] serviceAccount.json no encontrado y FIREBASE_SERVICE_ACCOUNT_KEY inválida, usando credenciales por defecto');
+        }
+      }
     } else {
       // Buscar archivo serviceAccount.json en raíz del proyecto como fallback
       try {
