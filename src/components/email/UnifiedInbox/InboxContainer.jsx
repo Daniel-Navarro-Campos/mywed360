@@ -347,10 +347,19 @@ const InboxContainer = () => {
       });
     }
 
-    // 2) Invalidar la caché de "sent" para forzar una recarga real en segundo plano
-    emailCache.invalidateFolder('sent');
+    // 2) Actualizar caché global 'sent' para reflejar inmediatamente el nuevo correo
+    const currentSentCache = emailCache.getEmails('sent') || [];
+    if (!currentSentCache.some(e => e.id === emailInfo.id)) {
+      emailCache.setEmails('sent', [emailInfo, ...currentSentCache]);
+    }
 
-    // 3) Disparar recarga de datos (loadEmails se ejecutará al cambiar refreshTrigger)
+    // 3) Actualizar contador de la carpeta 'sent' de forma optimista
+    setFolderStats(prev => ({
+      ...prev,
+      sent: { ...prev.sent, total: (prev.sent?.total || 0) + 1 }
+    }));
+
+    // 4) Disparar recarga eventual para sincronizar con backend
     setRefreshTrigger(prev => prev + 1);
   }, [currentFolder, logUserInteraction]);
   

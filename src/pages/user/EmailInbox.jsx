@@ -85,6 +85,14 @@ const EmailInbox = () => {
     return () => unsub();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Cargar correos cuando se obtenga la dirección de email del usuario
+  useEffect(() => {
+    if (myEmail && currentUser) {
+      loadEmails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myEmail]);
   
   // Cargar emails al cambiar de carpeta
   useEffect(() => {
@@ -123,8 +131,11 @@ const EmailInbox = () => {
             const res = await fetch(`${API_BASE}/api/email/${currentFolder}?user=${encodeURIComponent(effectiveEmail)}`);
             if (res.ok) {
               const json = await res.json();
-              setEmails(json.data || []);
-              return;
+              if (Array.isArray(json.data) && json.data.length > 0) {
+                setEmails(json.data);
+                return;
+              }
+              // Si backend responde vacío, continuamos al fallback local
             }
           }
         }
