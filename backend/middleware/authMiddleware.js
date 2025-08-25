@@ -50,7 +50,6 @@ if (!admin.apps.length) {
           admin.initializeApp({
             projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
           });
-          console.warn('[AuthMiddleware] serviceAccount.json no encontrado y FIREBASE_SERVICE_ACCOUNT_KEY inválida, usando credenciales por defecto');
         }
       }
     } else {
@@ -73,7 +72,6 @@ if (!admin.apps.length) {
           admin.initializeApp({
             projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
           });
-          console.warn('[AuthMiddleware] serviceAccount.json no encontrado, usando credenciales por defecto');
         }
       } catch (fileErr) {
         console.error('[AuthMiddleware] Error leyendo serviceAccount.json:', fileErr);
