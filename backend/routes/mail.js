@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import mailgunJs from 'mailgun-js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { requireMailAccess } from '../middleware/authMiddleware.js';
 
 // Obtener el directorio actual
 const __filename = fileURLToPath(import.meta.url);
@@ -52,7 +53,7 @@ function createMailgunClients() {
 const router = express.Router();
 
 // GET /api/mail?folder=inbox|sent
-router.get('/', async (req, res) => {
+router.get('/', requireMailAccess, async (req, res) => {
   try {
     const { folder = 'inbox', user } = req.query;
 
@@ -84,7 +85,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/mail  { to, subject, body }
-router.post('/', async (req, res) => {
+router.post('/', requireMailAccess, async (req, res) => {
   try {
     const { to, subject, body } = req.body;
     const date = new Date().toISOString();
@@ -177,7 +178,7 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/mail/:id/read
-router.patch('/:id/read', async (req, res) => {
+router.patch('/:id/read', requireMailAccess, async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection('mails').doc(id);
@@ -192,7 +193,7 @@ router.patch('/:id/read', async (req, res) => {
 });
 
 // Compatibilidad: también aceptar POST para marcar como leído
-router.post('/:id/read', async (req, res) => {
+router.post('/:id/read', requireMailAccess, async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection('mails').doc(id);
@@ -208,7 +209,7 @@ router.post('/:id/read', async (req, res) => {
 });
 
 // DELETE /api/mail/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireMailAccess, async (req, res) => {
   try {
     const { id } = req.params;
     await db.collection('mails').doc(id).delete();
@@ -223,7 +224,7 @@ router.delete('/:id', async (req, res) => {
  * Endpoint para enviar un correo de prueba usando dirección personalizada
  * @route POST /api/mail/test-personal-email
  */
-router.post('/test-personal-email', async (req, res) => {
+router.post('/test-personal-email', requireMailAccess, async (req, res) => {
   try {
     const { from, to, subject, message } = req.body;
     
