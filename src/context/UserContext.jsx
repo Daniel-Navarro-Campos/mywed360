@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '../firebaseConfig';
+import { auth, db, firebaseReady } from '../firebaseConfig';
 import { setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import {
   createUserWithEmailAndPassword,
@@ -13,7 +13,6 @@ import {
   updatePassword,
   reauthenticateWithCredential,
 } from 'firebase/auth';
-import { db } from '../firebaseConfig';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const UserContext = createContext({
@@ -33,6 +32,9 @@ export default function UserProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let unsubscribe;
+    (async () => {
+      await firebaseReady;
     // Soporte para pruebas E2E con Cypress: detectar claves userEmail / isLoggedIn
     const testEmail = localStorage.getItem('userEmail');
     const isLoggedIn = localStorage.getItem('isLoggedIn');
@@ -97,7 +99,10 @@ export default function UserProvider({ children }) {
       }
       setLoading(false);
     });
-    return unsubscribe;
+    })();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
 
   const signup = async (email, password, role = 'particular') => {

@@ -238,9 +238,12 @@ const inicializarFirebase = async () => {
   }
 };
 
-// Inicializar Firebase cuando se importe el módulo
-inicializarFirebase().catch(error => {
-  console.error('Error crítico al inicializar Firebase:', error);
-});
+// Al importar este módulo iniciamos Firebase y exportamos la promesa
+const firebaseReady = inicializarFirebase()
+  .catch(error => {
+    console.error('Error crítico al inicializar Firebase:', error);
+    // Propagamos error para que otros módulos puedan manejarlo
+    throw error;
+  });
 
-export { auth, db, analytics };
+export { auth, db, analytics, firebaseReady };
