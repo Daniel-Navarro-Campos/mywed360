@@ -35,6 +35,16 @@ const getAuthToken = async () => {
   }
 };
 
+/**
+ * Devuelve cabeceras con Authorization si existe un token de Firebase.
+ * @param {Object} base Cabeceras base opcionales
+ * @returns {Promise<Object>} Cabeceras combinadas
+ */
+const authHeader = async (base = {}) => {
+  const token = await getAuthToken();
+  return token ? { ...base, 'Authorization': `Bearer ${token}` } : base;
+};
+
 // Obtener dirección de correo personalizada del usuario según su perfil
 const getUserEmailAddress = (profile) => {
   if (!profile) return null;
@@ -195,22 +205,40 @@ async function fetchMailgunEvents(userEmail, eventType = 'delivered') {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
 
-    // Intentar primero el endpoint del backend y usar Cloud Function como fallback
+    // Obtener token de autenticación para acceder a endpoints protegidos
+    const token = await getAuthToken();
+
+    // Construir endpoint: usa backend solamente si existe token, sino Cloud Function pública
     const backendBase = import.meta.env.VITE_BACKEND_BASE_URL;
-    const endpointUrl = backendBase
+    const functionsBase = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || 'https://us-central1-lovenda-98c77.cloudfunctions.net';
+
+    const endpointUrl = backendBase && token
       ? `${backendBase}/api/mailgun/events?${params.toString()}`
-      : `${(import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || 'https://us-central1-lovenda-98c77.cloudfunctions.net')}/getMailgunEvents?${params.toString()}`;
+      : `${functionsBase}/getMailgunEvents?${params.toString()}`;
 
     const response = await fetch(endpointUrl, {
       method: 'GET',
       signal: controller.signal,
       headers: {
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       }
     });
     
     clearTimeout(timeoutId);
     
+    if (response.status === 401 && endpointUrl.includes('/api/mailgun/events')) {
+      // Backend no autorizado: intentar Cloud Function como fallback inmediato
+      try {
+        const cfUrl = `${functionsBase}/getMailgunEvents?${params.toString()}`;
+        const cfRes = await fetch(cfUrl, { method: 'GET', signal: controller.signal, headers: { 'Accept': 'application/json' } });
+        if (cfRes.ok) {
+          const cfData = await cfRes.json();
+          clearTimeout(timeoutId);
+          return cfData.items || [];
+        }
+      } catch {}
+    }
     if (!response.ok) {
       console.warn(`Error al obtener eventos de correo: ${response.status}`);
       // Deshabilitar futuros intentos para evitar spam de errores
@@ -380,7 +408,7 @@ export async function getMails(folder = 'inbox') {
         // intentar descubrir dirección correcta a partir de cualquier correo existente.
         if (folder === 'inbox' && json.length === 0 && CURRENT_USER_EMAIL && CURRENT_USER_EMAIL.startsWith('usuario')) {
           try {
-            const altRes = await fetch(`${BASE}/api/mail?folder=inbox`); // sin filtro user
+            const altRes = await fetch(`${BASE}/api/mail?folder=inbox`, { headers: await authHeader() }); // sin filtro user
             if (altRes.ok) {
               const allMails = await altRes.json();
               const myMail = allMails.find(m => m.to && m.to.endsWith(`@${MAILGUN_DOMAIN}`));
@@ -398,7 +426,7 @@ export async function getMails(folder = 'inbox') {
                 }
                 CURRENT_USER_EMAIL = newAddr;
                 // Reintentar obtener mails con la dirección correcta
-                const retry = await fetch(`${BASE}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
+                const retry = await fetch(`${BASE}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, { headers: await authHeader() });
                 if (retry.ok) {
                   return await retry.json();
                 }
@@ -427,7 +455,7 @@ export async function getMails(folder = 'inbox') {
     if (USE_BACKEND && collectedSent.length === 0) {
       try {
         const backendMails = await (async () => {
-          const res = await fetch(`${BASE}/api/mail?folder=sent&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
+          const res = await fetch(`${BASE}/api/mail?folder=sent&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, { headers: await authHeader() });
           if (res.ok) {
             return await res.json();
           }
@@ -619,7 +647,7 @@ export async function sendMail({ to, subject = '', body = '', attachments = [] }
     try {
       const res = await fetch(`${BASE}/api/emails`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeader({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ 
           from: CURRENT_USER_EMAIL,
           to, 
@@ -710,7 +738,7 @@ export async function sendEmail(options) {
 export async function getMail(id) {
   if (USE_BACKEND) {
     try {
-      const res = await fetch(`${BASE}/api/mail/${id}`);
+      const res = await fetch(`${BASE}/api/mail/${id}`, { headers: await authHeader() });
       if (!res.ok) {
         let json;
         try { json = await res.json(); } catch (_) {}
@@ -745,7 +773,7 @@ export async function markAsRead(id) {
   // Si hay backend disponible, priorizarlo siempre
   if (BASE) {
     try {
-      const res = await fetch(`${BASE}/api/mail/${id}/read`, { method: 'POST' });
+      const res = await fetch(`${BASE}/api/mail/${id}/read`, { method: 'POST', headers: await authHeader() });
       if (!res.ok) throw new Error('Error marcar leído');
       const json = await res.json();
       return json.success ? json : { success: true };
@@ -765,7 +793,7 @@ export async function deleteMail(id) {
   // Intentar siempre backend primero
   if (BASE) {
     try {
-      const res = await fetch(`${BASE}/api/mail/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${BASE}/api/mail/${id}`, { method: 'DELETE', headers: await authHeader() });
       if (!res.ok) throw new Error('Error eliminando mail');
       return { success: true };
     } catch (err) {
@@ -810,7 +838,7 @@ export async function getEmailTemplates(bypassCache = false) {
   // Intentar cargar del backend si está disponible
   if (USE_BACKEND) {
     try {
-      const res = await fetch(`${BASE}/api/email-templates?user=${encodeURIComponent(CURRENT_USER_EMAIL)}`);
+      const res = await fetch(`${BASE}/api/email-templates?user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, { headers: await authHeader() });
       if (res.ok) {
         templates = await res.json();
         // Guardar en caché para futuras solicitudes
@@ -883,7 +911,7 @@ export async function saveEmailTemplate(template) {
     try {
       const res = await fetch(`${BASE}/api/email-templates`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeader({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           template,
           user: CURRENT_USER_EMAIL
@@ -965,7 +993,7 @@ export async function deleteEmailTemplate(templateId) {
     try {
       const res = await fetch(`${BASE}/api/email-templates/${templateId}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeader({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ user: CURRENT_USER_EMAIL })
       });
       

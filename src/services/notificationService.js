@@ -1,11 +1,34 @@
 // Notifications service – interacts with backend API (Express + Firestore)
 // Notification: { id, type, message, date, read, providerId?, trackingId?, dueDate?, action? }
 
+import { auth } from '../firebaseConfig';
+
 const BASE = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:3001';
+
+// Obtiene el token de autenticación del usuario actual
+async function getAuthToken() {
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      return await user.getIdToken();
+    }
+    return null;
+  } catch (error) {
+    console.warn('Error obteniendo token de autenticación:', error);
+    return null;
+  }
+}
+
+// Devuelve cabeceras con Authorization si hay token
+async function authHeader(base = {}) {
+  const token = await getAuthToken();
+  return token ? { ...base, 'Authorization': `Bearer ${token}` } : base;
+}
 
 export async function getNotifications() {
   try {
-    const res = await fetch(`${BASE}/api/notifications`);
+    const headers = await authHeader();
+    const res = await fetch(`${BASE}/api/notifications`, { headers });
     if (!res.ok) throw new Error('Error fetching notifications');
     return res.json();
   } catch (error) {
@@ -21,7 +44,7 @@ export async function addNotification(notification) {
   try {
     const res = await fetch(`${BASE}/api/notifications`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await authHeader({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ 
         type, 
         message, 
@@ -56,7 +79,8 @@ export async function addNotification(notification) {
 
 export async function markNotificationRead(id) {
   try {
-    const res = await fetch(`${BASE}/api/notifications/${id}/read`, { method: 'PATCH' });
+    const headers = await authHeader();
+    const res = await fetch(`${BASE}/api/notifications/${id}/read`, { method: 'PATCH', headers });
     if (!res.ok) throw new Error('Error marking notification as read');
     return res.json();
   } catch (error) {
@@ -68,7 +92,8 @@ export async function markNotificationRead(id) {
 
 export async function deleteNotification(id) {
   try {
-    const res = await fetch(`${BASE}/api/notifications/${id}`, { method: 'DELETE' });
+    const headers = await authHeader();
+    const res = await fetch(`${BASE}/api/notifications/${id}`, { method: 'DELETE', headers });
     if (!res.ok) throw new Error('Error deleting notification');
     // Eliminar también de localStorage por si acaso
     deleteLocalNotification(id);
