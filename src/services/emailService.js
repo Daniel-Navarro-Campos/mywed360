@@ -339,26 +339,31 @@ export async function getMails(folder = 'inbox') {
           const backendUrl = BASE || 'http://localhost:4004';
           const token = await getAuthToken();
           
-          const headers = {
-            'Content-Type': 'application/json'
-          };
-          
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-          
-          const res = await fetch(`${backendUrl}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
-            headers
-          });
-          
-          if (res.ok) {
-            const json = await res.json();
-            if (Array.isArray(json)) {
-              return json;
-            }
+          // Si aún no tenemos token, esperamos a la autenticación sin activar circuit breaker
+          if (!token) {
+            console.log('⏳ emailService: token no disponible todavía, se omitirá llamada al backend');
           } else {
-            // Marcar fallo del backend para activar circuit breaker
-            localStorage.setItem(backendFailureKey, now.toString());
+            const headers = {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            };
+            
+            const res = await fetch(`${backendUrl}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+              headers
+            });
+            
+            if (res.ok) {
+              const json = await res.json();
+              if (Array.isArray(json)) {
+                return json;
+              }
+            } else {
+              // Solo activar circuit breaker para errores de servidor 5xx
+              if (res.status >= 500) {
+                localStorage.setItem(backendFailureKey, now.toString());
+              }
+              console.warn(`⚠️ emailService: backend devolvió ${res.status}`);
+            }
           }
         } catch (err) {
           // Marcar fallo del backend para activar circuit breaker
