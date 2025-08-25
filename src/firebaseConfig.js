@@ -101,6 +101,10 @@ const inicializarFirebase = async () => {
     // Inicializar autenticación
     try {
       auth = getAuth(app);
+      // Exponer auth para depuración en modo desarrollo
+      if (typeof window !== 'undefined' && import.meta.env && import.meta.env.DEV) {
+        window.auth = auth;
+      }
       // Garantizamos persistencia local para mantener la sesión incluso tras cerrar el navegador
       try {
         const { setPersistence, browserLocalPersistence } = await import('firebase/auth');

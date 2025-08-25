@@ -88,6 +88,7 @@ app.use(express.json());
 // Rutas públicas (sin autenticación)
 app.use('/api/mailgun/webhook', mailgunWebhookRouter); // Webhooks de Mailgun (verificación interna)
 app.use('/api/inbound/mailgun', mailgunInboundRouter); // Correos entrantes
+app.use('/api/mailgun/events', mailgunEventsRouter); // Eventos de Mailgun (consulta pública)
 
 // Rutas que requieren autenticación específica para correo
 app.use('/api/mail', requireMailAccess, mailRouter);
