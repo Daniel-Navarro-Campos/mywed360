@@ -105,6 +105,10 @@ router.get('/', async (req, res) => {
     try {
       data = await mailgun.events().get(query);
     } catch (mgErr) {
+      // Log detallado para diagnosticar problemas (status, mensaje y cuerpo)
+      const status = mgErr?.statusCode || mgErr?.status || 'unknown';
+      const body = mgErr?.response?.body || mgErr?.message || mgErr;
+      console.error('Error Mailgun events().get:', status, body);
       const msg = mgErr?.message || String(mgErr);
       console.error('Error Mailgun events().get:', msg);
       return res.status(503).json({
