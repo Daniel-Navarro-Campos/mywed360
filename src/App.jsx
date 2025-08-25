@@ -58,6 +58,11 @@ import AcceptInvitation from './pages/AcceptInvitation';
 // Importar configuración de i18n
 import './i18n';
 
+// Importar sistema de diagnóstico
+import DiagnosticPanel from './components/DiagnosticPanel';
+import errorLogger from './utils/errorLogger';
+import './utils/consoleCommands';
+
 function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
@@ -75,8 +80,21 @@ function ProtectedRoute() {
 
 function App() {
   const enableDev = (import.meta.env.VITE_ENABLE_DEV_ROUTES === 'true') || (import.meta.env.MODE !== 'production');
-  // Mensaje de diagnóstico para verificar si la aplicación carga correctamente
-  console.log('App component rendering...');
+  
+  // Inicializar sistema de diagnóstico
+  React.useEffect(() => {
+    console.log('🚀 MyWed360 iniciando...');
+    console.log('🔍 Sistema de diagnóstico activado');
+    console.log('💡 Usa window.errorLogger para acceder al sistema de errores');
+    
+    // Log de información del entorno
+    console.group('🌍 Información del Entorno');
+    console.log('Modo:', import.meta.env.MODE);
+    console.log('Desarrollo:', import.meta.env.DEV);
+    console.log('Backend URL:', import.meta.env.VITE_BACKEND_BASE_URL);
+    console.log('Firebase Project:', import.meta.env.VITE_FIREBASE_PROJECT_ID);
+    console.groupEnd();
+  }, []);
   return (
     <AuthMigrationWrapper>
       <UserProvider>
@@ -162,6 +180,8 @@ function App() {
             </Route>
           </Route>
         </Routes>
+        {/* Sistema de diagnóstico global */}
+        <DiagnosticPanel />
       </BrowserRouter>
         </AuthProvider>
       </UserProvider>
