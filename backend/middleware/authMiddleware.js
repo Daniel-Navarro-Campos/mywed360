@@ -33,11 +33,9 @@ if (!admin.apps.length) {
         const path = await import('path');
         const rootPath = path.resolve(process.cwd(), 'serviceAccount.json');
         const secretPath = '/etc/secrets/serviceAccount.json';
-        const svcPath = fs.existsSync(rootPath)
-          ? rootPath
-          : fs.existsSync(secretPath)
-          ? secretPath
-          : null;
+        const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        const candidatePaths = [envPath, rootPath, secretPath].filter(Boolean);
+        const svcPath = candidatePaths.find(p => fs.existsSync(p)) || null;
         if (svcPath) {
           const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
           if (!admin.apps.length) admin.initializeApp({
@@ -59,7 +57,9 @@ if (!admin.apps.length) {
         const path = await import('path');
         const rootPath = path.resolve(process.cwd(), 'serviceAccount.json');
         const secretPath = '/etc/secrets/serviceAccount.json';
-        const svcPath = fs.existsSync(rootPath) ? rootPath : (fs.existsSync(secretPath) ? secretPath : null);
+        const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+        const candidatePaths = [envPath, rootPath, secretPath].filter(Boolean);
+        const svcPath = candidatePaths.find(p => fs.existsSync(p)) || null;
         if (svcPath) {
           const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
           if (!admin.apps.length) admin.initializeApp({
