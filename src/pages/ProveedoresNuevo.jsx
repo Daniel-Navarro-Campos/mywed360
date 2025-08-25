@@ -35,12 +35,14 @@ const Proveedores = () => {
     statusFilter,
     dateFrom,
     dateTo,
+    ratingMin,
     tab,
     setSearchTerm,
     setServiceFilter,
     setStatusFilter,
     setDateFrom,
     setDateTo,
+    setRatingMin,
     setTab,
     setSelectedProvider,
     loadProviders,
@@ -200,6 +202,8 @@ const Proveedores = () => {
               setDateFrom={setDateFrom}
               dateTo={dateTo}
               setDateTo={setDateTo}
+              ratingMin={ratingMin}
+              setRatingMin={setRatingMin}
               clearFilters={clearFilters}
               handleViewDetail={handleViewDetail}
               tab={tab}
