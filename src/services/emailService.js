@@ -358,7 +358,15 @@ export async function getMails(folder = 'inbox') {
       // Añadir timeout para evitar cuelgues
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
-      const res = await fetch(`${BASE}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, { signal: controller.signal });
+
+      // Incluir token de Firebase para pasar middleware requireMailAccess
+      const token = await getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const res = await fetch(
+        `${BASE}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`,
+        { signal: controller.signal, headers }
+      );
       clearTimeout(timeoutId);
       if (!res.ok) {
         console.warn(`Backend /api/mail devolvió ${res.status}. Activando backoff ${BACKEND_BACKOFF_MS}ms`);
