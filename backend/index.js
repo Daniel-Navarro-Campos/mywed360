@@ -4,9 +4,17 @@
 //   Health check at /
 
 import dotenv from 'dotenv';
-// Cargar variables de entorno lo antes posible, antes de importar cualquier módulo que las use
-dotenv.config();
+// Cargar variables de entorno lo antes posible desde secret file (Render) o .env local
+import fs from 'fs';
 import path from 'path';
+
+const secretEnvPath = '/etc/secrets/app.env';
+if (fs.existsSync(secretEnvPath)) {
+  dotenv.config({ path: secretEnvPath });
+  console.log('✅ Variables de entorno cargadas desde secret file', secretEnvPath);
+} else {
+  dotenv.config(); // fallback a .env local
+}
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';

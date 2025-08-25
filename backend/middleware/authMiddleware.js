@@ -16,10 +16,31 @@ if (!admin.apps.length) {
         projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
       });
     } else {
-      // En desarrollo, usar credenciales por defecto
-      admin.initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
-      });
+      // Buscar archivo serviceAccount.json en raíz del proyecto como fallback
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const svcPath = path.resolve(process.cwd(), 'serviceAccount.json');
+        if (fs.existsSync(svcPath)) {
+          const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccountFile),
+            projectId: process.env.FIREBASE_PROJECT_ID || serviceAccountFile.project_id || 'lovenda-98c77'
+          });
+          console.log('[AuthMiddleware] Firebase Admin inicializado con serviceAccount.json');
+        } else {
+          // Último recurso: inicialización sin credenciales explícitas (usará ADC si existe)
+          admin.initializeApp({
+            projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
+          });
+          console.warn('[AuthMiddleware] serviceAccount.json no encontrado, usando credenciales por defecto');
+        }
+      } catch (fileErr) {
+        console.error('[AuthMiddleware] Error leyendo serviceAccount.json:', fileErr);
+        admin.initializeApp({
+          projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
+        });
+      }
     }
     console.log('[AuthMiddleware] Firebase Admin inicializado correctamente');
   } catch (error) {
