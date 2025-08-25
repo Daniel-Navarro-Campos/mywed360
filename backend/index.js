@@ -36,10 +36,12 @@ import logger from './logger.js';
 import instagramWallRouter from './routes/instagram-wall.js';
 import weddingNewsRouter from './routes/wedding-news.js';
 
-// Importar middleware de autenticación
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { requireAuth, requireMailAccess, optionalAuth } = require('./middleware/authMiddleware.js');
+// Importar middleware de autenticación (ESM)
+import {
+  requireAuth,
+  requireMailAccess,
+  optionalAuth
+} from './middleware/authMiddleware.js';
 
 // Load environment variables (root .env)
 const envPath = path.resolve(process.cwd(), '.env');
