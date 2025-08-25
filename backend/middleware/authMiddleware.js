@@ -23,7 +23,7 @@ if (!admin.apps.length) {
         }
       }
       if (serviceAccountObj) {
-        admin.initializeApp({
+        if (!admin.apps.length) admin.initializeApp({
           credential: admin.credential.cert(serviceAccountObj),
           projectId: process.env.FIREBASE_PROJECT_ID || serviceAccountObj.project_id || 'lovenda-98c77'
         });
@@ -40,14 +40,14 @@ if (!admin.apps.length) {
           : null;
         if (svcPath) {
           const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
-          admin.initializeApp({
+          if (!admin.apps.length) admin.initializeApp({
             credential: admin.credential.cert(serviceAccountFile),
             projectId:
               process.env.FIREBASE_PROJECT_ID || serviceAccountFile.project_id || 'lovenda-98c77'
           });
           console.log(`[AuthMiddleware] Firebase Admin inicializado con serviceAccount.json (${svcPath})`);
         } else {
-          admin.initializeApp({
+          if (!admin.apps.length) admin.initializeApp({
             projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
           });
         }
@@ -62,20 +62,20 @@ if (!admin.apps.length) {
         const svcPath = fs.existsSync(rootPath) ? rootPath : (fs.existsSync(secretPath) ? secretPath : null);
         if (svcPath) {
           const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
-          admin.initializeApp({
+          if (!admin.apps.length) admin.initializeApp({
             credential: admin.credential.cert(serviceAccountFile),
             projectId: process.env.FIREBASE_PROJECT_ID || serviceAccountFile.project_id || 'lovenda-98c77'
           });
           console.log(`[AuthMiddleware] Firebase Admin inicializado con serviceAccount.json (${svcPath})`);
         } else {
           // Último recurso: inicialización sin credenciales explícitas (usará ADC si existe)
-          admin.initializeApp({
+          if (!admin.apps.length) admin.initializeApp({
             projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
           });
         }
       } catch (fileErr) {
         console.error('[AuthMiddleware] Error leyendo serviceAccount.json:', fileErr);
-        admin.initializeApp({
+        if (!admin.apps.length) admin.initializeApp({
           projectId: process.env.FIREBASE_PROJECT_ID || 'lovenda-98c77'
         });
       }
