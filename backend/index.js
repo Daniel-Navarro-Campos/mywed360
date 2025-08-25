@@ -18,6 +18,13 @@ if (fs.existsSync(secretEnvPath)) {
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+// Importar middleware de autenticación (ESM) - debe cargarse antes que las rutas para inicializar Firebase Admin correctamente
+import {
+  requireAuth,
+  requireMailAccess,
+  optionalAuth
+} from './middleware/authMiddleware.js';
+
 import mailRouter from './routes/mail.js';
 import aiRouter from './routes/ai.js';
 import aiAssignRouter from './routes/ai-assign.js';
