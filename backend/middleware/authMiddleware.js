@@ -20,14 +20,16 @@ if (!admin.apps.length) {
       try {
         const fs = await import('fs');
         const path = await import('path');
-        const svcPath = path.resolve(process.cwd(), 'serviceAccount.json');
-        if (fs.existsSync(svcPath)) {
+        const rootPath = path.resolve(process.cwd(), 'serviceAccount.json');
+        const secretPath = '/etc/secrets/serviceAccount.json';
+        const svcPath = fs.existsSync(rootPath) ? rootPath : (fs.existsSync(secretPath) ? secretPath : null);
+        if (svcPath) {
           const serviceAccountFile = JSON.parse(fs.readFileSync(svcPath, 'utf8'));
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccountFile),
             projectId: process.env.FIREBASE_PROJECT_ID || serviceAccountFile.project_id || 'lovenda-98c77'
           });
-          console.log('[AuthMiddleware] Firebase Admin inicializado con serviceAccount.json');
+          console.log(`[AuthMiddleware] Firebase Admin inicializado con serviceAccount.json (${svcPath})`);
         } else {
           // Último recurso: inicialización sin credenciales explícitas (usará ADC si existe)
           admin.initializeApp({
