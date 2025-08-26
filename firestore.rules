@@ -74,6 +74,11 @@ service cloud.firestore {
       allow read, write: if true;
     }
 
+    // Colección _test para diagnósticos sin autenticación
+    match /_test/{docId} {
+      allow read, write: if true;
+    }
+
     // Perfil de usuario
     match /users/{uid} {
       // Cualquier usuario autenticado puede leer datos de perfil básicos

@@ -201,24 +201,49 @@ class ErrorLogger {
   async checkFirebaseConnection() {
     try {
       // Importar dinámicamente para evitar errores de inicialización
-      const { getFirestore, doc, getDoc } = await import('firebase/firestore');
+      const { getFirestore, doc, getDoc, setDoc } = await import('firebase/firestore');
       const { getAuth } = await import('firebase/auth');
       
       const db = getFirestore();
       const auth = getAuth();
 
-      // Intentar una operación simple de lectura
-      const testDoc = doc(db, '_test', 'connection');
-      await getDoc(testDoc);
-
-      this.diagnostics.firebase = {
-        status: 'success',
-        details: {
-          projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-          authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-          currentUser: auth.currentUser?.uid || 'No authenticated user'
+      // Intentar operación en colección pública primero
+      try {
+        const testDoc = doc(db, '_conexion_prueba', 'diagnostic');
+        await setDoc(testDoc, { 
+          timestamp: new Date().toISOString(),
+          source: 'diagnostic-system'
+        }, { merge: true });
+        
+        this.diagnostics.firebase = {
+          status: 'success',
+          details: {
+            projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+            authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+            currentUser: auth.currentUser?.uid || 'No authenticated user',
+            connection: 'OK - Public collection accessible'
+          }
+        };
+        return;
+      } catch (publicError) {
+        // Si falla la colección pública, intentar con autenticación
+        if (auth.currentUser) {
+          const userDoc = doc(db, 'users', auth.currentUser.uid);
+          await getDoc(userDoc);
+          
+          this.diagnostics.firebase = {
+            status: 'success',
+            details: {
+              projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+              authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+              currentUser: auth.currentUser.uid,
+              connection: 'OK - Authenticated access'
+            }
+          };
+        } else {
+          throw new Error('No authenticated user and public access failed');
         }
-      };
+      }
 
     } catch (error) {
       this.diagnostics.firebase = {
