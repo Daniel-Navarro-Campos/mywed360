@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserProvider from './context/UserContext'; // Legacy - mantener durante migración
@@ -64,17 +64,24 @@ import errorLogger from './utils/errorLogger';
 import './utils/consoleCommands';
 
 function ProtectedRoute() {
+  const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
     // Mientras se resuelve el estado de autenticación, no hagas redirecciones prematuras
     return null; // Se podría mostrar un spinner si se desea
   }
-  return isAuthenticated ? (
+  if (!isAuthenticated) {
+    if (location.pathname !== '/login' && location.pathname !== '/') {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    return <></>; // Ya estamos en login, no redirigir para evitar bucle
+  }
+  return (
     <>
       <Outlet />
       <EmailNotification />
     </>
-  ) : <Navigate to="/" replace />;
+  );
 }
 
 
