@@ -41,6 +41,7 @@ import mailgunEventsRouter from './routes/mailgun-events.js';
 import mailgunWebhookRouter from './routes/mailgun-webhook.js';
 import mailgunTestRouter from './routes/mailgun.js';
 import diagnosticRouter from './routes/diagnostic.js';
+import simpleTestRouter from './routes/simple-test.js';
 import logger from './logger.js';
 import instagramWallRouter from './routes/instagram-wall.js';
 import weddingNewsRouter from './routes/wedding-news.js';
@@ -112,8 +113,9 @@ app.use('/api/ai-assign', requireAuth, aiAssignRouter);
 app.use('/api/instagram-wall', optionalAuth, instagramWallRouter); // Puede ser público
 app.use('/api/wedding-news', optionalAuth, weddingNewsRouter); // Puede ser público
 
-// Ruta de diagnóstico (pública para debugging)
+// Rutas de diagnóstico y test (públicas para debugging)
 app.use('/api/diagnostic', diagnosticRouter);
+app.use('/api/test', simpleTestRouter);
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });

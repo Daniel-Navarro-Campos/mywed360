@@ -42,38 +42,54 @@ export const useOnboarding = () => {
       }
 
       try {
-        // Verificar que el usuario esté completamente autenticado
-        if (!user.emailVerified && user.isAnonymous === false) {
-          // Usuario no verificado, esperar un poco más
-          setTimeout(() => checkOnboardingStatus(user), 1000);
-          return;
-        }
-
-        // Validar que el UID sea válido antes de hacer la consulta
-        if (user.uid.length < 10 || !/^[a-zA-Z0-9]+$/.test(user.uid)) {
-          console.warn('UID inválido detectado:', user.uid);
+        // BYPASS TEMPORAL: Usar localStorage como fallback mientras se solucionan los permisos de Firebase
+        const localOnboardingKey = `onboarding_completed_${user.uid}`;
+        const localCompleted = localStorage.getItem(localOnboardingKey);
+        
+        if (localCompleted === 'true') {
+          setOnboardingCompleted(true);
           setShowOnboarding(false);
           setLoading(false);
           return;
         }
+
+        // Intentar Firebase con timeout y fallback
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Firebase timeout')), 3000)
+        );
         
-        const profileRef = doc(db, 'users', user.uid);
-        const profileDoc = await getDoc(profileRef);
-        
-        if (profileDoc.exists()) {
-          const data = profileDoc.data();
-          const completed = data.onboardingCompleted || false;
-          setOnboardingCompleted(completed);
+        const firestorePromise = (async () => {
+          const profileRef = doc(db, 'users', user.uid);
+          const profileDoc = await getDoc(profileRef);
+          return profileDoc;
+        })();
+
+        try {
+          const profileDoc = await Promise.race([firestorePromise, timeoutPromise]);
           
-          // Mostrar onboarding solo si no se ha completado
-          setShowOnboarding(!completed);
-        } else {
-          // Si no existe perfil, mostrar onboarding
+          if (profileDoc.exists()) {
+            const data = profileDoc.data();
+            const completed = data.onboardingCompleted || false;
+            setOnboardingCompleted(completed);
+            setShowOnboarding(!completed);
+            
+            // Guardar en localStorage como backup
+            if (completed) {
+              localStorage.setItem(localOnboardingKey, 'true');
+            }
+          } else {
+            // Si no existe perfil, mostrar onboarding
+            setShowOnboarding(true);
+          }
+        } catch (firebaseError) {
+          console.warn('Firebase no disponible, usando modo offline:', firebaseError.message);
+          // Modo offline: asumir que necesita onboarding si no hay datos locales
           setShowOnboarding(true);
+          setOnboardingCompleted(false);
         }
       } catch (error) {
         console.error('Error al verificar estado de onboarding:', error);
-        // En caso de error, no mostrar onboarding para evitar bucles
+        // Fallback: no mostrar onboarding para evitar bucles
         setShowOnboarding(false);
       } finally {
         setLoading(false);
@@ -97,6 +113,12 @@ export const useOnboarding = () => {
     setShowOnboarding(false);
     setOnboardingCompleted(true);
     localStorage.removeItem('forceOnboarding');
+    
+    // Guardar en localStorage como backup
+    if (auth.currentUser && auth.currentUser.uid) {
+      const localOnboardingKey = `onboarding_completed_${auth.currentUser.uid}`;
+      localStorage.setItem(localOnboardingKey, 'true');
+    }
   };
 
   return {
