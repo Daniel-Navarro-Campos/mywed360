@@ -22,91 +22,45 @@ export const useOnboarding = () => {
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Verificar si el usuario ya completó el onboarding
+  // DESHABILITAR TEMPORALMENTE Firebase onboarding checks
   useEffect(() => {
-    let unsubscribe = null;
-    
-    const checkOnboardingStatus = async (user) => {
-      // Si hay flag forzado, no verificar estado
+    // MODO OFFLINE TEMPORAL: Solo usar localStorage hasta que se solucionen los permisos
+    const checkOnboardingStatus = (user) => {
+      // Si hay flag forzado, mostrar onboarding
       if (forceFlag) {
         setShowOnboarding(true);
         setLoading(false);
         return;
       }
 
-      // Si no hay usuario autenticado, no mostrar onboarding
-      if (!user || !user.uid || typeof user.uid !== 'string' || user.uid.trim() === '') {
+      // Si no hay usuario, no mostrar onboarding
+      if (!user || !user.uid) {
         setShowOnboarding(false);
         setLoading(false);
         return;
       }
 
-      try {
-        // BYPASS TEMPORAL: Usar localStorage como fallback mientras se solucionan los permisos de Firebase
-        const localOnboardingKey = `onboarding_completed_${user.uid}`;
-        const localCompleted = localStorage.getItem(localOnboardingKey);
-        
-        if (localCompleted === 'true') {
-          setOnboardingCompleted(true);
-          setShowOnboarding(false);
-          setLoading(false);
-          return;
-        }
-
-        // Intentar Firebase con timeout y fallback
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Firebase timeout')), 3000)
-        );
-        
-        const firestorePromise = (async () => {
-          const profileRef = doc(db, 'users', user.uid);
-          const profileDoc = await getDoc(profileRef);
-          return profileDoc;
-        })();
-
-        try {
-          const profileDoc = await Promise.race([firestorePromise, timeoutPromise]);
-          
-          if (profileDoc.exists()) {
-            const data = profileDoc.data();
-            const completed = data.onboardingCompleted || false;
-            setOnboardingCompleted(completed);
-            setShowOnboarding(!completed);
-            
-            // Guardar en localStorage como backup
-            if (completed) {
-              localStorage.setItem(localOnboardingKey, 'true');
-            }
-          } else {
-            // Si no existe perfil, mostrar onboarding
-            setShowOnboarding(true);
-          }
-        } catch (firebaseError) {
-          console.warn('Firebase no disponible, usando modo offline:', firebaseError.message);
-          // Modo offline: asumir que necesita onboarding si no hay datos locales
-          setShowOnboarding(true);
-          setOnboardingCompleted(false);
-        }
-      } catch (error) {
-        console.error('Error al verificar estado de onboarding:', error);
-        // Fallback: no mostrar onboarding para evitar bucles
+      // Solo usar localStorage - NO Firebase por ahora
+      const localOnboardingKey = `onboarding_completed_${user.uid}`;
+      const localCompleted = localStorage.getItem(localOnboardingKey);
+      
+      if (localCompleted === 'true') {
+        setOnboardingCompleted(true);
         setShowOnboarding(false);
-      } finally {
-        setLoading(false);
+      } else {
+        // Primera vez o no completado
+        setOnboardingCompleted(false);
+        setShowOnboarding(true);
       }
+      
+      setLoading(false);
     };
 
-    // Usar onAuthStateChanged para asegurar que tenemos el estado correcto de autenticación
-    unsubscribe = onAuthStateChanged(auth, (user) => {
-      checkOnboardingStatus(user);
-    });
+    // Usar onAuthStateChanged pero sin consultas a Firebase
+    const unsubscribe = onAuthStateChanged(auth, checkOnboardingStatus);
     
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [forceFlag]); // Removemos currentUser de las dependencias ya que usamos onAuthStateChanged
+    return () => unsubscribe();
+  }, [forceFlag]);
 
   // Función para marcar el onboarding como completado
   const completeOnboarding = () => {
