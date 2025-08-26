@@ -1,21 +1,6 @@
-<<<<<<< HEAD
-// Servicio de diagnóstico centralizado
-// Implementación mínima para evitar errores en build.
-// TODO: integrar diagnósticos reales de Firebase, backend y Mailgun.
 
-export async function runFullDiagnostics() {
-  return {
-    timestamp: new Date().toISOString(),
-    firebase: { status: 'unknown' },
-    backend: { status: 'unknown' },
-    mailgun: { status: 'unknown' },
-  };
-}
 
-export default {
-  runFullDiagnostics,
-};
-=======
+
 /**
  * Servicio de Diagnóstico Avanzado para Backend y Servicios Externos
  * Proporciona funciones específicas para diagnosticar problemas comunes
@@ -498,4 +483,4 @@ class DiagnosticService {
 }
 
 export default new DiagnosticService();
->>>>>>> parent of bd777b36 (chore: sincroniza cambios locales antes de despliegue)
+

@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 /*
   Registro de comandos de consola para diagnóstico y utilidades.
   Se carga automáticamente desde src/main.jsx.
@@ -42,7 +42,7 @@ if (typeof window !== 'undefined') {
 
   console.info('🛠️  Comandos de consola MyWed360 registrados: mywed.checkAll(), mywed.clearDiagnostics()');
 }
-=======
+
 /**
  * Comandos de Consola para Diagnóstico y Debugging
  * Proporciona comandos fáciles de usar desde la consola del navegador
@@ -90,7 +90,7 @@ class ConsoleCommands {
   showWelcomeMessage() {
     console.log(`
 🚀 MyWed360 - Sistema de Diagnóstico Activado
-=============================================
+===
 
 Comandos disponibles:
 • mywed.help()        - Mostrar ayuda completa
@@ -304,7 +304,7 @@ Comandos disponibles:
   showHelp() {
     console.log(`
 🔍 MyWed360 - Comandos de Diagnóstico
-====================================
+=
 
 DIAGNÓSTICOS:
 • mywed.checkAll()      - Diagnóstico completo del sistema
@@ -348,4 +348,4 @@ EJEMPLOS DE USO:
 const consoleCommands = new ConsoleCommands();
 
 export default consoleCommands;
->>>>>>> parent of bd777b36 (chore: sincroniza cambios locales antes de despliegue)
+
