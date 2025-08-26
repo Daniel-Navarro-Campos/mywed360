@@ -1,8 +1,11 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../../hooks/useAuthUnified';
+
 /**
  * Versión mínima de InboxContainer para debugging
  * Elimina todas las dependencias complejas que pueden estar causando el error de Promise
  */
-const InboxContainer = () => {
+const InboxContainerMinimal = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [emails, setEmails] = useState([]);
@@ -81,4 +84,4 @@ const InboxContainer = () => {
   );
 };
 
-export default InboxContainer;
+export default InboxContainerMinimal;
