@@ -375,7 +375,7 @@ class DiagnosticService {
       const db = getFirestore();
 
       // Intentar leer un documento de prueba
-      const testDoc = doc(db, '_test', 'connection');
+      const testDoc = doc(db, '_conexion_prueba', 'connection');
       await getDoc(testDoc);
 
       return {
