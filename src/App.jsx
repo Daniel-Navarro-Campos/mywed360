@@ -68,14 +68,16 @@ function ProtectedRoute() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Redirige de forma imperativa una vez que el auth state está determinado
+  // Redirige de forma imperativa una sola vez cuando el estado de auth está determinado
+  const hasRedirected = React.useRef(false);
   React.useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && !isAuthenticated && !hasRedirected.current) {
       if (location.pathname !== '/login' && location.pathname !== '/') {
+        hasRedirected.current = true;
         navigate('/login', { replace: true, state: { from: location } });
       }
     }
-  }, [isLoading, isAuthenticated, location, navigate]);
+  }, [isLoading, isAuthenticated, navigate, location.pathname]);
 
   if (isLoading) {
     return null; // spinner opcional
