@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     rootDir: .
-    buildCommand: npm ci --ignore-scripts
+    buildCommand: cd backend && npm ci --ignore-scripts
     startCommand: node backend/index.js
     autoDeploy: true
     healthCheckPath: /health
