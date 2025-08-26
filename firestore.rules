@@ -43,6 +43,21 @@ service cloud.firestore {
     // -> Se aplican las mismas reglas que otras subcolecciones mediante el bloque
     //    match /weddings/{weddingId}/{document=**} más arriba.
 
+    // Colección de usuarios - permitir lectura/escritura de su propio documento
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Colección de onboarding - permitir lectura/escritura de su propio documento
+    match /onboarding/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Colección de configuración - permitir lectura a usuarios autenticados
+    match /config/{document=**} {
+      allow read: if request.auth != null;
+    }
+
     // Colección diagnosis para test de conexión
     match /diagnosis/{docId} {
       allow read, write: if request.auth != null;

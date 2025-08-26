@@ -35,7 +35,7 @@ const DEMO_IMAGES = [
  * @param {string} query
  * @returns {Promise<Array<{id:string, html:string, score:number}>>}
  */
-const API_BASE = import.meta.env.DEV ? 'http://localhost:4004' : '';
+const API_BASE = import.meta.env.DEV ? 'http://localhost:4004' : import.meta.env.VITE_BACKEND_BASE_URL || 'https://mywed360-backend.onrender.com';
 
 export async function fetchWall(page = 1, query = 'wedding') {
   const proxify = (url)=> url? `${API_BASE}/api/image-proxy?u=${encodeURIComponent(url)}` : url;
@@ -81,8 +81,8 @@ export async function fetchWall(page = 1, query = 'wedding') {
   const lastRequest = localStorage.getItem(lastRequestKey);
   const now = Date.now();
   
-  // Si falló hace menos de 5 minutos, usar datos demo directamente
-  if (lastFailure && (now - parseInt(lastFailure)) < 5 * 60 * 1000) {
+  // Si falló hace menos de 30 minutos, usar datos demo directamente
+  if (lastFailure && (now - parseInt(lastFailure)) < 30 * 60 * 1000) {
     console.log('🔄 wallService: usando datos demo (circuit breaker activo)');
     return DEMO_IMAGES;
   }

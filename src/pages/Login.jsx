@@ -23,14 +23,14 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redirige automáticamente cuando ya estás autenticado
   useEffect(() => {
     if (!authLoading && authStatus) {
-      // Evita redirigir en bucle si ya estamos en /home
-      if (location.pathname !== '/home') {
-        navigate('/home', { replace: true });
-      }
+      navigate('/home', { replace: true });
     }
-  }, [authLoading, authStatus, navigate, location.pathname]);
+  }, [authLoading, authStatus, navigate]);
+
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();

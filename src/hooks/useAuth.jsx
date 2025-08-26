@@ -191,11 +191,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Derivar estado de autenticación y alias legibles
+  const isAuthenticated = !!currentUser;
+  const isLoading = loading;
+
   // Valor del contexto que se proveerá a los componentes
   const value = {
     currentUser,
     userProfile,
-    loading,
+    loading: isLoading,
+    isLoading,
+    isAuthenticated,
     login,
     logout,
     updateUserProfile,

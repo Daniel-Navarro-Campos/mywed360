@@ -56,6 +56,17 @@ async function runReminderJob(days) {
   try {
     const sentMails = await getMails('sent');
     const inboxMails = await getMails('inbox');
+    
+    // Validar que sentMails e inboxMails sean arrays
+    if (!Array.isArray(sentMails)) {
+      console.warn('sentMails no es un array, saltando job de recordatorios');
+      return;
+    }
+    if (!Array.isArray(inboxMails)) {
+      console.warn('inboxMails no es un array, usando array vacío');
+      inboxMails = [];
+    }
+    
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
     for (const mail of sentMails) {

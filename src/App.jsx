@@ -61,29 +61,28 @@ import './i18n';
 // Importar sistema de diagnóstico
 import DiagnosticPanel from './components/DiagnosticPanel';
 import errorLogger from './utils/errorLogger';
+import { useUserContext } from './context/UserContext';
 import './utils/consoleCommands';
 
 function ProtectedRoute() {
+  // Combina autenticación nueva y legacy
+  const { isAuthenticated: isAuthLegacy, loading: loadingLegacy } = useUserContext();
   const location = useLocation();
-  const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Redirige de forma imperativa una sola vez cuando el estado de auth está determinado
-  const hasRedirected = React.useRef(false);
-  React.useEffect(() => {
-    if (!isLoading && !isAuthenticated && !hasRedirected.current) {
-      if (location.pathname !== '/login' && location.pathname !== '/') {
-        hasRedirected.current = true;
-        navigate('/login', { replace: true, state: { from: location } });
-      }
-    }
-  }, [isLoading, isAuthenticated, navigate, location.pathname]);
+  const effectiveAuth = isAuthenticated || isAuthLegacy;
+  const effectiveLoading = isLoading ?? loadingLegacy;
 
-  if (isLoading) {
+  if (effectiveLoading) {
     return null; // spinner opcional
   }
-  if (!isAuthenticated) {
-    return null; // Evita renderizar contenido protegido hasta que se redirija
+
+  if (!effectiveAuth) {
+    // Evitar redirigir si ya estamos en /login o en la landing
+    if (location.pathname === '/login' || location.pathname === '/') {
+      return null;
+    }
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
   return (
