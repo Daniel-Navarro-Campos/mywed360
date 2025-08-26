@@ -18,6 +18,27 @@ router.use(cors({ origin: true }));
  *  - Opcionalmente hace una llamada "ping" sencilla al endpoint de dominios para confirmar conectividad.
  * Frontend sólo necesita un 200 para marcar la prueba como exitosa.
  */
+// Endpoint de diagnóstico temporal
+router.all('/debug', async (req, res) => {
+  try {
+    const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_EU_REGION } = process.env;
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Mailgun debug endpoint funcionando',
+      environment: {
+        hasApiKey: !!MAILGUN_API_KEY,
+        hasDomain: !!MAILGUN_DOMAIN,
+        hasEuRegion: !!MAILGUN_EU_REGION,
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message, stack: err.stack });
+  }
+});
+
 router.all('/test', async (req, res) => {
   try {
     const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_EU_REGION } = process.env;
