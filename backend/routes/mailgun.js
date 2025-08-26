@@ -1,11 +1,15 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import mailgunJs from 'mailgun-js';
 
 // Asegura variables de entorno disponibles en Render o local
 dotenv.config();
 
 const router = express.Router();
+
+// Habilitar CORS basico para tests desde frontend
+router.use(cors({ origin: true }));
 
 /**
  * GET /api/mailgun/test
@@ -14,7 +18,7 @@ const router = express.Router();
  *  - Opcionalmente hace una llamada "ping" sencilla al endpoint de dominios para confirmar conectividad.
  * Frontend sólo necesita un 200 para marcar la prueba como exitosa.
  */
-router.get('/test', async (_req, res) => {
+router.all('/test', async (req, res) => {
   try {
     const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_EU_REGION } = process.env;
     if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
