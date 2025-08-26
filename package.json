@@ -7,7 +7,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "start": "node backend/index.js",
+    "start": "node backend/minimal-server.js",
     "dev": "npx --no-install vite@4.5.14 --host",
     "build": "vite build",
     "preview": "vite preview --host --port 5174",
