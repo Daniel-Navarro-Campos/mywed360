@@ -1,14 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-
-// Importación condicional de mailgun-js para detectar errores
-let mailgunJs = null;
-try {
-  mailgunJs = (await import('mailgun-js')).default;
-} catch (importError) {
-  console.error('[Mailgun Router] Error importando mailgun-js:', importError);
-}
+import mailgunJs from 'mailgun-js';
 
 // Asegura variables de entorno disponibles en Render o local
 dotenv.config();
@@ -35,7 +28,7 @@ router.all('/debug', async (req, res) => {
       message: 'Mailgun router funcionando correctamente',
       diagnostics: {
         routerLoaded: true,
-        mailgunJsImported: !!mailgunJs,
+        mailgunJsImported: true,
         environment: {
           hasApiKey: !!MAILGUN_API_KEY,
           hasDomain: !!MAILGUN_DOMAIN,
@@ -51,7 +44,7 @@ router.all('/debug', async (req, res) => {
       message: err.message, 
       stack: err.stack,
       routerLoaded: true,
-      mailgunJsImported: !!mailgunJs
+      mailgunJsImported: true
     });
   }
 });
@@ -60,18 +53,7 @@ router.all('/test', async (req, res) => {
   try {
     const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_EU_REGION } = process.env;
     
-    // Verificar si mailgun-js se importó correctamente
-    if (!mailgunJs) {
-      return res.status(503).json({ 
-        success: false, 
-        message: 'Mailgun-js no se pudo importar correctamente',
-        diagnostics: {
-          mailgunJsImported: false,
-          hasApiKey: !!MAILGUN_API_KEY,
-          hasDomain: !!MAILGUN_DOMAIN
-        }
-      });
-    }
+    // mailgun-js ahora se importa correctamente
     
     if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
       return res.status(503).json({ success: false, message: 'Mailgun no está configurado en el servidor' });
