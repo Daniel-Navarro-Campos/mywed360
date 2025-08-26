@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebaseConfig';
+import { db, auth } from '../firebaseConfig';
 import { useAuth } from './useAuthUnified';
 
 /**
@@ -24,18 +24,23 @@ export const useOnboarding = () => {
   // Verificar si el usuario ya completó el onboarding
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (currentUser?.role && ['planner', 'assistant'].includes(currentUser.role)) {
-        // No mostrar tutorial para wedding planners ni ayudantes
-        setShowOnboarding(false);
-        setOnboardingCompleted(true);
-        setLoading(false);
-        return;
-      }
+      // Si hay flag forzado, no verificar estado
       if (forceFlag) {
+        setShowOnboarding(true);
         setLoading(false);
         return;
       }
-      if (!currentUser?.uid) {
+
+      // Si no hay usuario autenticado, no mostrar onboarding
+      if (!currentUser || !currentUser.uid) {
+        setShowOnboarding(false);
+        setLoading(false);
+        return;
+      }
+
+      // Verificar que el usuario esté completamente autenticado
+      if (!auth.currentUser || auth.currentUser.uid !== currentUser.uid) {
+        setShowOnboarding(false);
         setLoading(false);
         return;
       }
@@ -57,12 +62,17 @@ export const useOnboarding = () => {
         }
       } catch (error) {
         console.error('Error al verificar estado de onboarding:', error);
+        // En caso de error, no mostrar onboarding para evitar bucles
+        setShowOnboarding(false);
       } finally {
         setLoading(false);
       }
     };
 
-    checkOnboardingStatus();
+    // Añadir un pequeño delay para asegurar que la autenticación esté lista
+    const timeoutId = setTimeout(checkOnboardingStatus, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [currentUser, forceFlag]);
 
   // Función para marcar el onboarding como completado
