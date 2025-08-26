@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUserContext } from '../context/UserContext'; // Legacy - mantener durante migración
 import { useAuth } from '../hooks/useAuthUnified'; // Nuevo sistema
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 export default function Login() {
   // Cargar email guardado si existe
@@ -21,12 +21,16 @@ export default function Login() {
   const authStatus = unifiedAuth !== undefined ? unifiedAuth : isAuthenticated;
   const authLoading = isLoading !== undefined ? isLoading : loading;
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!authLoading && authStatus) {
-      navigate('/home');
+      // Evita redirigir en bucle si ya estamos en /home
+      if (location.pathname !== '/home') {
+        navigate('/home', { replace: true });
+      }
     }
-  }, [authLoading, authStatus, navigate]);
+  }, [authLoading, authStatus, navigate, location.pathname]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +46,7 @@ export default function Login() {
       } else {
         localStorage.removeItem('lovenda_login_email');
       }
-      navigate('/home');
+
     } catch (err) {
       setError('Usuario o contraseña inválidos');
     }
