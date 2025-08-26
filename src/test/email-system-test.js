@@ -1,4 +1,4 @@
-// Script de validación del sistema de emails personalizado de Lovenda
+// Script de validación del sistema de emails personalizado de MyWed360
 // Ejecutar con: node email-system-test.js
 
 // Nota: Este script está diseñado para probar la lógica, pero requiere adaptaciones
@@ -79,7 +79,7 @@ const testProvider = {
 
 // Inicializa la prueba
 async function runEmailTest() {
-  console.log('=== Iniciando prueba del sistema de emails de Lovenda ===');
+  console.log('=== Iniciando prueba del sistema de emails de MyWed360 ===');
   
   try {
     // 1. Inicializar el servicio con el perfil de usuario
@@ -99,7 +99,7 @@ async function runEmailTest() {
       <p>Saludos cordiales,<br>
       ${testUserProfile.brideFirstName}</p>
       
-      <p style="color:#888; font-size:12px;">Email de prueba - Sistema Lovenda</p>
+      <p style="color:#888; font-size:12px;">Email de prueba - Sistema MyWed360</p>
     `;
     
     const emailResult = await EmailService.sendMail({

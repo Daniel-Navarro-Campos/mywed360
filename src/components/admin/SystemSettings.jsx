@@ -21,7 +21,7 @@ function SystemSettings() {
   
   // Estados para las diferentes configuraciones
   const [generalSettings, setGeneralSettings] = useState({
-    siteName: 'Lovenda',
+    siteName: 'MyWed360',
     siteDescription: 'Plataforma de conexión con proveedores',
     maxUploadSize: 10,
     allowedFileTypes: '.jpg,.png,.pdf,.docx,.xlsx',
@@ -39,7 +39,7 @@ function SystemSettings() {
     smtpPassword: '',
     emailsPerHour: 100,
     maxAttachmentSize: 5,
-    defaultSignature: '-- Enviado desde Lovenda',
+    defaultSignature: '-- Enviado desde MyWed360',
   });
 
   const [securitySettings, setSecuritySettings] = useState({

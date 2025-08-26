@@ -16,6 +16,23 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
   const [segLength, setSegLength] = useState(null); // longitud del segmento actual en cm
   const startRef = useRef(null);
 
+  // Detectar cambio de herramienta para guardar perímetro automáticamente
+  const prevDrawModeRef = useRef(drawMode);
+  useEffect(() => {
+    const prev = prevDrawModeRef.current;
+    // Si salimos del modo 'boundary', guardar el perímetro en curso
+    if (prev === 'boundary' && drawMode !== 'boundary') {
+      if (points.length >= 3) {
+        const closed = [...points, points[0]]; // cerrar polígono
+        onFinalize && onFinalize(closed);
+      }
+      // Limpiar estado temporal
+      setPoints([]);
+      setDrawing(false);
+    }
+    prevDrawModeRef.current = drawMode;
+  }, [drawMode]);
+
   const toSvgPoint = (e) => {
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
@@ -49,9 +66,21 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
   const handlePointerDown = (e) => {
     e.preventDefault();
     const pt = toSvgPoint(e);
+    
     if (drawMode === 'line') {
       setDrawing(true);
       setPoints([pt]);
+      return;
+    }
+    if (drawMode === 'boundary') {
+      // Modo perímetro: siempre agregar punto, mantener drawing activo
+      if (points.length === 0) {
+        setDrawing(true);
+        setPoints([pt]);
+      } else {
+        // Agregar punto al perímetro existente
+        setPoints(prev => [...prev, pt]);
+      }
       return;
     }
     if (drawMode === 'rect') {
@@ -67,8 +96,6 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
   };
 
   const handlePointerMove = (e) => {
-    if (!drawing) return;
-
     // Actualizar posición del cursor relativa al SVG
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
@@ -83,9 +110,19 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
     setSegLength(Math.sqrt(dx * dx + dy * dy));
 
     if (!drawing) return;
+    
     if (drawMode === 'line') {
       const pt = toSvgPoint(e);
       setPoints(prev => (prev.length === 1 ? [prev[0], pt] : [prev[0], pt]));
+      return;
+    }
+    if (drawMode === 'boundary') {
+      // En modo perímetro, mostrar línea de preview al cursor
+      if (points.length > 0) {
+        const pt = toSvgPoint(e);
+        // No modificar los puntos existentes, solo mostrar preview
+        // El preview se maneja en el render
+      }
       return;
     }
     if (drawMode === 'rect') {
@@ -141,6 +178,16 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
   };
 
   const handleDoubleClick = () => {
+    console.log('FreeDrawCanvas - handleDoubleClick:', { drawMode, pointsLength: points.length });
+    if (drawMode === 'boundary') {
+      // Cerrar visualmente el polígono pero NO guardar; se guardará al cambiar de herramienta
+      if (points.length >= 3) {
+        const closedPolygon = [...points, points[0]];
+        setPoints(closedPolygon);
+        setDrawing(false);
+      }
+      return;
+    }
     if (drawMode === 'free' || drawMode === 'curve') {
       if (points.length > 2) {
         const smoothed = smooth(points);
@@ -154,29 +201,59 @@ export default function FreeDrawCanvas({ className = '', style = {}, strokeColor
     <div className={`relative w-full h-full ${className}`} style={style}>
       <svg
       ref={svgRef}
-      className={`w-full h-full touch-none ${className}`}
+      className={`w-full h-full ${className}`}
       style={style}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Áreas existentes */}
       <g transform={`translate(${offset.x} ${offset.y}) scale(${scale})`}>
-        {areas.map((poly, idx) => (
-          <path
-            key={idx}
-            d={getPathD(poly)}
-            stroke="#10b981"
-            strokeWidth={2}
-            fill="none"
-            onPointerDown={drawMode === 'erase' ? (e) => { e.stopPropagation(); onDeleteArea(idx); } : undefined}
-            style={{ cursor: drawMode === 'erase' ? 'pointer' : 'default' }}
-          />
-        ))}
+        {areas.map((poly, idx) => {
+          console.log('FreeDrawCanvas - renderizando área:', idx, poly);
+          return (
+            <path
+              key={idx}
+              d={getPathD(poly)}
+              stroke="#10b981"
+              strokeWidth={2}
+              fill="none"
+              onPointerDown={drawMode === 'erase' ? (e) => { e.stopPropagation(); onDeleteArea(idx); } : undefined}
+              style={{ cursor: drawMode === 'erase' ? 'pointer' : 'default' }}
+            />
+          );
+        })}
         {/* Trazo actual */}
         {points.length > 0 && (
           <path d={getPathD(points)} stroke={strokeColor} strokeWidth={2} fill="none" />
+        )}
+        
+        {/* Puntos del perímetro */}
+        {drawMode === 'boundary' && points.map((point, idx) => (
+          <circle
+            key={idx}
+            cx={point.x}
+            cy={point.y}
+            r={3}
+            fill={strokeColor}
+            opacity={0.8}
+          />
+        ))}
+        
+        {/* Línea de preview para perímetro */}
+        {drawMode === 'boundary' && points.length > 0 && cursorPos && (
+          <line
+            x1={points[points.length - 1].x}
+            y1={points[points.length - 1].y}
+            x2={(cursorPos.x - offset.x) / scale}
+            y2={(cursorPos.y - offset.y) / scale}
+            stroke={strokeColor}
+            strokeWidth={1}
+            strokeDasharray="5,5"
+            opacity={0.7}
+          />
         )}
       </g>
     </svg>

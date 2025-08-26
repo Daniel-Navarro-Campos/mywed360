@@ -30,6 +30,8 @@ import Card from '../../components/Card';
  * @param {string} props.tab - Pestaña actual ('all', 'selected', 'contacted')
  * @param {Function} props.setTab - Función para cambiar la pestaña
  * @param {string[]} props.selected - IDs de proveedores seleccionados
+ * @param {number} props.ratingMin - Rating mínimo seleccionado
+ * @param {Function} props.setRatingMin - Setter del rating mínimo
  * @param {Function} props.toggleSelect - Función para alternar selección de proveedor
  * @returns {React.ReactElement} Componente de lista de proveedores con filtros
  */
@@ -51,6 +53,8 @@ const ProveedorList = ({
   setTab,
   selected,
   toggleFavorite,
+  ratingMin,
+  setRatingMin,
   toggleSelect
 }) => {
   // Lista de servicios únicos para el filtro usando useMemo para evitar cálculos innecesarios
@@ -137,6 +141,18 @@ const ProveedorList = ({
             ))}
           </select>
           
+          {/* Filtro por rating */}
+          <select
+            className="w-full p-2 border border-gray-300 rounded-md"
+            value={ratingMin}
+            onChange={e => setRatingMin(Number(e.target.value))}
+          >
+            <option value={0}>Rating mínimo</option>
+            {[1,2,3,4,5].map(r => (
+              <option key={r} value={r}>{r}+</option>
+            ))}
+          </select>
+
           {/* Filtro por estado */}
           <select
             className="w-full p-2 border border-gray-300 rounded-md"

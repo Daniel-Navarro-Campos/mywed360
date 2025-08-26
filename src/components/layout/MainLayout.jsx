@@ -27,7 +27,7 @@ const MainLayout = ({ children }) => {
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <Link to="/" className="text-blue-600 text-xl font-bold">
-                  Lovenda
+                  MyWed360
                 </Link>
               </div>
               
@@ -247,7 +247,7 @@ const MainLayout = ({ children }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Lovenda. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} MyWed360. Todos los derechos reservados.
             </div>
             <div className="text-sm">
               <Link to="/terms" className="text-gray-500 hover:text-gray-700 mr-4">

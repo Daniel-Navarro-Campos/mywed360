@@ -116,7 +116,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       expect(result.success).toBe(true);
       
       // Obtener el correo guardado y verificar que se sanitizó el contenido
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved[0].body).not.toContain('<script>');
       expect(saved[0].body).toContain('Contenido normal');
     });
@@ -139,7 +139,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       expect(result.success).toBe(true);
       
       // Obtener el correo guardado y verificar que se truncó el asunto
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved[0].subject.length).toBeLessThanOrEqual(255);
     });
 
@@ -172,7 +172,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       global.fetch.mockRejectedValueOnce(new Error('Network error'));
       
       // Guardar emails en localStorage como fallback
-      localStorage.setItem('lovenda_mails', JSON.stringify([mockEmail]));
+      localStorage.setItem('mywed360_mails', JSON.stringify([mockEmail]));
       
       // Debería usar los datos locales como fallback
       const result = await EmailService.getMails('inbox');
@@ -234,7 +234,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       global.fetch.mockImplementationOnce(() => timeoutPromise);
       
       // Guardar emails en localStorage como fallback
-      localStorage.setItem('lovenda_mails', JSON.stringify([mockEmail]));
+      localStorage.setItem('mywed360_mails', JSON.stringify([mockEmail]));
       
       const result = await EmailService.getMails('inbox');
       
@@ -333,7 +333,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       expect(result.success).toBe(true);
       
       // Verificar que el adjunto se guardó correctamente
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved[0].attachments).toHaveLength(1);
       expect(saved[0].attachments[0].name).toBe('archivo_valido.pdf');
     });
@@ -373,7 +373,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       });
       
       // Guardar emails en localStorage como fallback
-      localStorage.setItem('lovenda_mails', JSON.stringify([mockEmail]));
+      localStorage.setItem('mywed360_mails', JSON.stringify([mockEmail]));
       
       const result = await EmailService.getMails('inbox');
       
@@ -392,7 +392,7 @@ describe('EmailService - Casos Límite y Manejo de Errores', () => {
       });
       
       // Guardar emails en localStorage como fallback
-      localStorage.setItem('lovenda_mails', JSON.stringify([mockEmail]));
+      localStorage.setItem('mywed360_mails', JSON.stringify([mockEmail]));
       
       const result = await EmailService.getMails('inbox');
       

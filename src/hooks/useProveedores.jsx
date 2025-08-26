@@ -79,6 +79,8 @@ export const useProveedores = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+    // Filtro de rating mínimo (0 = cualquiera)
+    const [ratingMin, setRatingMin] = useState(0);
   const [tab, setTab] = useState('all'); // 'all', 'reserved', 'favorite'
   
   const { user } = useAuth();
@@ -150,22 +152,21 @@ export const useProveedores = () => {
       filtered = filtered.filter(p => p.date <= dateTo);
     }
     
+    // Aplicar filtro de rating mínimo
+    if (ratingMin > 0) {
+      filtered = filtered.filter(p => p.rating >= ratingMin);
+    }
+    
     // Filtrar por pestaña
     if (tab === 'reserved') {
-      if (!(Array.isArray(p.reservations) && p.reservations.length)) {
-        return false;
-      }
+      filtered = filtered.filter(p => Array.isArray(p.reservations) && p.reservations.length);
     }
-
-    if (tab === 'favorite' && !p.favorite) {
-      return false;
-    }
-    if (tab === 'contacted') {
-      filtered = filtered.filter(p => p.status === 'Contactado');
+    if (tab === 'favorite') {
+      filtered = filtered.filter(p => p.favorite);
     }
     
     setFilteredProviders(filtered);
-  }, [providers, searchTerm, serviceFilter, statusFilter, dateFrom, dateTo, tab]);
+  }, [providers, searchTerm, serviceFilter, statusFilter, dateFrom, dateTo, ratingMin, tab]);
   
   /**
    * Limpiar todos los filtros
@@ -176,6 +177,7 @@ export const useProveedores = () => {
     setStatusFilter('');
     setDateFrom('');
     setDateTo('');
+    setRatingMin(0);
     setTab('all');
   }, []);
   
@@ -338,10 +340,9 @@ export const useProveedores = () => {
   // Aplicar filtros cuando cambien
   useEffect(() => {
     applyFilters();
-  }, [searchTerm, serviceFilter, statusFilter, dateFrom, dateTo, tab, applyFilters]);
+  }, [searchTerm, serviceFilter, statusFilter, dateFrom, dateTo, ratingMin, tab, applyFilters]);
   
   return {
-    // Estado
     // Estado
     providers,
     filteredProviders,
@@ -354,17 +355,19 @@ export const useProveedores = () => {
     statusFilter,
     dateFrom,
     dateTo,
+    ratingMin,
     tab,
-    
+
     // Setters
     setSearchTerm,
     setServiceFilter,
     setStatusFilter,
     setDateFrom,
     setDateTo,
+    setRatingMin,
     setTab,
     setSelectedProvider,
-    
+
     // Acciones
     loadProviders,
     addProvider,

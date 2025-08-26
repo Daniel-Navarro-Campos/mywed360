@@ -1,7 +1,7 @@
 ---
 # Guía de Lint y Accesibilidad
 
-Esta guía resume las normas de estilo de código (ESLint) y las pruebas de accesibilidad (a11y) implementadas en Lovenda.
+Esta guía resume las normas de estilo de código (ESLint) y las pruebas de accesibilidad (a11y) implementadas en MyWed360.
 
 ## 1. Lint (ESLint)
 

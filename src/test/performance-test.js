@@ -1,5 +1,5 @@
 /**
- * Script de pruebas de rendimiento para el sistema de emails de Lovenda
+ * Script de pruebas de rendimiento para el sistema de emails de MyWed360
  * 
  * Este script simula cargas de datos y uso intensivo para evaluar
  * el rendimiento y la escalabilidad de los componentes implementados.

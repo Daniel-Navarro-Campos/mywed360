@@ -30,8 +30,9 @@ export default function Proveedores() {
   // Si existe un weddingId, no usamos proveedores de muestra
   const fallbackProviders = weddingId ? [] : sampleProviders;
   // Usamos weddingId para asegurar que la ruta por parámetro funcione
-  const { data: providersData, addItem: addProvider, updateItem: updateProvider, deleteItem: deleteProvider, loading: providersLoading } = useWeddingCollection('suppliers', weddingId, fallbackProviders);
   if (!weddingId) return renderNoWedding();
+  
+  const { data: providersData, addItem: addProvider, updateItem: updateProvider, deleteItem: deleteProvider, loading: providersLoading } = useWeddingCollection('suppliers', weddingId, fallbackProviders);
 
   const [providers, setProviders] = useState([]);
 
@@ -44,11 +45,21 @@ export default function Proveedores() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [ratingMin, setRatingMin] = useState(0);
+  const [wantedServices, setWantedServices] = useState([
+    { id: 'fotografia', name: 'Fotografía', required: true, budget: 0, contracted: false },
+    { id: 'catering', name: 'Catering', required: true, budget: 0, contracted: false },
+    { id: 'flores', name: 'Flores', required: true, budget: 0, contracted: false },
+    { id: 'musica', name: 'Música', required: true, budget: 0, contracted: false },
+    { id: 'video', name: 'Vídeo', required: false, budget: 0, contracted: false },
+    { id: 'transporte', name: 'Transporte', required: false, budget: 0, contracted: false }
+  ]);
+  const [showServiceConfig, setShowServiceConfig] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [toast, setToast] = useState(null);
   // pestaña actual: selected | contacted
-  const [tab, setTab] = useState('all');
+  const [tab, setTab] = useState('selected');
   const [selected, setSelected] = useState([]);
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiResults, setAiResults] = useState([]);
@@ -63,7 +74,6 @@ export default function Proveedores() {
   const [providerToReserve, setProviderToReserve] = useState(null);
   const [resDate, setResDate] = useState('');
   const [resTime, setResTime] = useState('');
-  const initialProvider = { name: '', service: '', contact: '', email: '', phone: '', status: 'Nuevo', date: '' };
   const [trackingRecords, setTrackingRecords] = useState([]);
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [currentTracking, setCurrentTracking] = useState(null);
@@ -132,6 +142,8 @@ export default function Proveedores() {
     window.addEventListener('lovenda-suppliers', loadSuppliers);
     return () => window.removeEventListener('lovenda-suppliers', loadSuppliers);
   }, []);
+  
+  const initialProvider = { name: '', service: '', contact: '', email: '', phone: '', status: 'Nuevo', date: '' };
   const [newProvider, setNewProvider] = useState(initialProvider);
   const handleAddProvider = async (e) => {
     e.preventDefault();
@@ -420,7 +432,8 @@ const handleAiSearch = async (e) => {
       (serviceFilter ? p.service === serviceFilter : true) &&
       (statusFilter ? p.status === statusFilter : true) &&
       (dateFrom ? p.date >= dateFrom : true) &&
-      (dateTo ? p.date <= dateTo : true)
+      (dateTo ? p.date <= dateTo : true) &&
+      (ratingMin ? (p.rating || 0) >= ratingMin : true)
     )
     .filter(p => {
       if (tab === 'contacted') return p.status === 'Contactado';
@@ -433,7 +446,42 @@ const handleAiSearch = async (e) => {
   };
 
   const clearFilters = () => {
-    setSearchTerm(''); setAiQuery(''); setServiceFilter(''); setStatusFilter(''); setDateFrom(''); setDateTo('');
+    setSearchTerm(''); setAiQuery(''); setServiceFilter(''); setStatusFilter(''); setDateFrom(''); setDateTo(''); setRatingMin(0);
+  };
+
+  // Configurar servicios deseados
+  const updateWantedService = (id, updates) => {
+    setWantedServices(prev => prev.map(service => 
+      service.id === id ? { ...service, ...updates } : service
+    ));
+  };
+
+  const addWantedService = (name) => {
+    const newService = {
+      id: name.toLowerCase().replace(/\s+/g, '-'),
+      name,
+      required: false,
+      budget: 0,
+      contracted: false
+    };
+    setWantedServices(prev => [...prev, newService]);
+  };
+
+  const removeWantedService = (id) => {
+    setWantedServices(prev => prev.filter(service => service.id !== id));
+  };
+
+  // Marcar servicio como contratado cuando se confirma un proveedor
+  const markServiceAsContracted = (serviceName) => {
+    const serviceId = serviceName.toLowerCase().replace(/\s+/g, '-');
+    updateWantedService(serviceId, { contracted: true });
+  };
+
+  // Obtener progreso de contratación
+  const getContractingProgress = () => {
+    const required = wantedServices.filter(s => s.required);
+    const contracted = required.filter(s => s.contracted);
+    return { contracted: contracted.length, total: required.length };
   };
 
   // Búsqueda directa usando OpenAI cuando la API backend no responde
@@ -1411,12 +1459,50 @@ ${bride} y ${groom}`;
     <PageWrapper
         title="Gestión de Proveedores"
         actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setShowAiModal(true)} data-testid="open-ai-search">
-            Buscar proveedor
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              leftIcon={<Plus size={16} />} 
+              onClick={() => setShowAddModal(true)}
+              variant="outline"
+            >
+              Añadir Manual
+            </Button>
+            <Button 
+              leftIcon={<Plus size={16} />} 
+              onClick={() => setShowAiModal(true)} 
+              data-testid="open-ai-search"
+            >
+              Buscar IA
+            </Button>
+          </div>
         }
       >
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      
+      {/* Dashboard de progreso */}
+      <Card className="mb-4 p-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">Progreso de Contratación</h3>
+            <p className="text-gray-600">
+              {getContractingProgress().contracted} de {getContractingProgress().total} servicios esenciales contratados
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowServiceConfig(true)}
+              variant="outline"
+              size="sm"
+            >
+              Configurar Servicios
+            </Button>
+            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+              {getContractingProgress().total > 0 ? Math.round((getContractingProgress().contracted / getContractingProgress().total) * 100) : 0}% completado
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <Card className="space-y-4 p-4">
         {/* Pestañas */}
         <div className="flex gap-2">
@@ -1430,70 +1516,137 @@ ${bride} y ${groom}`;
               className={`px-3 py-1 rounded-full text-sm transition-colors ${tab === t.key ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>{t.label}</button>
           ))}
         </div>
-        <form onSubmit={e => e.preventDefault()} className="flex items-center border rounded px-2 py-1">
-          <Search size={16} className="mr-2 text-gray-600" />
-          
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="outline-none"
-          />
-          
-        </form>
-        <div className="hidden">
-          <select value={serviceFilter} onChange={e => setServiceFilter(e.target.value)} className="border rounded px-2 py-1">
-            <option value="">Todos los servicios</option>
-            <option value="Catering">Catering</option>
-            <option value="Flores">Flores</option>
-            <option value="Música">Música</option>
-            <option value="Fotografía">Fotografía</option>
-          </select>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="border rounded px-2 py-1">
-            <option value="">Todos los estados</option>
-            <option value="Contactado">Contactado</option>
-            <option value="Confirmado">Confirmado</option>
-            <option value="Pendiente">Pendiente</option>
-          </select>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="border rounded px-2 py-1" />
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="border rounded px-2 py-1" />
-          <button onClick={clearFilters} className="bg-gray-200 px-3 py-1 rounded flex items-center">
-            <RefreshCcw size={16} className="mr-1" /> Limpiar
-          </button>
-        </div>
+
+        {/* Contenido según pestaña */}
+        {tab === 'selected' && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Servicios para tu boda</h3>
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              {wantedServices.map(service => {
+                const contractedProvider = providers.find(p => 
+                  p.service === service.name && (p.status === 'Confirmado' || p.status === 'Seleccionado')
+                );
+                
+                return (
+                  <div key={service.id} className={`p-4 rounded-lg border-2 transition-all ${
+                    contractedProvider 
+                      ? 'border-green-200 bg-green-50' 
+                      : service.required 
+                        ? 'border-orange-200 bg-orange-50' 
+                        : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold">{service.name}</h4>
+                      {service.required && !contractedProvider && (
+                        <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
+                          Esencial
+                        </span>
+                      )}
+                      {contractedProvider && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
+                          ✓ Contratado
+                        </span>
+                      )}
+                    </div>
+                    
+                    {contractedProvider ? (
+                      <div>
+                        <p className="font-medium text-green-800">{contractedProvider.name}</p>
+                        <p className="text-sm text-gray-600">{contractedProvider.contact || contractedProvider.email}</p>
+                        {contractedProvider.phone && (
+                          <p className="text-sm text-gray-600">{contractedProvider.phone}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-gray-500 text-sm mb-3">
+                          {service.required ? 'Servicio pendiente de contratar' : 'Servicio opcional'}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setServiceFilter(service.name);
+                              setShowAiModal(true);
+                            }}
+                          >
+                            Buscar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setNewProvider({...initialProvider, service: service.name});
+                              setShowAddModal(true);
+                            }}
+                          >
+                            Añadir
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {service.budget > 0 && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        Presupuesto: {service.budget}€
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {tab === 'contacted' && (
+          <div>
+            <form onSubmit={e => e.preventDefault()} className="flex items-center border rounded px-2 py-1 mb-4">
+              <Search size={16} className="mr-2 text-gray-600" />
+              <input
+                type="text"
+                placeholder="Buscar proveedores contactados..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="outline-none flex-1"
+              />
+            </form>
+            
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              {displayed.length === 0 && <p className="text-gray-500">No hay proveedores contactados.</p>}
+              {displayed.map(p=>(
+                <div key={p.id} className="relative p-4 cursor-pointer bg-white rounded shadow hover:shadow-md transition-shadow" onClick={() => openDetail(p)}>
+                  <button
+                    className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
+                    onClick={(e) => { e.stopPropagation(); removeProvider(p.id); }}
+                    title="Eliminar proveedor"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <span className="absolute top-2 left-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{p.service}</span>
+                  <h3 className="text-lg font-semibold mb-2 mt-6">{p.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{p.contact || p.email || p.phone}</p>
+                  <div className="flex justify-between items-center">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      p.status === 'Confirmado' ? 'bg-green-100 text-green-800' : 
+                      p.status === 'Contactado' ? 'bg-blue-100 text-blue-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {p.status || 'Pendiente'}
+                    </span>
+                    <div className="flex">
+                      {[1,2,3,4,5].map(i => (
+                        <Star key={i} size={14} className="cursor-pointer" color={i <= Math.round(p.rating) ? '#facc15' : '#e5e7eb'} onClick={(e) => {e.stopPropagation(); rateProvider(p.id, i);}} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
 
-      {/* Bulk Actions */}
-      {selected.length > 0 && (
-        <div className="bg-gray-100 p-2 rounded flex gap-2">
-          <button className="bg-green-600 text-white px-3 py-1 rounded">Enviar comunicaciones ({selected.length})</button>
-          <select className="border rounded px-2 py-1">
-            <option value="">Cambiar estado...</option>
-            <option value="Contactado">Contactado</option>
-            <option value="Confirmado">Confirmado</option>
-            <option value="Pendiente">Pendiente</option>
-          </select>
-        </div>
-      )}
-
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-        {displayed.length===0 && <p className="text-gray-500">No hay proveedores en esta pestaña.</p>}
-        {displayed.map(p=>(
-          <div key={p.id} className="relative p-4 cursor-pointer bg-white rounded shadow" onClick={() => openDetail(p)}>
-            <button
-              className="absolute top-2 right-2 text-gray-400 hover:text-red-600"
-              onClick={(e) => { e.stopPropagation(); removeProvider(p.id); }}
-              title="Eliminar proveedor"
-            >
-              <Trash2 size={16} />
-            </button>
-            <span className="absolute top-2 left-2 bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">{p.service}</span>
-            <h3 className="text-lg font-semibold mb-2 mt-6">{p.name}</h3>
-            <p className="text-sm text-gray-600">{p.contact || p.email || p.phone}</p>
-          </div>
-        ))}
-      </div>
 
       {/* Modal Detalle */}
       {showDetail && detailProvider && (
@@ -1958,21 +2111,85 @@ ${bride} y ${groom}`;
         </div>
       )}
 
-      {/* Vista móvil eliminada en nuevo diseño */}
-      <div className="block md:hidden space-y-4">
-        {displayed.map(p => (
-          <div key={p.id} className="bg-white p-4 rounded shadow">
-            <div className="flex justify-between items-center mb-2">
-              <div>
-                <p className="font-semibold text-lg">{p.name}</p>
-                <p className="text-sm text-gray-600">{p.service} - {p.status}</p>
-                <p className="text-sm text-gray-600">{p.contact}</p>
-              </div>
-              <button onClick={() => toggleSelect(p.id)} className="text-gray-600">Acciones</button>
+
+      {/* Modal Configuración de Servicios */}
+      {showServiceConfig && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowServiceConfig(false)}>
+          <div className="bg-white w-full max-w-2xl p-6 rounded shadow space-y-4 max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Configurar Servicios</h2>
+              <button className="text-gray-500 text-2xl leading-4" onClick={() => setShowServiceConfig(false)}>&times;</button>
+            </div>
+            
+            <div className="space-y-4">
+              {wantedServices.map(service => (
+                <div key={service.id} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={service.name}
+                        onChange={e => updateWantedService(service.id, { name: e.target.value })}
+                        className="font-medium border-none outline-none"
+                      />
+                      <label className="flex items-center gap-1 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={service.required}
+                          onChange={e => updateWantedService(service.id, { required: e.target.checked })}
+                        />
+                        Esencial
+                      </label>
+                    </div>
+                    <div className="mt-2">
+                      <label className="text-sm text-gray-600">Presupuesto estimado:</label>
+                      <input
+                        type="number"
+                        value={service.budget}
+                        onChange={e => updateWantedService(service.id, { budget: Number(e.target.value) })}
+                        className="ml-2 w-20 px-2 py-1 border rounded text-sm"
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-gray-600 ml-1">€</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeWantedService(service.id)}
+                    className="text-red-500 hover:text-red-700 ml-4"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex gap-2 pt-4 border-t">
+              <input
+                type="text"
+                placeholder="Nuevo servicio..."
+                className="flex-1 px-3 py-2 border rounded"
+                onKeyPress={e => {
+                  if (e.key === 'Enter' && e.target.value.trim()) {
+                    addWantedService(e.target.value.trim());
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <Button 
+                onClick={e => {
+                  const input = e.target.parentElement.querySelector('input');
+                  if (input.value.trim()) {
+                    addWantedService(input.value.trim());
+                    input.value = '';
+                  }
+                }}
+              >
+                Añadir
+              </Button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Modal Añadir Proveedor */}
       {showAddModal && (
@@ -2001,19 +2218,6 @@ ${bride} y ${groom}`;
         </div>
       )}
 
-      {showResModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-4 rounded shadow w-96">
-            <h2 className="text-lg font-semibold mb-4">Reservar con {providerToReserve?.name}</h2>
-            <input type="date" value={resDate} onChange={e => setResDate(e.target.value)} className="w-full border rounded px-2 py-1 mb-2" />
-            <input type="time" value={resTime} onChange={e => setResTime(e.target.value)} className="w-full border rounded px-2 py-1 mb-2" />
-            <div className="flex justify-end gap-2">
-              <button type="button" onClick={() => setShowResModal(false)} className="px-4 py-2 bg-gray-200 rounded">Cancelar</button>
-              <button type="button" onClick={confirmReservation} className="px-4 py-2 bg-green-600 text-white rounded">Reservar</button>
-            </div>
-          </div>
-        </div>
-      )}
       
       {/* Modal para reserva */}
       {showResModal && providerToReserve && (

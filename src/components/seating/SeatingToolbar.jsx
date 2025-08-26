@@ -28,6 +28,8 @@ export default function SeatingToolbar({
       <button aria-label onClick={() => setDrawMode('pan')} className={`px-3 py-1 text-sm rounded ${drawMode==='pan'?'bg-blue-500 text-white':'bg-gray-200'}`}>Pan</button>
       <button aria-label onClick={() => setDrawMode('boundary')} className={`px-3 py-1 text-sm rounded ${drawMode==='boundary'?'bg-blue-500 text-white':'bg-gray-200'}`}>Perímetro</button>
       <button aria-label onClick={() => setDrawMode('obstacle')} className={`px-3 py-1 text-sm rounded ${drawMode==='obstacle'?'bg-blue-500 text-white':'bg-gray-200'}`}>Obstáculo</button>
+      <button aria-label onClick={() => setDrawMode('door')} className={`px-3 py-1 text-sm rounded ${drawMode==='door'?'bg-blue-500 text-white':'bg-gray-200'}`}>Puerta</button>
+      <button aria-label onClick={() => setDrawMode('aisle')} className={`px-3 py-1 text-sm rounded ${drawMode==='aisle'?'bg-blue-500 text-white':'bg-gray-200'}`}>Pasillo</button>
       <button aria-label onClick={() => setDrawMode('erase')} className={`px-3 py-1 text-sm rounded ${drawMode==='erase'?'bg-blue-500 text-white':'bg-gray-200'}`}>Borrar</button>
 
       <button aria-label onClick={addTable} className="px-3 py-1 text-sm bg-amber-300 rounded">Añadir mesa</button>

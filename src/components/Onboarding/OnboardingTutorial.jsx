@@ -48,7 +48,7 @@ const OnboardingTutorial = ({ onComplete }) => {
     };
 
     fetchProfileData();
-  }, [user]);
+  }, [currentUser]);
 
   const steps = [
     {
@@ -297,7 +297,7 @@ const OnboardingTutorial = ({ onComplete }) => {
   };
 
   const handleComplete = async () => {
-    if (!user?.uid) {
+    if (!currentUser?.uid) {
       onComplete && onComplete();
       return;
     }
@@ -305,9 +305,9 @@ const OnboardingTutorial = ({ onComplete }) => {
     setLoading(true);
     try {
       // Guardar datos en weddingInfo
-      let wid = await getWeddingIdForOwner(user.uid);
+      let wid = await getWeddingIdForOwner(currentUser.uid);
       if (!wid) {
-        wid = await createWedding(user.uid, {
+        wid = await createWedding(currentUser.uid, {
           name: profileData.nombres || 'Mi Boda',
           weddingDate: profileData.fecha || undefined,
         });
@@ -325,7 +325,7 @@ const OnboardingTutorial = ({ onComplete }) => {
       await setDoc(doc(db, 'weddings', wid, 'weddingInfo'), weddingInfoPayload, { merge: true });
 
       // Marcar onboarding completado en users/{uid}
-      const profileRef = doc(db, 'users', user.uid);
+      const profileRef = doc(db, 'users', currentUser.uid);
       await setDoc(profileRef, { onboardingCompleted: true, lastUpdated: new Date().toISOString() }, { merge: true });
       
 

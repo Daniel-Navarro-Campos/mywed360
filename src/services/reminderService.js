@@ -92,9 +92,9 @@ async function runReminderJob(days) {
       const allSent = sentMails.map(m => (m.id === mail.id ? mail : m));
       // emailService expone saveLocal? no, usamos localStorage directo
       try {
-        const stored = JSON.parse(localStorage.getItem('lovenda_mails') || '[]');
+        const stored = JSON.parse(localStorage.getItem('mywed360_mails') || '[]');
         const updated = stored.map(m => (m.id === mail.id ? mail : m));
-        localStorage.setItem('lovenda_mails', JSON.stringify(updated));
+        localStorage.setItem('mywed360_mails', JSON.stringify(updated));
       } catch (e) {
         console.error('Error actualizando estado de recordatorio:', e);
       }

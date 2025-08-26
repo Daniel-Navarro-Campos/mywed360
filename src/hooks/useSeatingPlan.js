@@ -37,12 +37,16 @@ export const useSeatingPlan = () => {
   const [configTable, setConfigTable] = useState(null);
   const [preview, setPreview] = useState(null);
   const [guests, setGuests] = useState([]);
+  const [drawMode, setDrawMode] = useState('pan');
   
   // Estados de modales
   const [ceremonyConfigOpen, setCeremonyConfigOpen] = useState(false);
   const [banquetConfigOpen, setBanquetConfigOpen] = useState(false);
   const [spaceConfigOpen, setSpaceConfigOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
+
+  // Herramienta actual de dibujo / inserción
+  const [currentTool, setCurrentTool] = useState('select');
   
   // Historial para undo/redo
   const [history, setHistory] = useState([]);
@@ -59,7 +63,7 @@ export const useSeatingPlan = () => {
   const seats = tab === 'ceremony' ? seatsCeremony : [];
   const setTables = tab === 'ceremony' ? setTablesCeremony : setTablesBanquet;
   
-  // Cargar dimensiones del salón
+  // Cargar dimensiones del salón con debounce para evitar múltiples llamadas
   useEffect(() => {
     if (!activeWedding) return;
     
@@ -82,7 +86,9 @@ export const useSeatingPlan = () => {
       }
     };
     
-    loadHallDimensions();
+    // Debounce para evitar múltiples llamadas
+    const timeoutId = setTimeout(loadHallDimensions, 100);
+    return () => clearTimeout(timeoutId);
   }, [activeWedding]);
   
   // Suscribirse a cambios en el estado de sincronización
@@ -91,8 +97,13 @@ export const useSeatingPlan = () => {
     return () => unsubscribe();
   }, []);
   
-  // Funciones de gestión del historial
+  // Funciones de gestión del historial con protección contra bucles
   const pushHistory = (snapshot) => {
+    // Evitar duplicados consecutivos para prevenir bucles infinitos
+    if (history.length > 0 && JSON.stringify(history[historyPointer]) === JSON.stringify(snapshot)) {
+      return;
+    }
+    
     const newHistory = history.slice(0, historyPointer + 1);
     newHistory.push(snapshot);
     setHistory(newHistory);
@@ -149,6 +160,43 @@ export const useSeatingPlan = () => {
     ));
   };
   
+  // --- Gestor de áreas/obstáculos ---
+  const addArea = (area) => {
+    console.log('useSeatingPlan - addArea llamado con:', area);
+    const newArea = { id: Date.now(), ...area };
+    console.log('useSeatingPlan - nueva área creada:', newArea);
+    setAreas(prev => {
+      const updated = [...prev, newArea];
+      console.log('useSeatingPlan - áreas actualizadas:', updated);
+      return updated;
+    });
+    pushHistory({ type: 'area-add', area: newArea, tab });
+    console.log('useSeatingPlan - área añadida al historial');
+    // No cambiar automáticamente a 'pan' para permitir seguir dibujando
+    // setTimeout(() => { setDrawMode('pan'); }, 0);
+  };
+
+  // --- Gestor de mesas ---
+  const addTable = (table) => {
+    const newTable = { 
+      id: Date.now(), 
+      x: 100,
+      y: 100,
+      width: 80,
+      height: 60,
+      shape: 'rectangle',
+      seats: 8,
+      enabled: true,
+      guestId: null,
+      guestName: null,
+      name: `Mesa ${tables.length + 1}`,
+      ...table 
+    };
+    setTables(prev => [...prev, newTable]);
+    // Guardar en historial
+    pushHistory({ type: 'table-add', table: newTable, tab });
+  };
+
   // Funciones de generación de layouts
   const generateSeatGrid = (rows = 10, cols = 12, gap = 40, startX = 100, startY = 80, aisleAfter = 6) => {
     const newSeats = [];
@@ -289,6 +337,8 @@ export const useSeatingPlan = () => {
     configTable,
     preview,
     guests,
+    drawMode,
+    setDrawMode,
     
     // Estados de modales
     ceremonyConfigOpen,
@@ -316,6 +366,8 @@ export const useSeatingPlan = () => {
     handleSelectTable,
     handleTableDimensionChange,
     toggleSelectedTableShape,
+    addArea,
+    addTable,
     
     // Funciones de historial
     pushHistory,

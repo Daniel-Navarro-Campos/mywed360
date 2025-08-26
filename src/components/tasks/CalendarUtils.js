@@ -8,7 +8,7 @@ export function formatICalDate(date) {
 
 // Genera un archivo ICS completo a partir de eventos
 export function generateFullICS(events) {
-  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Lovenda//WeddingApp//ES'];
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MyWed360//WeddingApp//ES'];
   events.forEach(evt => {
     lines.push('BEGIN:VEVENT');
     lines.push(`UID:${evt.id}`);
