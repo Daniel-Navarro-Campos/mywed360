@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: .
     buildCommand: cd backend && npm ci --ignore-scripts
-    startCommand: node backend/minimal-server.js
+    startCommand: node backend/index.js
     autoDeploy: true
     healthCheckPath: /health
     envVars:
