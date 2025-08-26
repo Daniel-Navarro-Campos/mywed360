@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../hooks/useAuthUnified';
 import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
-import { EmailService } from '../../../services/emailService';
+import EmailService from '../../../services/emailService';
 import EmailList from './EmailList';
 import EmailDetail from './EmailDetail';
 import EmailComposer from '../EmailComposer';
