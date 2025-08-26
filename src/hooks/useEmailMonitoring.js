@@ -131,6 +131,20 @@ export function useEmailMonitoring() {
     performanceMonitor.logError(`email_${errorType}`, error, context);
   }, []);
 
+  /**
+   * Función genérica para trackear operaciones (alias de trackEmailOperation)
+   * @param {string} operation - Nombre de la operación
+   * @param {Object} metadata - Metadatos adicionales
+   */
+  const trackOperation = useCallback((operation, metadata = {}) => {
+    performanceMonitor.logEvent('email_operation', {
+      category: 'general',
+      action: operation,
+      ...metadata,
+      timestamp: Date.now()
+    });
+  }, []);
+
   return {
     measureTemplateRendering,
     trackTemplateUsage,
@@ -138,6 +152,8 @@ export function useEmailMonitoring() {
     trackInteraction,
     trackEmailOperation,
     trackTemplateSearch,
+    trackOperation, // Añadida función faltante
+    measureCachePerformance,
     logEmailError
   };
 }

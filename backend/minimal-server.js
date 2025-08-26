@@ -45,37 +45,20 @@ app.get('/api/mailgun/test', (req, res) => {
 app.get('/api/mail', (req, res) => {
   const { folder, user } = req.query;
   
-  // Respuesta mock para evitar errores 404
-  res.json({
-    success: true,
-    message: 'Mail endpoint working (mock data)',
-    data: {
-      folder: folder || 'inbox',
-      user: user || 'unknown',
-      emails: [], // Array vacío por ahora
-      count: 0,
-      timestamp: new Date().toISOString()
-    }
-  });
+  // Respuesta mock que devuelve directamente un array (como espera emailService)
+  res.json([
+    // Array vacío por ahora - el frontend espera un array directamente
+  ]);
 });
 
 // Endpoint /api/mailgun/events para evitar errores 404
 app.get('/api/mailgun/events', (req, res) => {
   const { recipient, event, limit } = req.query;
   
-  // Respuesta mock para evitar errores 404
-  res.json({
-    success: true,
-    message: 'Mailgun events endpoint working (mock data)',
-    data: {
-      recipient: recipient || 'unknown',
-      event: event || 'delivered',
-      limit: parseInt(limit) || 50,
-      events: [], // Array vacío por ahora
-      count: 0,
-      timestamp: new Date().toISOString()
-    }
-  });
+  // Respuesta mock que devuelve directamente un array (como espera emailService)
+  res.json([
+    // Array vacío por ahora - el frontend espera un array directamente
+  ]);
 });
 
 // Captura de errores
