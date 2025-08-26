@@ -1,33 +1,39 @@
 import express from 'express';
 const router = express.Router();
-import formData from 'form-data';
-import Mailgun from 'mailgun.js';
 import dotenv from 'dotenv';
+import mailgunJs from 'mailgun-js';
 
 // Cargar variables de entorno correctas
 dotenv.config({ path: '.env' });
 
-// Variables de entorno de Mailgun
-const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
-const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
-const MAILGUN_EU_REGION = process.env.MAILGUN_EU_REGION === 'true';
+// Helper para leer envs y crear clientes "mailgun-js" por dominio de forma segura
+function getMailgunEnv() {
+    return {
+        apiKey: process.env.MAILGUN_API_KEY,
+        domain: process.env.MAILGUN_DOMAIN,
+        euRegion: (process.env.MAILGUN_EU_REGION || '').toString() === 'true'
+    };
+}
 
-// Clientes alternativos de Mailgun para pruebas
-const mailgunBase = new Mailgun(formData);
-const mailgunClient1 = mailgunBase.client({ 
-    username: 'api', 
-    key: MAILGUN_API_KEY, 
-    url: MAILGUN_EU_REGION ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net'
-});
-
-const mailgunClient2 = mailgunBase.client({ 
-    username: 'api', 
-    key: MAILGUN_API_KEY, 
-    url: MAILGUN_EU_REGION ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net' 
-});
+function createMailgunClient(domainOverride) {
+    const { apiKey, domain, euRegion } = getMailgunEnv();
+    if (!apiKey || !(domainOverride || domain)) {
+        return null;
+    }
+    const hostCfg = euRegion ? { host: 'api.eu.mailgun.net' } : {};
+    try {
+        return mailgunJs({ apiKey, domain: domainOverride || domain, ...hostCfg });
+    } catch (e) {
+        console.error('No se pudo crear cliente mailgun-js (debug):', e.message);
+        return null;
+    }
+}
 
 // Ruta para diagnóstico completo
 router.get('/environment', (req, res) => {
+    const MAILGUN_API_KEY = process.env.MAILGUN_API_KEY;
+    const MAILGUN_DOMAIN = process.env.MAILGUN_DOMAIN;
+    const MAILGUN_EU_REGION = (process.env.MAILGUN_EU_REGION || '').toString() === 'true';
     // Devolver variables de entorno (ocultando parte de la API key)
     const config = {
         MAILGUN_API_KEY: MAILGUN_API_KEY ? `${MAILGUN_API_KEY.substring(0, 5)}...${MAILGUN_API_KEY.substring(MAILGUN_API_KEY.length - 4)}` : 'no definido',
@@ -45,6 +51,11 @@ router.get('/environment', (req, res) => {
 // Ruta para probar diferentes dominios
 router.post('/test-domains', async (req, res) => {
     try {
+        const env = getMailgunEnv();
+        if (!env.apiKey || !env.domain) {
+            return res.status(503).json({ success: false, message: 'Mailgun no está configurado en el servidor' });
+        }
+
         const { to, subject, message } = req.body;
         
         if (!to || !subject || !message) {
@@ -54,31 +65,35 @@ router.post('/test-domains', async (req, res) => {
             });
         }
         
-        // Lista de dominios y configuraciones a probar
+        // Lista de dominios y configuraciones a probar (usando mailgun-js)
+        const baseDomain = env.domain;
+        const mgClientBase = createMailgunClient(baseDomain);
+        const mgClientMg = createMailgunClient(`mg.${baseDomain.replace(/^mg\./, '')}`);
+
         const testConfigs = [
             {
                 description: "Dominio base con correo simple",
-                client: mailgunClient1,
-                domain: MAILGUN_DOMAIN,
-                from: `test@${MAILGUN_DOMAIN}`
+                client: mgClientBase,
+                domain: baseDomain,
+                from: `test@${baseDomain}`
             },
             {
                 description: "Dominio base con formato nombre",
-                client: mailgunClient1,
-                domain: MAILGUN_DOMAIN,
-                from: `Test <test@${MAILGUN_DOMAIN}>`
+                client: mgClientBase,
+                domain: baseDomain,
+                from: `Test <test@${baseDomain}>`
             },
             {
                 description: "Subdominio mg con correo simple",
-                client: mailgunClient2,
-                domain: `mg.${MAILGUN_DOMAIN.replace('mg.', '')}`, // Asegura que sea mg.dominio.com
-                from: `test@mg.${MAILGUN_DOMAIN.replace('mg.', '')}`
+                client: mgClientMg,
+                domain: `mg.${baseDomain.replace('mg.', '')}`, // Asegura que sea mg.dominio.com
+                from: `test@mg.${baseDomain.replace('mg.', '')}`
             },
             {
                 description: "Subdominio mg con formato nombre",
-                client: mailgunClient2,
-                domain: `mg.${MAILGUN_DOMAIN.replace('mg.', '')}`,
-                from: `Test <test@mg.${MAILGUN_DOMAIN.replace('mg.', '')}>`
+                client: mgClientMg,
+                domain: `mg.${baseDomain.replace('mg.', '')}`,
+                from: `Test <test@mg.${baseDomain.replace('mg.', '')}>`
             }
         ];
         
@@ -89,7 +104,7 @@ router.post('/test-domains', async (req, res) => {
             try {
                 console.log(`Probando: ${config.description} (${config.from})`);
                 
-                const data = {
+                const mailData = {
                     from: config.from,
                     to: to,
                     subject: `[Prueba] ${subject} - ${config.description}`,
@@ -99,8 +114,10 @@ router.post('/test-domains', async (req, res) => {
                            <p>${message.replace(/\n/g, '<br>')}</p>
                            </div>`
                 };
-                
-                const result = await config.client.messages.create(config.domain, data);
+                if (!config.client) {
+                    throw new Error('Cliente Mailgun no disponible para esta configuración');
+                }
+                const result = await config.client.messages().send(mailData);
                 
                 results.push({
                     success: true,

@@ -4,12 +4,27 @@
 //   Health check at /
 
 import dotenv from 'dotenv';
-// Cargar variables de entorno lo antes posible, antes de importar cualquier módulo que las use
-dotenv.config();
+// Cargar variables de entorno lo antes posible desde secret file (Render) o .env local
+import fs from 'fs';
 import path from 'path';
+
+const secretEnvPath = '/etc/secrets/app.env';
+if (fs.existsSync(secretEnvPath)) {
+  dotenv.config({ path: secretEnvPath });
+  console.log('✅ Variables de entorno cargadas desde secret file', secretEnvPath);
+} else {
+  dotenv.config(); // fallback a .env local
+}
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+// Importar middleware de autenticación (ESM) - debe cargarse antes que las rutas para inicializar Firebase Admin correctamente
+import {
+  requireAuth,
+  requireMailAccess,
+  optionalAuth
+} from './middleware/authMiddleware.js';
+
 import mailRouter from './routes/mail.js';
 import aiRouter from './routes/ai.js';
 import aiAssignRouter from './routes/ai-assign.js';
@@ -23,9 +38,12 @@ import eventsRouter from './routes/events.js';
 import mailgunDebugRoutes from './routes/mailgun-debug.js';
 import mailgunInboundRouter from './routes/mailgun-inbound.js';
 import mailgunEventsRouter from './routes/mailgun-events.js';
+import mailgunWebhookRouter from './routes/mailgun-webhook.js';
+import mailgunTestRouter from './routes/mailgun.js';
 import logger from './logger.js';
 import instagramWallRouter from './routes/instagram-wall.js';
 import weddingNewsRouter from './routes/wedding-news.js';
+
 
 // Load environment variables (root .env)
 const envPath = path.resolve(process.cwd(), '.env');
@@ -45,14 +63,15 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn('⚠️  OPENAI_API_KEY not set. Chat AI endpoints will return 500.');
 }
 
-const PORT = 4004; // Forzar puerto 4004 para pruebas
+const PORT = process.env.PORT ? Number(process.env.PORT) : 4004; // Render inyecta PORT
 
 const app = express();
 
-// Configurar CORS para permitir credenciales y origen específico
+// Configurar CORS para permitir credenciales y origen configurable por entorno
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'http://localhost:5173';
 app.use(cors({
-  origin: 'http://localhost:5173',  // Origen específico en lugar de wildcard (*)
-  credentials: true,                // Permitir credenciales (cookies, headers de autenticación)
+  origin: ALLOWED_ORIGIN,
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -66,24 +85,38 @@ app.use((req, _res, next) => {
 // Para que Mailgun (form-urlencoded) sea aceptado
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use('/api/mail', mailRouter);
-app.use('/api/mailgun-debug', mailgunDebugRoutes);
-app.use('/api/mailgun/events', mailgunEventsRouter);
-app.use('/api/inbound/mailgun', mailgunInboundRouter);
-app.use('/api/notifications', notificationsRouter);
-app.use('/api/guests', guestsRouter);
-app.use('/api/events', eventsRouter);
-app.use('/api/roles', rolesRouter);
-app.use('/api/ai-image', aiImageRouter);
-app.use('/api/ai-suppliers', aiSuppliersRouter);
-app.use('/api/ai', aiRouter);
-app.use('/api/ai-assign', aiAssignRouter);
-app.use('/api/email-insights', emailInsightsRouter);
-app.use('/api/instagram-wall', instagramWallRouter);
-app.use('/api/wedding-news', weddingNewsRouter);
+
+// Rutas públicas (sin autenticación)
+app.use('/api/mailgun/webhook', mailgunWebhookRouter); // Webhooks de Mailgun (verificación interna)
+app.use('/api/inbound/mailgun', mailgunInboundRouter); // Correos entrantes
+app.use('/api/mailgun/events', mailgunEventsRouter); // Eventos de Mailgun (consulta pública)
+
+// Rutas que requieren autenticación específica para correo
+app.use('/api/mail', requireMailAccess, mailRouter);
+app.use('/api/mailgun/events', requireMailAccess, mailgunEventsRouter);
+app.use('/api/mailgun', optionalAuth, mailgunTestRouter);
+app.use('/api/mailgun-debug', requireMailAccess, mailgunDebugRoutes);
+app.use('/api/email-insights', requireMailAccess, emailInsightsRouter);
+
+// Rutas que requieren autenticación general
+app.use('/api/notifications', requireAuth, notificationsRouter);
+app.use('/api/guests', requireAuth, guestsRouter);
+app.use('/api/events', requireAuth, eventsRouter);
+app.use('/api/roles', requireAuth, rolesRouter);
+app.use('/api/ai-image', requireAuth, aiImageRouter);
+app.use('/api/ai-suppliers', requireAuth, aiSuppliersRouter);
+app.use('/api/ai', requireAuth, aiRouter);
+app.use('/api/ai-assign', requireAuth, aiAssignRouter);
+app.use('/api/instagram-wall', optionalAuth, instagramWallRouter); // Puede ser público
+app.use('/api/wedding-news', optionalAuth, weddingNewsRouter); // Puede ser público
 
 app.get('/', (_req, res) => {
   res.send({ status: 'ok', service: 'lovenda-backend' });
+});
+
+// Health check explícito para plataformas de despliegue
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
 });
 
 app.get('/api/transactions', async (req, res) => {

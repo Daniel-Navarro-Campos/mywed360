@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import mailgunJs from 'mailgun-js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { requireMailAccess } from '../middleware/authMiddleware.js';
 
 // Obtener el directorio actual
 const __filename = fileURLToPath(import.meta.url);
@@ -15,39 +16,44 @@ const localEnvPath = path.join(__dirname, '..', '.env');
 console.log('Intentando cargar configuración de Mailgun desde:', localEnvPath);
 dotenv.config({ path: localEnvPath });
 
-// Obtener variables para Mailgun
-const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || 'a42e6604fb3e4b737f281cd3dbc6309a-0ce15100-24828154';
-// Probar tanto con el dominio de envío como con el dominio base
-const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || 'mywed360.com';
-const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || 'mg.mywed360.com';
-const MAILGUN_EU_REGION = process.env.VITE_MAILGUN_EU_REGION || 'true';
+// Helper para crear clientes de Mailgun de forma perezosa y segura
+function createMailgunClients() {
+  const MAILGUN_API_KEY = process.env.VITE_MAILGUN_API_KEY || process.env.MAILGUN_API_KEY;
+  const MAILGUN_DOMAIN = process.env.VITE_MAILGUN_DOMAIN || process.env.MAILGUN_DOMAIN;
+  const MAILGUN_SENDING_DOMAIN = process.env.VITE_MAILGUN_SENDING_DOMAIN || process.env.MAILGUN_SENDING_DOMAIN;
+  const MAILGUN_EU_REGION = (process.env.VITE_MAILGUN_EU_REGION || process.env.MAILGUN_EU_REGION || '').toString();
 
-// Depurar variables
-console.log('Configuración de Mailgun:', {
-  apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.substring(0, 5) + '...' : 'no definida',
-  domain: MAILGUN_DOMAIN,
-  sendingDomain: MAILGUN_SENDING_DOMAIN,
-  euRegion: MAILGUN_EU_REGION
-});
+  try {
+    console.log('Configuración de Mailgun:', {
+      apiKey: MAILGUN_API_KEY ? MAILGUN_API_KEY.substring(0, 5) + '***' : 'no definida',
+      domain: MAILGUN_DOMAIN || 'no definido',
+      sendingDomain: MAILGUN_SENDING_DOMAIN || 'no definido',
+      euRegion: MAILGUN_EU_REGION,
+    });
+  } catch {}
 
-// Configurar Mailgun con el dominio base
-const mailgun = mailgunJs({
-  apiKey: MAILGUN_API_KEY,
-  domain: MAILGUN_DOMAIN,
-  ...(MAILGUN_EU_REGION === 'true' && { host: 'api.eu.mailgun.net' })
-});
+  if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
+    console.warn('Mailgun no configurado: faltan MAILGUN_API_KEY o MAILGUN_DOMAIN. Se omitirá el envío real.');
+    return { mailgun: null, mailgunAlt: null };
+  }
 
-// Configurar Mailgun alternativo con el dominio de envío
-const mailgunAlt = mailgunJs({
-  apiKey: MAILGUN_API_KEY,
-  domain: MAILGUN_SENDING_DOMAIN,
-  ...(MAILGUN_EU_REGION === 'true' && { host: 'api.eu.mailgun.net' })
-});
+  const commonHostCfg = MAILGUN_EU_REGION === 'true' ? { host: 'api.eu.mailgun.net' } : {};
+  try {
+    const mailgun = mailgunJs({ apiKey: MAILGUN_API_KEY, domain: MAILGUN_DOMAIN, ...commonHostCfg });
+    const mailgunAlt = MAILGUN_SENDING_DOMAIN
+      ? mailgunJs({ apiKey: MAILGUN_API_KEY, domain: MAILGUN_SENDING_DOMAIN, ...commonHostCfg })
+      : null;
+    return { mailgun, mailgunAlt };
+  } catch (e) {
+    console.error('No se pudieron crear los clientes de Mailgun:', e.message);
+    return { mailgun: null, mailgunAlt: null };
+  }
+}
 
 const router = express.Router();
 
 // GET /api/mail?folder=inbox|sent
-router.get('/', async (req, res) => {
+router.get('/', requireMailAccess, async (req, res) => {
   try {
     const { folder = 'inbox', user } = req.query;
 
@@ -68,13 +74,18 @@ router.get('/', async (req, res) => {
     const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
     res.json(data);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching mails' });
+    console.error('Error en GET /api/mail:', err);
+    res.status(503).json({ 
+      success: false,
+      message: 'Fallo obteniendo correos',
+      error: err?.message || String(err),
+      hint: 'Verifica acceso a Firestore y filtros (folder/user). Si depende de Mailgun, revisa MAILGUN_* y región EU.',
+    });
   }
 });
 
 // POST /api/mail  { to, subject, body }
-router.post('/', async (req, res) => {
+router.post('/', requireMailAccess, async (req, res) => {
   try {
     const { to, subject, body } = req.body;
     const date = new Date().toISOString();
@@ -90,34 +101,44 @@ router.post('/', async (req, res) => {
     };
     
     try {
-      // Enviar correo real usando Mailgun
-      console.log('Enviando correo real con Mailgun:', {
-        from: mailData.from,
-        to: mailData.to,
-        subject: mailData.subject
-      });
-      
-      // Intentar enviar correo con diferentes configuraciones de Mailgun
-      let result = null;
-      
-      try {
-        // Primero intentar con el dominio principal
-        result = await mailgun.messages().send(mailData);
-        console.log('Correo enviado exitosamente con dominio principal:', result);
-      } catch (primaryError) {
-        console.error('Error al enviar con dominio principal:', primaryError);
-        
-        // Si falla, intentar con el dominio alternativo
+      // Crear clientes Mailgun de forma perezosa
+      const { mailgun, mailgunAlt } = createMailgunClients();
+
+      // Si no hay configuración, omitir envío real y continuar
+      if (!mailgun) {
+        console.warn('Mailgun no disponible. Se omite envío real y se continúa con registro en BD.');
+      } else {
+        console.log('Enviando correo real con Mailgun:', {
+          from: mailData.from,
+          to: mailData.to,
+          subject: mailData.subject
+        });
+
+        // Intentar enviar correo con diferentes configuraciones de Mailgun
+        let result = null;
         try {
-          result = await mailgunAlt.messages().send(mailData);
-          console.log('Correo enviado exitosamente con dominio alternativo:', result);
-        } catch (altError) {
-          console.error('Error al enviar con dominio alternativo:', altError);
-          throw new Error('No se pudo enviar el correo con ninguna configuración de Mailgun');
+          // Primero intentar con el dominio principal
+          result = await mailgun.messages().send(mailData);
+          console.log('Correo enviado exitosamente con dominio principal:', result);
+        } catch (primaryError) {
+          console.error('Error al enviar con dominio principal:', primaryError?.message || primaryError);
+
+          // Si falla y existe cliente alternativo, intentar con el dominio alternativo
+          if (mailgunAlt) {
+            try {
+              result = await mailgunAlt.messages().send(mailData);
+              console.log('Correo enviado exitosamente con dominio alternativo:', result);
+            } catch (altError) {
+              console.error('Error al enviar con dominio alternativo:', altError?.message || altError);
+              throw new Error('No se pudo enviar el correo con ninguna configuración de Mailgun');
+            }
+          } else {
+            throw new Error('No hay configuración de dominio de envío alternativo disponible');
+          }
         }
       }
     } catch (mailError) {
-      console.error('Error al enviar correo real:', mailError);
+      console.error('Error al enviar correo real:', mailError?.message || mailError);
       // Si falla el envío real, continuamos con la simulación para mantener la funcionalidad
       console.warn('Fallback a simulación de correo...');
     }
@@ -146,13 +167,18 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ id: sentRef.id, to, subject, body, date, folder: 'sent', read: true, from: from });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error sending mail' });
+    console.error('Error en POST /api/mail:', err);
+    res.status(503).json({ 
+      success: false,
+      message: 'Fallo enviando correo',
+      error: err?.message || String(err),
+      hint: 'Si es envío real, verifica MAILGUN_API_KEY, MAILGUN_DOMAIN (p.ej. mg.mywed360.com) y MAILGUN_EU_REGION=true',
+    });
   }
 });
 
 // PATCH /api/mail/:id/read
-router.patch('/:id/read', async (req, res) => {
+router.patch('/:id/read', requireMailAccess, async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection('mails').doc(id);
@@ -161,13 +187,13 @@ router.patch('/:id/read', async (req, res) => {
     await docRef.update({ read: true });
     res.json({ id, ...doc.data(), read: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating mail' });
+    console.error('Error en PATCH /api/mail/:id/read:', err);
+    res.status(503).json({ success: false, message: 'Fallo actualizando mail', error: err?.message || String(err) });
   }
 });
 
 // Compatibilidad: también aceptar POST para marcar como leído
-router.post('/:id/read', async (req, res) => {
+router.post('/:id/read', requireMailAccess, async (req, res) => {
   try {
     const { id } = req.params;
     const docRef = db.collection('mails').doc(id);
@@ -177,20 +203,20 @@ router.post('/:id/read', async (req, res) => {
     const updated = (await docRef.get()).data();
     res.json({ id, ...updated, read: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating mail' });
+    console.error('Error en POST /api/mail/:id/read:', err);
+    res.status(503).json({ success: false, message: 'Fallo actualizando mail', error: err?.message || String(err) });
   }
 });
 
 // DELETE /api/mail/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireMailAccess, async (req, res) => {
   try {
     const { id } = req.params;
     await db.collection('mails').doc(id).delete();
     res.status(204).end();
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error deleting mail' });
+    console.error('Error en DELETE /api/mail/:id:', err);
+    res.status(503).json({ success: false, message: 'Fallo eliminando mail', error: err?.message || String(err) });
   }
 });
 
@@ -198,7 +224,7 @@ router.delete('/:id', async (req, res) => {
  * Endpoint para enviar un correo de prueba usando dirección personalizada
  * @route POST /api/mail/test-personal-email
  */
-router.post('/test-personal-email', async (req, res) => {
+router.post('/test-personal-email', requireMailAccess, async (req, res) => {
   try {
     const { from, to, subject, message } = req.body;
     
