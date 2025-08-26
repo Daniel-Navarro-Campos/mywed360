@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     rootDir: .
-    buildCommand: npm ci --ignore-scripts
+    buildCommand: cd backend && npm ci --ignore-scripts
     startCommand: node backend/index.js
     autoDeploy: true
     healthCheckPath: /health
@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: ALLOWED_ORIGIN
-        value: http://localhost:5173
+        value: https://mywed360.netlify.app
       - key: MAILGUN_API_KEY
         sync: false
       - key: MAILGUN_DOMAIN
