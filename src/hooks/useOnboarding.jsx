@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../firebaseConfig';
 import { useAuth } from './useAuthUnified';
 
@@ -23,7 +24,9 @@ export const useOnboarding = () => {
 
   // Verificar si el usuario ya completó el onboarding
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
+    let unsubscribe = null;
+    
+    const checkOnboardingStatus = async (user) => {
       // Si hay flag forzado, no verificar estado
       if (forceFlag) {
         setShowOnboarding(true);
@@ -32,21 +35,17 @@ export const useOnboarding = () => {
       }
 
       // Si no hay usuario autenticado, no mostrar onboarding
-      if (!currentUser || !currentUser.uid) {
-        setShowOnboarding(false);
-        setLoading(false);
-        return;
-      }
-
-      // Verificar que el usuario esté completamente autenticado
-      if (!auth.currentUser || auth.currentUser.uid !== currentUser.uid) {
+      if (!user || !user.uid) {
         setShowOnboarding(false);
         setLoading(false);
         return;
       }
 
       try {
-        const profileRef = doc(db, 'users', currentUser.uid);
+        // Esperar un momento para asegurar que el token esté disponible
+        await user.getIdToken();
+        
+        const profileRef = doc(db, 'users', user.uid);
         const profileDoc = await getDoc(profileRef);
         
         if (profileDoc.exists()) {
@@ -69,11 +68,17 @@ export const useOnboarding = () => {
       }
     };
 
-    // Añadir un pequeño delay para asegurar que la autenticación esté lista
-    const timeoutId = setTimeout(checkOnboardingStatus, 100);
+    // Usar onAuthStateChanged para asegurar que tenemos el estado correcto de autenticación
+    unsubscribe = onAuthStateChanged(auth, (user) => {
+      checkOnboardingStatus(user);
+    });
     
-    return () => clearTimeout(timeoutId);
-  }, [currentUser, forceFlag]);
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [forceFlag]); // Removemos currentUser de las dependencias ya que usamos onAuthStateChanged
 
   // Función para marcar el onboarding como completado
   const completeOnboarding = () => {
