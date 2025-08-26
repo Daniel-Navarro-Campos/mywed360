@@ -1,7 +1,14 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import mailgunJs from 'mailgun-js';
+
+// Importación condicional de mailgun-js para detectar errores
+let mailgunJs = null;
+try {
+  mailgunJs = (await import('mailgun-js')).default;
+} catch (importError) {
+  console.error('[Mailgun Router] Error importando mailgun-js:', importError);
+}
 
 // Asegura variables de entorno disponibles en Render o local
 dotenv.config();
@@ -25,23 +32,47 @@ router.all('/debug', async (req, res) => {
     
     return res.status(200).json({
       success: true,
-      message: 'Mailgun debug endpoint funcionando',
-      environment: {
-        hasApiKey: !!MAILGUN_API_KEY,
-        hasDomain: !!MAILGUN_DOMAIN,
-        hasEuRegion: !!MAILGUN_EU_REGION,
-        nodeEnv: process.env.NODE_ENV,
+      message: 'Mailgun router funcionando correctamente',
+      diagnostics: {
+        routerLoaded: true,
+        mailgunJsImported: !!mailgunJs,
+        environment: {
+          hasApiKey: !!MAILGUN_API_KEY,
+          hasDomain: !!MAILGUN_DOMAIN,
+          hasEuRegion: !!MAILGUN_EU_REGION,
+          nodeEnv: process.env.NODE_ENV
+        },
         timestamp: new Date().toISOString()
       }
     });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message, stack: err.stack });
+    return res.status(500).json({ 
+      success: false, 
+      message: err.message, 
+      stack: err.stack,
+      routerLoaded: true,
+      mailgunJsImported: !!mailgunJs
+    });
   }
 });
 
 router.all('/test', async (req, res) => {
   try {
     const { MAILGUN_API_KEY, MAILGUN_DOMAIN, MAILGUN_EU_REGION } = process.env;
+    
+    // Verificar si mailgun-js se importó correctamente
+    if (!mailgunJs) {
+      return res.status(503).json({ 
+        success: false, 
+        message: 'Mailgun-js no se pudo importar correctamente',
+        diagnostics: {
+          mailgunJsImported: false,
+          hasApiKey: !!MAILGUN_API_KEY,
+          hasDomain: !!MAILGUN_DOMAIN
+        }
+      });
+    }
+    
     if (!MAILGUN_API_KEY || !MAILGUN_DOMAIN) {
       return res.status(503).json({ success: false, message: 'Mailgun no está configurado en el servidor' });
     }
