@@ -3,6 +3,7 @@ import { Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
 import Spinner from './Spinner';
+import { getBackendBase } from '../utils/backendBase';
 import { toast } from 'react-toastify';
 
 // --- Modo debug opcional ---
@@ -340,20 +341,8 @@ const sendMessage = async () => {
     setLoading(true);
     let timeoutId;
     try {
-      // Determinar dinámicamente la URL base del backend
-      const getApiBase = () => {
-        // 1. Variable de entorno proporcionada en tiempo de build
-        const envBase = import.meta.env.VITE_BACKEND_BASE;
-        if (envBase) return envBase.replace(/\/$/, '');
-
-        // 2. Si estamos en desarrollo (frontend :5173) asumimos backend :4004
-        const { origin } = window.location;
-        if (origin.includes(':5173')) return origin.replace(':5173', ':4004');
-
-        // 3. En producción usamos mismo origen
-        return origin;
-      };
-      const apiBase = getApiBase();
+      // Obtener URL base del backend (centralizado en utils)
+      const apiBase = getBackendBase();
       chatDebug('Usando backend en:', apiBase);
       
       

@@ -6,9 +6,12 @@
  * Proporciona funciones específicas para diagnosticar problemas comunes
  */
 
+import { getBackendBase } from '../utils/backendBase';
+
 class DiagnosticService {
   constructor() {
-    this.backendUrl = import.meta.env.VITE_BACKEND_BASE_URL;
+    // URL base del backend centralizada para coherencia con la app
+    this.backendUrl = getBackendBase();
     this.testResults = new Map();
   }
 
