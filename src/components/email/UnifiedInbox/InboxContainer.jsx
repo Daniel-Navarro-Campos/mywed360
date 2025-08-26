@@ -4,7 +4,7 @@ import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
 import { EmailService } from '../../../services/emailService';
 import EmailList from './EmailList';
 import EmailDetail from './EmailDetail';
-import EmailComposer from './EmailComposer';
+import EmailComposer from '../EmailComposer';
 
 /**
  * InboxContainer - Bandeja de entrada unificada restaurada
