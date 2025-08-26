@@ -314,24 +314,24 @@ const SpaceConfigForm = ({ hallSize, onSave, onClose }) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Ancho (cm)</label>
+          <label className="block text-sm font-medium mb-1">Ancho (m)</label>
           <input
             type="number"
-            min="200"
-            max="5000"
-            value={dimensions.width}
-            onChange={(e) => setDimensions(prev => ({ ...prev, width: parseInt(e.target.value) }))}
+            min="2"
+            max="50"
+            value={(dimensions.width/100).toString()}
+            onChange={(e) => setDimensions(prev => ({ ...prev, width: parseFloat(e.target.value)*100 }))}
             className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Largo (cm)</label>
+          <label className="block text-sm font-medium mb-1">Largo (m)</label>
           <input
             type="number"
-            min="200"
-            max="5000"
-            value={dimensions.height}
-            onChange={(e) => setDimensions(prev => ({ ...prev, height: parseInt(e.target.value) }))}
+            min="2"
+            max="50"
+            value={(dimensions.height/100).toString()}
+            onChange={(e) => setDimensions(prev => ({ ...prev, height: parseFloat(e.target.value)*100 }))}
             className="w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

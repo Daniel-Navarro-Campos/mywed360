@@ -17,8 +17,8 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
     areas,
     tables,
     seats = [],
-    scale,
-    offset,
+    scale = 1,
+    offset = { x: 0, y: 0 },
     addArea,
     onDeleteArea,
     moveTable,
@@ -34,12 +34,20 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
     canPan = true,
     canMoveTables = true,
     onToggleSeat = () => {},
-    onDoubleClick = () => {}, // added prop
-    onUpdateArea = () => {}, // NUEVO: prop para actualizar un área existente
+    onDoubleClick = () => {}, 
+    onUpdateArea = () => {}, 
     hallSize = null,
   },
   containerRef,
 ) {
+  // Mapear drawMode externo a valores aceptados por FreeDrawCanvas
+  const internalDrawMode =
+    drawMode === 'boundary' ? 'boundary'  // Usar el nuevo modo boundary
+  : drawMode === 'obstacle' ? 'rect'
+  : drawMode === 'door' ? 'rect'
+  : drawMode === 'aisle' ? 'line'
+  : drawMode;
+
   return (
 
       <div
@@ -79,7 +87,7 @@ const SeatingCanvas = forwardRef(function SeatingCanvas(
           onFinalize={addArea}
           onDeleteArea={onDeleteArea}
           onUpdateArea={onUpdateArea}
-          drawMode={drawMode}
+          drawMode={internalDrawMode}
         />
 
 {/* Sillas (solo ceremonia) */}

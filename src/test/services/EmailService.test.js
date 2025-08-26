@@ -116,11 +116,11 @@ describe('EmailService', () => {
       
       // Guardar emails de prueba en localStorage
       const mockEmails = [mockEmail];
-      localStorage.setItem('lovenda_mails', JSON.stringify(mockEmails));
+      localStorage.setItem('mywed360_mails', JSON.stringify(mockEmails));
       
       const result = await EmailService.getMails('inbox');
       expect(result).toEqual(mockEmails);
-      expect(localStorage.getItem).toHaveBeenCalledWith('lovenda_mails');
+      expect(localStorage.getItem).toHaveBeenCalledWith('mywed360_mails');
     });
 
     it('llama a la API del backend cuando está configurado', async () => {
@@ -154,7 +154,7 @@ describe('EmailService', () => {
       });
       
       // Crear datos en localStorage como fallback
-      localStorage.setItem('lovenda_mails', JSON.stringify([mockEmail]));
+      localStorage.setItem('mywed360_mails', JSON.stringify([mockEmail]));
       
       const result = await EmailService.getMails('inbox');
       
@@ -227,7 +227,7 @@ describe('EmailService', () => {
       expect(localStorage.setItem).toHaveBeenCalled();
       
       // Verificar que el correo se guardó en localStorage
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved).toHaveLength(1);
       expect(saved[0].subject).toBe('Asunto de prueba');
       expect(saved[0].folder).toBe('sent');
@@ -238,7 +238,7 @@ describe('EmailService', () => {
     beforeEach(() => {
       // Guardar emails de prueba en localStorage
       const mockEmails = [mockEmail];
-      localStorage.setItem('lovenda_mails', JSON.stringify(mockEmails));
+      localStorage.setItem('mywed360_mails', JSON.stringify(mockEmails));
     });
 
     it('marca un email como leído correctamente', async () => {
@@ -249,7 +249,7 @@ describe('EmailService', () => {
       await EmailService.markAsRead('email123');
       
       // Verificar que el email fue marcado como leído
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved[0].read).toBe(true);
     });
 
@@ -261,7 +261,7 @@ describe('EmailService', () => {
       await EmailService.deleteMail('email123');
       
       // Verificar que el email fue eliminado
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved).toHaveLength(0);
     });
 

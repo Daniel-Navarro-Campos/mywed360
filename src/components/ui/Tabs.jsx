@@ -7,8 +7,25 @@ const TabsContext = createContext({ value: '', setValue: () => {} });
  * Componente raíz de Tabs.
  * @param {string} defaultValue - Valor inicial de la pestaña seleccionada.
  */
-export function Tabs({ defaultValue = '', children, className = '' }) {
-  const [value, setValue] = useState(defaultValue);
+export function Tabs({
+  defaultValue = '',
+  value: controlledValue,
+  onValueChange,
+  children,
+  className = '',
+}) {
+    // Soporta modo controlado y no controlado.
+  const [internalValue, setInternalValue] = useState(defaultValue);
+  const isControlled = controlledValue !== undefined;
+  const value = isControlled ? controlledValue : internalValue;
+
+  const setValue = (val) => {
+    if (isControlled) {
+      onValueChange?.(val);
+    } else {
+      setInternalValue(val);
+    }
+  };
   return (
     <TabsContext.Provider value={{ value, setValue }}>
       <div className={className}>{children}</div>

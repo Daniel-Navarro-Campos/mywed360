@@ -1,8 +1,33 @@
-# Documentación Arquitectónica de Lovenda
+# Documentación Arquitectónica Completa de MyWed360
+
+## Diagrama de Arquitectura
+
+```mermaid
+flowchart TD
+  subgraph Cliente (Browser)
+    A[React + Vite SPA]
+    B[Service Worker (PWA)]
+    A -->|REST / Firestore SDK| D[Firebase Backend]
+    B --> A
+  end
+
+  subgraph Servicios Locales
+    A --> LS[(localStorage)]
+    A --> SWQ[SyncService Queue]
+  end
+
+  subgraph Backend
+    D --> FS[(Firestore)]
+    D --> FAuth[Firebase Auth]
+    D --> FStorage[Firebase Storage]
+  end
+```
+
+El frontend (SPA) se comunica directamente con Firebase mediante el SDK. El `Service Worker` provee capacidades offline y caching. `SyncService` mantiene una cola local para sincronizar cambios cuando se restaura la conexión.
 
 ## Contextos de Usuario
 
-En el proyecto Lovenda existen dos contextos separados para gestionar diferentes aspectos del usuario:
+En el proyecto MyWed360 existen dos contextos separados para gestionar diferentes aspectos del usuario:
 
 ### 1. Contexto de Autenticación (`/src/context/UserContext.jsx`)
 
@@ -43,3 +68,24 @@ Al trabajar con estos contextos:
 1. Utilizar `useUserContext()` cuando se necesite acceso a información de autenticación y sesión
 2. Utilizar `useUserPreferencesContext()` cuando se necesite acceso a preferencias y datos extendidos
 3. Evitar mezclar importaciones o añadir funcionalidades que correspondan al otro contexto
+
+## Stack Tecnológico
+
+### Frontend
+- **React 18** - Biblioteca principal de UI
+- **Vite** - Build tool y dev server
+- **Firebase SDK** - Autenticación, Firestore, Storage
+- **Tailwind CSS** - Framework de estilos
+- **Lucide React** - Iconos
+- **React Router** - Navegación
+
+### Backend
+- **Firebase Firestore** - Base de datos NoSQL
+- **Firebase Auth** - Autenticación
+- **Firebase Storage** - Almacenamiento de archivos
+- **Firebase Functions** - Funciones serverless
+
+### Herramientas de Desarrollo
+- **ESLint** - Linting de código
+- **Vitest** - Testing framework
+- **Cypress** - Testing E2E

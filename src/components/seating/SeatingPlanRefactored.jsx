@@ -59,7 +59,15 @@ const SeatingPlanRefactored = () => {
     exportPDF,
     
     // Funciones de configuración
-    saveHallDimensions
+    saveHallDimensions,
+    
+    // Funciones de gestión de áreas y mesas
+    addArea,
+    addTable,
+    
+    // Estado de dibujo
+    drawMode,
+    setDrawMode
   } = useSeatingPlan();
 
   // Handlers de modales
@@ -126,10 +134,12 @@ const SeatingPlanRefactored = () => {
   };
 
   // Handlers de asignación de invitados
-  const handleAssignGuest = (guestId, targetId) => {
-    // Lógica de asignación de invitados
-    console.log(`Asignando invitado ${guestId} a ${targetId}`);
+  const handleAssignGuest = (tableId, guestId) => {
+    // Usar la función del hook para asignar invitados
+    // TODO: Implementar función de asignación en el hook
+    console.log(`Asignando invitado ${guestId} a mesa ${tableId}`);
   };
+
 
   const handleToggleEnabled = (id) => {
     // Lógica para habilitar/deshabilitar elementos
@@ -137,13 +147,13 @@ const SeatingPlanRefactored = () => {
   };
 
   const handleAddArea = (area) => {
-    // Lógica para añadir áreas
-    console.log('Añadiendo área:', area);
+    // Usar la función del hook para añadir áreas
+    addArea(area);
   };
 
   const handleAddTable = (table) => {
-    // Lógica para añadir mesas
-    console.log('Añadiendo mesa:', table);
+    // Usar la función del hook para añadir mesas
+    addTable(table);
   };
 
   // Contadores para las pestañas
@@ -182,9 +192,26 @@ const SeatingPlanRefactored = () => {
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 flex gap-4 p-4 pt-0 min-h-0">
+      <div className="flex-1 flex">
+        {/* Sidebar izquierdo */}
+        <div className="w-80 flex-shrink-0">
+          <SeatingPlanSidebar
+            selectedTable={selectedTable}
+            onTableDimensionChange={handleTableDimensionChange}
+            onToggleTableShape={toggleSelectedTableShape}
+            onConfigureTable={setConfigTable}
+            guests={guests}
+            tab={tab}
+            drawMode={drawMode}
+            onDrawModeChange={setDrawMode}
+            onAssignGuest={handleAssignGuest}
+            onAutoAssign={handleAutoAssign}
+            className="h-full"
+          />
+        </div>
+
         {/* Canvas principal */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1">
           <SeatingPlanCanvas
             tab={tab}
             areas={areas}
@@ -198,20 +225,9 @@ const SeatingPlanRefactored = () => {
             onToggleEnabled={handleToggleEnabled}
             onAddArea={handleAddArea}
             onAddTable={handleAddTable}
+            drawMode={drawMode}
+            onDrawModeChange={setDrawMode}
             canvasRef={canvasRef}
-            className="h-full"
-          />
-        </div>
-
-        {/* Sidebar */}
-        <div className="w-80 flex-shrink-0">
-          <SeatingPlanSidebar
-            selectedTable={selectedTable}
-            onTableDimensionChange={handleTableDimensionChange}
-            onToggleTableShape={toggleSelectedTableShape}
-            onConfigureTable={handleConfigureTable}
-            guests={guests}
-            tab={tab}
             className="h-full"
           />
         </div>

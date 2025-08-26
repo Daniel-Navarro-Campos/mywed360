@@ -1,6 +1,6 @@
 /**
  * Script de prueba de integración para validar el funcionamiento conjunto 
- * del sistema de emails, calendario y plantillas de Lovenda.
+ * del sistema de emails, calendario y plantillas de MyWed360.
  * 
  * Este script simula un flujo completo de usuario, desde recepción de emails
  * hasta la creación de eventos en calendario y uso de plantillas.
@@ -353,7 +353,7 @@ async function runIntegrationTest() {
     console.log(`3. Integración con calendario: ${calendarResult.success ? '✅ CORRECTO' : '❌ FALLÓ'}`);
     
     console.log('\nPrueba de integración completada correctamente.');
-    console.log('El sistema de emails personalizado de Lovenda funciona según lo esperado.');
+    console.log('El sistema de emails personalizado de MyWed360 funciona según lo esperado.');
     
   } catch (error) {
     console.error('\n❌ ERROR EN LA PRUEBA DE INTEGRACIÓN:', error);

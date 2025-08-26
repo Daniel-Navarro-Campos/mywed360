@@ -71,7 +71,7 @@ describe('Casos límite y manejo de errores del sistema de correo', () => {
       expect(result.success).toBe(true);
       
       // Verificar que se guardó correctamente
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved[0].subject).toBe(specialCharEmail.subject);
       expect(saved[0].body).toBe(specialCharEmail.body);
     });
@@ -91,7 +91,7 @@ describe('Casos límite y manejo de errores del sistema de correo', () => {
       expect(result.success).toBe(true);
       
       // Verificar que se guardó con "(Sin asunto)" o similar
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved[0].subject).toBe('(Sin asunto)');
     });
 
@@ -140,7 +140,7 @@ describe('Casos límite y manejo de errores del sistema de correo', () => {
       expect(result.success).toBe(true);
       expect(result.usingFallback).toBe(true);
       
-      const saved = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const saved = JSON.parse(localStorage.getItem('mywed360_mails'));
       expect(saved).toHaveLength(1);
       expect(saved[0].subject).toBe('Prueba de red');
     });
@@ -298,7 +298,7 @@ describe('Casos límite y manejo de errores del sistema de correo', () => {
       const tag = TagService.createTag(userId, 'Etiqueta importante');
       
       // Etiquetar el correo guardado localmente
-      const localMails = JSON.parse(localStorage.getItem('lovenda_mails'));
+      const localMails = JSON.parse(localStorage.getItem('mywed360_mails'));
       const localEmailId = localMails[0].id;
       TagService.addTagToEmail(userId, localEmailId, tag.id);
       

@@ -1,14 +1,14 @@
-# Guía de Usuario - Sistema de Email Personalizado Lovenda
+# Guía de Usuario - Sistema de Email Personalizado MyWed360
 
 ## Introducción
 
-Bienvenido/a al nuevo sistema de email personalizado de Lovenda. Esta guía te ayudará a conocer todas las características disponibles y cómo sacar el máximo provecho de tu cuenta de correo electrónico personalizada con dominio @lovenda.com.
+Bienvenido/a al nuevo sistema de email personalizado de MyWed360. Esta guía te ayudará a conocer todas las características disponibles y cómo sacar el máximo provecho de tu cuenta de correo electrónico personalizada con dominio @lovenda.com.
 
 ## Tu cuenta de correo electrónico personalizada
 
 ### Configuración inicial
 
-Al registrarte en Lovenda, automáticamente se te asigna una dirección de correo electrónico personalizada con el formato:
+Al registrarte en MyWed360, automáticamente se te asigna una dirección de correo electrónico personalizada con el formato:
 
 ```
 tunombre@lovenda.com
@@ -18,7 +18,7 @@ Esta dirección te permite:
 - Mantener toda tu comunicación relacionada con la organización de tu boda en un solo lugar
 - Separar los emails de la boda de tu correo personal
 - Comunicarte de manera profesional con proveedores
-- Acceder a todas las funcionalidades avanzadas de Lovenda
+- Acceder a todas las funcionalidades avanzadas de MyWed360
 
 ### Acceso a tu bandeja de entrada
 
@@ -40,7 +40,7 @@ Tu cuenta permite enviar y recibir emails como cualquier otra cuenta de correo e
 
 ### Sistema de plantillas
 
-Para facilitar tu comunicación con proveedores, Lovenda incluye plantillas predefinidas que puedes personalizar:
+Para facilitar tu comunicación con proveedores, MyWed360 incluye plantillas predefinidas que puedes personalizar:
 
 1. Al redactar un nuevo email, haz clic en "Usar plantilla"
 2. Selecciona la plantilla que mejor se adapte a tu necesidad
@@ -64,7 +64,7 @@ Una de las características más útiles es la detección automática de eventos
 1. Cuando recibas un email que contenga fechas, horas o referencias a reuniones, verás un botón "Añadir al calendario"
 2. Al hacer clic, se abrirá un formulario precompletado con la información detectada
 3. Puedes ajustar los detalles según sea necesario
-4. Al guardar, el evento se añade a tu calendario de Lovenda
+4. Al guardar, el evento se añade a tu calendario de MyWed360
 
 ### Alias de email
 
@@ -161,7 +161,7 @@ Recibirás notificaciones para:
 
 ### Sincronización con dispositivos móviles
 
-1. Descarga la aplicación móvil de Lovenda
+1. Descarga la aplicación móvil de MyWed360
 2. Inicia sesión con tus credenciales
 3. Habilita las notificaciones para recibir alertas de nuevos emails
 

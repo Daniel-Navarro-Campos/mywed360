@@ -16,7 +16,7 @@ const MAILGUN_DOMAIN = import.meta.env.VITE_MAILGUN_DOMAIN || 'mywed360.com';
 export const USE_MAILGUN = !!MAILGUN_API_KEY;
 // Permitimos usar backend aunque Mailgun esté configurado
 export const USE_BACKEND = !!BASE;
-const STORAGE_KEY = 'lovenda_mails';
+const STORAGE_KEY = 'mywed360_mails';
 
 /**
  * Obtiene el token de autenticación del usuario actual

@@ -22,6 +22,8 @@ const SeatingPlanCanvas = ({
   onToggleEnabled,
   onAddArea,
   onAddTable,
+  drawMode = 'pan',
+  onDrawModeChange,
   canvasRef,
   className = ""
 }) => {
@@ -93,11 +95,14 @@ const SeatingPlanCanvas = ({
             onToggleEnabled={onToggleEnabled}
             onAddArea={onAddArea}
             onAddTable={onAddTable}
+            drawMode={drawMode}
+            canPan={drawMode === 'pan'}
+            canMoveTables={drawMode === 'move'}
           />
           
           {/* Indicadores de dimensiones del salón */}
           <div className="absolute top-2 left-2 bg-white/90 px-2 py-1 rounded text-xs text-gray-600">
-            {hallSize.width} × {hallSize.height} cm
+            {(hallSize.width/100).toFixed(1)} × {(hallSize.height/100).toFixed(1)} m
           </div>
           
           {/* Controles de zoom */}
