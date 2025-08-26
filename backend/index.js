@@ -39,6 +39,7 @@ import mailgunDebugRoutes from './routes/mailgun-debug.js';
 import mailgunInboundRouter from './routes/mailgun-inbound.js';
 import mailgunEventsRouter from './routes/mailgun-events.js';
 import mailgunWebhookRouter from './routes/mailgun-webhook.js';
+import mailgunTestRouter from './routes/mailgun.js';
 import logger from './logger.js';
 import instagramWallRouter from './routes/instagram-wall.js';
 import weddingNewsRouter from './routes/wedding-news.js';
@@ -93,6 +94,7 @@ app.use('/api/mailgun/events', mailgunEventsRouter); // Eventos de Mailgun (cons
 // Rutas que requieren autenticación específica para correo
 app.use('/api/mail', requireMailAccess, mailRouter);
 app.use('/api/mailgun/events', requireMailAccess, mailgunEventsRouter);
+app.use('/api/mailgun', optionalAuth, mailgunTestRouter);
 app.use('/api/mailgun-debug', requireMailAccess, mailgunDebugRoutes);
 app.use('/api/email-insights', requireMailAccess, emailInsightsRouter);
 

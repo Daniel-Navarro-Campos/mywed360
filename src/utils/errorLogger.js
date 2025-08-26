@@ -42,10 +42,11 @@ class ErrorLogger {
     });
 
     // Interceptar console.error para capturar errores manuales
-    const originalConsoleError = console.error;
+    this.originalConsoleError = console.error;
     console.error = (...args) => {
       this.logError('Console Error', { args });
-      originalConsoleError.apply(console, args);
+      // Llamar a la implementación original para no perder mensajes
+      this.originalConsoleError.apply(console, args);
     };
 
     // Interceptar fetch para capturar errores de red
@@ -93,11 +94,17 @@ class ErrorLogger {
       this.errors = this.errors.slice(-100);
     }
 
-    // Log en consola con formato mejorado
-    console.group(`🚨 ${type} - ${new Date().toLocaleTimeString()}`);
-    console.error('Details:', details);
-    console.error('Full Error Entry:', errorEntry);
-    console.groupEnd();
+    // Log en consola con formato mejorado evitando recursión
+    if (this.originalConsoleError) {
+      this.originalConsoleError.call(console, `🚨 ${type} - ${new Date().toLocaleTimeString()}`);
+      this.originalConsoleError.call(console, 'Details:', details);
+      this.originalConsoleError.call(console, 'Full Error Entry:', errorEntry);
+    } else {
+      console.group(`🚨 ${type} - ${new Date().toLocaleTimeString()}`);
+      console.log('Details:', details);
+      console.log('Full Error Entry:', errorEntry);
+      console.groupEnd();
+    }
 
     // Actualizar diagnósticos si es necesario
     this.updateDiagnosticsFromError(type, details);
