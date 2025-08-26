@@ -5,7 +5,9 @@ name: CI
 
 on:
   push:
+    branches: [ "main", "master", "suppliers-firestore-fix" ]
   pull_request:
+    branches: [ "main", "master", "suppliers-firestore-fix" ]
 
 jobs:
   build-and-test:
@@ -23,14 +25,6 @@ jobs:
           always-auth: true
           cache: 'npm'
 
-      - name: Upgrade npm to 11.x (fix rollup optional deps issue)
-        run: npm install -g npm@11
-
-      - name: Install system libs for canvas
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
-
       - name: Force Node 20 environment
         run: |
           echo "PATH=/opt/hostedtoolcache/node/20.19.0/x64/bin:$PATH" >> $GITHUB_ENV
@@ -41,7 +35,7 @@ jobs:
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           node -v | grep -E '^v20\.' || (echo "ERROR: Node 20 required but got $(node -v)" && exit 1)
-          npm -v | grep -E '^1(0|1)\.' || (echo "ERROR: NPM 10/11 required but got $(npm -v)" && exit 1)
+          npm -v | grep -E '^10\.' || (echo "ERROR: NPM 10 required but got $(npm -v)" && exit 1)
 
       - name: Install dependencies with engine-strict
         run: |

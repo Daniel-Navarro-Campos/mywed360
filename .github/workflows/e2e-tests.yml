@@ -1,18 +1,14 @@
 name: E2E Tests
 
-env:
-  ENABLE_E2E: 'false'
-
 on:
   push:
-    branches: [ "**" ]
+    branches: [ main, suppliers-firestore-fix ]
   pull_request:
-    branches: [ "**" ]
+    branches: [ main, suppliers-firestore-fix ]
   workflow_dispatch:
 
 jobs:
   e2e-tests:
-    if: ${{ false }}
     runs-on: ubuntu-latest
     
     steps:
@@ -37,24 +33,12 @@ jobs:
           echo "Node version: $(node -v)"
           echo "NPM version: $(npm -v)"
           node -v | grep -E '^v20\.' || (echo "ERROR: Node 20 required but got $(node -v)" && exit 1)
-          npm -v | grep -E '^1(0|1)\.' || (echo "ERROR: NPM 10/11 required but got $(npm -v)" && exit 1)
+          npm -v | grep -E '^10\.' || (echo "ERROR: NPM 10 required but got $(npm -v)" && exit 1)
 
       - name: Install system dependencies for Cypress
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3-dev libxss1 libasound2-dev libxtst6 xauth
-
-      - name: Create test .env file
-        run: |
-          echo "VITE_FIREBASE_API_KEY=fake" >> .env
-          echo "VITE_FIREBASE_AUTH_DOMAIN=fake" >> .env
-          echo "VITE_FIREBASE_PROJECT_ID=fake" >> .env
-          echo "VITE_FIREBASE_STORAGE_BUCKET=fake" >> .env
-          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=fake" >> .env
-          echo "VITE_FIREBASE_APP_ID=fake" >> .env
-          echo "VITE_FIREBASE_MEASUREMENT_ID=fake" >> .env
-          echo "MAILGUN_API_KEY=fake" >> .env
-          echo "MAILGUN_DOMAIN=fake" >> .env
 
       - name: Install dependencies with engine-strict
         run: |
@@ -64,9 +48,9 @@ jobs:
       - name: Start dev server and run Cypress tests
         uses: cypress-io/github-action@v5
         with:
-          start: npm run start:ci
+          start: npm run dev
           wait-on: 'http://localhost:5173'
-          wait-on-timeout: 180
+          wait-on-timeout: 120
           browser: electron
           record: false
           spec: cypress/e2e/email/*.cy.js

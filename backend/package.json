@@ -20,7 +20,6 @@
     "imagetracerjs": "^1.2.6",
     "ngrok": "^5.0.0-beta.2",
     "openai": "^4.104.0",
-    "mailgun-js": "^0.22.0",
     "svg-to-pdfkit": "^0.1.8"
   },
   "devDependencies": {
