@@ -12,15 +12,81 @@ import EmailComposer from '../EmailComposer';
  */
 const InboxContainer = () => {
   const { user } = useAuth();
-  const { 
-    emails, 
-    loading, 
-    error, 
-    refreshEmails, 
-    markAsRead, 
-    deleteEmail,
-    trackOperation // ✅ Función añadida para evitar TypeError
-  } = useEmailMonitoring();
+  const { trackOperation } = useEmailMonitoring();
+
+  
+  // Estados para datos de emails
+  const [emails, setEmails] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Cargar emails al montar el componente
+  const refreshEmails = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await EmailService.getMails('inbox');
+
+      if (Array.isArray(res)) {
+        setEmails(res);
+        setError(null);
+      } else if (res && typeof res === 'object') {
+        // El servicio devolvió un objeto con error o estructura inesperada
+        console.warn('EmailService devolvió estructura no esperada:', res);
+        setEmails([]);
+        setError(res.error || 'No se pudieron cargar los emails');
+      } else {
+        // Valor totalmente inesperado
+        setEmails([]);
+        setError('Respuesta de EmailService no válida');
+      }
+    } catch (err) {
+      console.error('Error cargando emails:', err);
+      setError('No se pudieron cargar los emails');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Inicializar EmailService al tener usuario y refrescar lista
+  useEffect(() => {
+    let cancelled = false;
+    const initAndLoad = async () => {
+      if (user && user.email) {
+        try {
+          await EmailService.initEmailService({ email: user.email, ...user });
+          if (!cancelled) {
+            await refreshEmails();
+          }
+        } catch (err) {
+          console.error('Error inicializando EmailService:', err);
+          setError('Error inicializando servicio de email');
+        }
+      }
+    };
+    initAndLoad();
+    return () => { cancelled = true; };
+  }, [user, refreshEmails]);
+
+  // Marcar email como leído
+  const markAsRead = useCallback(async (emailId) => {
+    try {
+      await EmailService.markAsRead(emailId);
+      setEmails(prev => prev.map(e => e.id === emailId ? { ...e, read: true } : e));
+    } catch (err) {
+      console.error('Error marcando como leído:', err);
+    }
+  }, []);
+
+  // Eliminar email
+  const deleteEmail = useCallback(async (emailId) => {
+    try {
+      await EmailService.deleteMail(emailId);
+      setEmails(prev => prev.filter(e => e.id !== emailId));
+    } catch (err) {
+      console.error('Error eliminando email:', err);
+      throw err;
+    }
+  }, []);
   
   // Estados locales
   const [selectedEmailId, setSelectedEmailId] = useState(null);
@@ -29,11 +95,14 @@ const InboxContainer = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, read, unread
   const [viewMode, setViewMode] = useState('list'); // list, detail
 
+  // Asegurar que emails siempre sea un array
+  const safeEmails = Array.isArray(emails) ? emails : [];
+
   // Email seleccionado
-  const selectedEmail = selectedEmailId ? emails.find(email => email.id === selectedEmailId) : null;
+  const selectedEmail = selectedEmailId ? safeEmails.find(email => email.id === selectedEmailId) : null;
 
   // Filtrar emails según búsqueda y estado
-  const filteredEmails = emails.filter(email => {
+  const filteredEmails = safeEmails.filter(email => {
     const matchesSearch = !searchTerm || 
       email.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       email.from?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -56,7 +125,7 @@ const InboxContainer = () => {
     if (email && !email.read) {
       markAsRead(emailId);
     }
-  }, [emails, markAsRead]);
+  }, [safeEmails, markAsRead]);
 
   const handleEmailDelete = useCallback(async (emailId) => {
     try {
@@ -68,7 +137,7 @@ const InboxContainer = () => {
     } catch (error) {
       console.error('Error al eliminar email:', error);
     }
-  }, [deleteEmail, selectedEmailId]);
+  }, [deleteEmail, selectedEmailId, safeEmails]);
 
   const handleBackToList = useCallback(() => {
     setSelectedEmailId(null);
