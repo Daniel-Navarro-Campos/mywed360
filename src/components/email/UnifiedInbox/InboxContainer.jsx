@@ -6,7 +6,7 @@ import * as EmailService from '../../../services/emailService';
 import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
 import { useUnifiedInboxMetrics } from '../../../hooks/useUnifiedInboxMetrics';
 import { emailCache } from '../../../utils/EmailCache';
-import { safeRender, ensureNotPromise, safeMap, safeExecute } from '../../../utils/promiseSafeRenderer';
+// Removidas importaciones de safeRender para evitar problemas con Promises
 import InboxNavigation from './InboxNavigation';
 import EmailList from './EmailList';
 
@@ -418,18 +418,18 @@ const InboxContainer = () => {
           {/* Lista de emails */}
           <div className={`${selectedEmail ? 'hidden md:block md:w-1/3 lg:w-2/5' : 'w-full'} border-r overflow-auto`}>
             <EmailList
-              emails={safeRender(filteredEmails, [])}
-              loading={safeRender(loading, false)}
-              error={safeRender(error, null)}
-              selectedEmailId={safeRender(selectedEmailId, null)}
+              emails={Array.isArray(filteredEmails) ? filteredEmails : []}
+              loading={loading || false}
+              error={error || null}
+              selectedEmailId={selectedEmailId || null}
               onSelectEmail={handleSelectEmail}
               onDeleteEmail={handleDeleteEmail}
               onSearch={handleSearch}
-              searchTerm={safeRender(searchTerm, '')}
-              sortField={safeRender(sortField, 'date')}
-              sortDirection={safeRender(sortDirection, 'desc')}
+              searchTerm={searchTerm || ''}
+              sortField={sortField || 'date'}
+              sortDirection={sortDirection || 'desc'}
               onSortChange={handleSortChange}
-              currentFolder={safeRender(currentFolder, 'inbox')}
+              currentFolder={currentFolder || 'inbox'}
             />
           </div>
           
@@ -448,7 +448,7 @@ const InboxContainer = () => {
                 />
               ) : (
                 <EmailDetail
-                  email={safeRender(selectedEmail, null)}
+                  email={selectedEmail || null}
                   onReply={() => handleReply(selectedEmail)}
                   onDelete={() => handleDeleteEmail(selectedEmail?.id)}
                   onMarkRead={handleMarkAsRead}
