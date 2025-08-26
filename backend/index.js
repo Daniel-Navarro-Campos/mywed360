@@ -94,8 +94,9 @@ app.use('/api/mailgun/events', mailgunEventsRouter); // Eventos de Mailgun (cons
 
 // Rutas que requieren autenticación específica para correo
 app.use('/api/mail', requireMailAccess, mailRouter);
+// IMPORTANTE: Las rutas más específicas deben ir DESPUÉS de las generales
+app.use('/api/mailgun', optionalAuth, mailgunTestRouter); // Debe ir ANTES que /api/mailgun/events
 app.use('/api/mailgun/events', requireMailAccess, mailgunEventsRouter);
-app.use('/api/mailgun', optionalAuth, mailgunTestRouter);
 app.use('/api/mailgun-debug', requireMailAccess, mailgunDebugRoutes);
 app.use('/api/email-insights', requireMailAccess, emailInsightsRouter);
 

@@ -35,15 +35,27 @@ export const useOnboarding = () => {
       }
 
       // Si no hay usuario autenticado, no mostrar onboarding
-      if (!user || !user.uid) {
+      if (!user || !user.uid || typeof user.uid !== 'string' || user.uid.trim() === '') {
         setShowOnboarding(false);
         setLoading(false);
         return;
       }
 
       try {
-        // Esperar un momento para asegurar que el token esté disponible
-        await user.getIdToken();
+        // Verificar que el usuario esté completamente autenticado
+        if (!user.emailVerified && user.isAnonymous === false) {
+          // Usuario no verificado, esperar un poco más
+          setTimeout(() => checkOnboardingStatus(user), 1000);
+          return;
+        }
+
+        // Validar que el UID sea válido antes de hacer la consulta
+        if (user.uid.length < 10 || !/^[a-zA-Z0-9]+$/.test(user.uid)) {
+          console.warn('UID inválido detectado:', user.uid);
+          setShowOnboarding(false);
+          setLoading(false);
+          return;
+        }
         
         const profileRef = doc(db, 'users', user.uid);
         const profileDoc = await getDoc(profileRef);
