@@ -5,6 +5,7 @@ import { MessageSquare } from 'lucide-react';
 import Spinner from './Spinner';
 import { getBackendBase } from '../utils/backendBase';
 import { toast } from 'react-toastify';
+import { useAuth } from '../hooks/useAuth';
 
 // --- Modo debug opcional ---
 // Actívalo desde la consola con: window.lovendaDebug = true
@@ -33,6 +34,7 @@ const guessCategory = (title = '') => {
 };
 
 export default function ChatWidget() {
+  const { user } = useAuth();
   const [open, setOpen] = useState(() => { const saved = localStorage.getItem('chatOpen'); return saved ? JSON.parse(saved) : false; });
   const [messages, setMessages] = useState(() => {
     try {
@@ -362,11 +364,18 @@ const sendMessage = async () => {
         toast.error('La IA está tardando demasiado. Reintentando con respuesta local...');
       }, 30000); // 30 segundos máximo para mejor UX
       
+      // Obtener token de autenticación
+      const token = user ? await user.getIdToken() : null;
+      if (!token) {
+        throw new Error('Usuario no autenticado');
+      }
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ text: input, history }),
         signal: controller.signal
