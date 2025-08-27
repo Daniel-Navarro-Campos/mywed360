@@ -7,7 +7,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "start": "vite --host --port 5173",
+    "start": "node backend/index.js",
     "dev": "vite --host --port 5173",
     "build": "vite build",
     "preview": "vite preview --host --port 5174",
