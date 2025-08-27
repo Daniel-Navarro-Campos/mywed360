@@ -5,6 +5,13 @@
 // Estructura Mail: { id, from, to, subject, body, date, folder, read, attachments }
 
 import { auth } from '../firebaseConfig';
+// Sistema de autenticación unificado
+let authContext = null;
+
+// Función para establecer el contexto de autenticación desde el componente
+export const setAuthContext = (context) => {
+  authContext = context;
+};
 // Mantener actualizada la caché de emails en memoria
 import { emailCache } from '../utils/EmailCache';
 
@@ -24,10 +31,31 @@ const STORAGE_KEY = 'mywed360_mails';
  */
 const getAuthToken = async () => {
   try {
-    const user = auth.currentUser;
-    if (user) {
-      return await user.getIdToken();
+    // Priorizar el sistema de autenticación unificado
+    if (authContext && authContext.getIdToken) {
+      const token = await authContext.getIdToken();
+      if (token) {
+        console.log('🔑 Token obtenido del sistema unificado');
+        return token;
+      }
     }
+    
+    // Fallback a Firebase si está disponible
+    const user = auth.currentUser;
+    if (user && user.getIdToken) {
+      const token = await user.getIdToken();
+      console.log('🔑 Token obtenido de Firebase');
+      return token;
+    }
+    
+    // Fallback a usuario mock si existe en authContext
+    if (authContext && authContext.currentUser) {
+      const mockToken = `mock-${authContext.currentUser.uid}-${authContext.currentUser.email}`;
+      console.log('🔑 Token mock generado para emailService:', authContext.currentUser.email);
+      return mockToken;
+    }
+    
+    console.log('⚠️ No se pudo obtener token de autenticación');
     return null;
   } catch (error) {
     console.warn('Error obteniendo token de autenticación:', error);

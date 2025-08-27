@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../../hooks/useAuthUnified';
+import { useAuth } from '../../../hooks/useAuth';
 import { useEmailMonitoring } from '../../../hooks/useEmailMonitoring';
-import EmailService from '../../../services/emailService';
+import EmailService, { setAuthContext } from '../../../services/emailService';
 import EmailList from './EmailList';
 import EmailDetail from './EmailDetail';
 import EmailComposer from '../EmailComposer';
@@ -11,8 +11,14 @@ import EmailComposer from '../EmailComposer';
  * Versión completa con todas las correcciones aplicadas para evitar errores de Promise
  */
 const InboxContainer = () => {
-  const { user } = useAuth();
+  const authContext = useAuth();
+  const { user } = authContext;
   const { trackOperation } = useEmailMonitoring();
+  
+  // Establecer el contexto de autenticación en EmailService
+  useEffect(() => {
+    setAuthContext(authContext);
+  }, [authContext]);
 
   
   // Estados para datos de emails

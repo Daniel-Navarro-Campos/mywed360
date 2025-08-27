@@ -3,9 +3,10 @@ import { X, Paperclip, Send, AlertCircle, Plus, Trash2, CheckCircle, ChevronDown
 import Button from '../Button';
 import Card from '../Card';
 import * as EmailService from '../../services/emailService';
+import { setAuthContext } from '../../services/emailService';
 import { safeExecute } from '../SafeRenderer';
 import { safeRender, ensureNotPromise, safeDangerouslySetInnerHTML } from '../../utils/promiseSafeRenderer';
-import { useAuth } from '../../hooks/useAuthUnified';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * Componente para redactar y enviar nuevos emails desde la dirección personalizada del usuario
@@ -18,7 +19,13 @@ import { useAuth } from '../../hooks/useAuthUnified';
  * @returns {React.ReactElement} Componente para redactar emails
  */
 const EmailComposer = ({ isOpen, onClose, initialValues = {}, onSend }) => {
-  const { userProfile } = useAuth();
+  const authContext = useAuth();
+  const { userProfile } = authContext;
+  
+  // Establecer el contexto de autenticación en EmailService
+  useEffect(() => {
+    setAuthContext(authContext);
+  }, [authContext]);
   const [to, setTo] = useState(initialValues.to || '');
   const [cc, setCc] = useState(initialValues.cc || '');
   const [subject, setSubject] = useState(initialValues.subject || '');
