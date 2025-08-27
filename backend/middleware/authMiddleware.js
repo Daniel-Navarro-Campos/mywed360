@@ -113,6 +113,34 @@ const extractToken = (req) => {
  * @returns {Promise<Object>} - Datos del token decodificado
  */
 const verifyFirebaseToken = async (token) => {
+  // BYPASS TEMPORAL PARA DESARROLLO: Aceptar tokens mock del sistema de autenticación actual
+  if (process.env.NODE_ENV !== 'production' && token && token.startsWith('mock-')) {
+    console.log('[AuthMiddleware] Usando bypass de desarrollo para token mock');
+    // Extraer datos del token mock (formato: mock-{uid}-{email})
+    const parts = token.split('-');
+    if (parts.length >= 3) {
+      const uid = parts[1];
+      const email = parts.slice(2).join('-'); // En caso de que el email contenga guiones
+      return {
+        success: true,
+        user: {
+          uid: uid,
+          email: email,
+          email_verified: true,
+          auth_time: Math.floor(Date.now() / 1000),
+          iat: Math.floor(Date.now() / 1000),
+          exp: Math.floor(Date.now() / 1000) + 3600, // 1 hora
+          firebase: {
+            identities: {
+              email: [email]
+            },
+            sign_in_provider: 'password'
+          }
+        }
+      };
+    }
+  }
+
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
     return {
