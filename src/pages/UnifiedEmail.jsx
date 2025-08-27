@@ -6,7 +6,7 @@ import { auth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import Spinner from "../components/ui/Spinner";
 import Alert from "../components/ui/Alert";
-import { getMails, initEmailService, markAsRead, deleteMail } from "../services/emailService";
+import { getMails, initEmailService, markAsRead, deleteMail, sendMail } from "../services/emailService";
 import EmailInsights from "../components/EmailInsights";
 
 /**
@@ -26,9 +26,7 @@ const UnifiedEmail = () => {
   const [showCompose, setShowCompose] = useState(false);
   const [folder, setFolder] = useState("inbox"); // inbox | sent
 
-  // Endpoint de función; podría venir de env
-  const FUNCTION_ENDPOINT =
-    "https://us-central1-lovenda-98c77.cloudfunctions.net/getMailgunEvents";
+
 
   const fetchEmails = useCallback(async () => {
     if (!myEmail) return;
@@ -263,25 +261,7 @@ const ComposeModal = ({ onClose, from }) => {
     setSending(true);
     setError(null);
     try {
-      const resp = await fetch(
-        "https://us-central1-lovenda-98c77.cloudfunctions.net/sendEmail",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from, to, subject, body, html: body, text: body }),
-        }
-      );
-      if (!resp.ok) {
-        let detail = '';
-        try {
-          const data = await resp.json();
-          detail = data?.error || data?.message || '';
-        } catch (_) {
-          try { detail = await resp.text(); } catch (_) {}
-        }
-        const msg = `HTTP ${resp.status}${detail ? ` - ${detail}` : ''}`;
-        throw new Error(msg);
-      }
+      await sendMail({ to, subject, body });
       onClose();
     } catch (err) {
       console.error("Error enviando correo:", err);

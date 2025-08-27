@@ -5,6 +5,7 @@
 
 import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { initReminderService, stopReminderService } from '../services/reminderService';
+import { setAuthContext as registerEmailAuthContext } from '../services/emailService';
 
 // Crear contexto de autenticación
 const AuthContext = createContext(null);
@@ -247,6 +248,14 @@ export const AuthProvider = ({ children }) => {
     user: currentUser,
     profile: userProfile
   };
+
+  // Registrar el contexto en emailService para que pueda obtener el token
+  useEffect(() => {
+    registerEmailAuthContext({
+      currentUser,
+      getIdToken,
+    });
+  }, [currentUser, getIdToken]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -70,8 +70,29 @@ router.get('/', requireMailAccess, async (req, res) => {
       }
     }
 
-    const snapshot = await query.orderBy('date', 'desc').get();
-    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    let data = [];
+    try {
+      // Intentar obtener correos ordenados por fecha (requiere índice compuesto folder+to|from+date)
+      const snapshot = await query.orderBy('date', 'desc').get();
+      data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    } catch (fireErr) {
+      // Si falta índice compuesto, Firestore devuelve FAILED_PRECONDITION (code 9) con mensaje sobre "index"
+      if (fireErr?.code === 9 || (fireErr?.message || '').toLowerCase().includes('index')) {
+        console.warn('[GET /api/mail] Falta índice compuesto. Usando fallback sin orderBy y ordenando en memoria.');
+        const snapshot = await query.get();
+        data = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            // Fechas ISO 8601 – comparar como Date
+            const dateA = new Date(a.date || 0);
+            const dateB = new Date(b.date || 0);
+            return dateB - dateA;
+          });
+      } else {
+        throw fireErr;
+      }
+    }
+
     res.json(data);
   } catch (err) {
     console.error('Error en GET /api/mail:', err);

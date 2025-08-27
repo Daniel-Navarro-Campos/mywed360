@@ -212,6 +212,8 @@ let mailgunDisabled = false;
 // Control de errores backend para evitar spam de 500 y reintentos inmediatos
 let backendDisabledUntil = 0; // epoch ms hasta cuándo no intentamos backend
 const BACKEND_BACKOFF_MS = 30000; // 30s de backoff
+// Timeout por defecto para obtener eventos de Mailgun (ms). Puede sobreescribirse con VITE_EVENTS_TIMEOUT_MS.
+const EVENTS_TIMEOUT_MS = Number(import.meta.env.VITE_EVENTS_TIMEOUT_MS || 15000);
 
 async function fetchMailgunEvents(userEmail, eventType = 'delivered') {
   if (mailgunDisabled) {
@@ -231,7 +233,7 @@ async function fetchMailgunEvents(userEmail, eventType = 'delivered') {
   try {
     // Establecer un timeout para la petición
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
+    const timeoutId = setTimeout(() => controller.abort(), EVENTS_TIMEOUT_MS); // Timeout configurable
 
     // Obtener token de autenticación para acceder a endpoints protegidos
     const token = await getAuthToken();
@@ -277,9 +279,14 @@ async function fetchMailgunEvents(userEmail, eventType = 'delivered') {
     const data = await response.json();
     return data.items || [];
   } catch (error) {
+    if (error.name === 'AbortError') {
+      console.warn('Timeout al obtener eventos de Mailgun / backend');
+      // No deshabilitamos permanentemente el servicio; puede deberse a cold start o latencia alta.
+      return [];
+    }
     // Manejar errores sin romper la aplicación
     console.error('Error con Mailgun, usando fallback:', error);
-    // Deshabilitar futuros intentos
+    // Deshabilitar futuros intentos para evitar spam constante (excepto timeouts)
     mailgunDisabled = true;
     return []; // Devolver array vacío para continuar con la app
   }
