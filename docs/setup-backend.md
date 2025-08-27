@@ -44,7 +44,7 @@ cp backend/.env.example backend/.env
 npm --workspace backend run dev
 ```
 
-Escuchará en el puerto indicado por `PORT` (por defecto 3001).
+Escuchará en el puerto indicado por `PORT` (por defecto 4004).
 
 ## 5. Solución de problemas
 

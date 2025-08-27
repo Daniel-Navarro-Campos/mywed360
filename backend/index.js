@@ -66,7 +66,7 @@ if (!process.env.OPENAI_API_KEY) {
   console.warn('⚠️  OPENAI_API_KEY not set. Chat AI endpoints will return 500.');
 }
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 3001; // Render inyecta PORT, 3001 por defecto para desarrollo local
+const PORT = process.env.PORT ? Number(process.env.PORT) : 4004; // Render inyecta PORT, 4004 por defecto para desarrollo local
 
 const app = express();
 
