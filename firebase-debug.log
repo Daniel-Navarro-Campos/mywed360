@@ -1,0 +1,21 @@
+[debug] [2025-08-27T14:46:50.679Z] ----------------------------------------------------------------------
+[debug] [2025-08-27T14:46:50.686Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Administrator\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:indexes
+[debug] [2025-08-27T14:46:50.687Z] CLI Version:   14.11.0
+[debug] [2025-08-27T14:46:50.687Z] Platform:      win32
+[debug] [2025-08-27T14:46:50.687Z] Node Version:  v22.16.0
+[debug] [2025-08-27T14:46:50.688Z] Time:          Wed Aug 27 2025 16:46:50 GMT+0200 (hora de verano de Europa central)
+[debug] [2025-08-27T14:46:50.688Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-08-27T14:46:51.144Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-08-27T14:46:51.146Z] > authorizing via signed-in user (danielnavarrocampos1993@gmail.com)
+[debug] [2025-08-27T14:46:51.146Z] [iam] checking project lovenda-98c77 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2025-08-27T14:46:51.150Z] Checked if tokens are valid: false, expires at: 1756265600250
+[debug] [2025-08-27T14:46:51.150Z] Checked if tokens are valid: false, expires at: 1756265600250
+[debug] [2025-08-27T14:46:51.151Z] > refreshing access token with scopes: []
+[debug] [2025-08-27T14:46:51.156Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-08-27T14:46:51.156Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-27T14:46:51.389Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-08-27T14:46:51.389Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-08-27T14:46:51.418Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/lovenda-98c77:testIamPermissions [none]
+[debug] [2025-08-27T14:46:51.418Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/lovenda-98c77:testIamPermissions x-goog-quota-user=projects/lovenda-98c77
+[debug] [2025-08-27T14:46:51.419Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/lovenda-98c77:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}

@@ -1,18 +1,23 @@
 import React from 'react';
-import InboxContainer from '../components/email/UnifiedInbox/InboxContainer';
+import EmailInbox from '../components/email/EmailInbox';
 
 /**
- * Página principal para la bandeja de entrada unificada
- * Sirve como punto de entrada a toda la funcionalidad de email
+ * Página principal para la bandeja de entrada de email
+ * Usa el diseño original preferido por el usuario
  * 
- * @returns {JSX.Element} Página de la bandeja de entrada unificada
+ * @returns {JSX.Element} Página de la bandeja de entrada
  */
 const UnifiedEmail = () => {
-  // Mensaje de diagnóstico para verificar si el componente se renderiza
-  console.log('UnifiedEmail component rendering...');
+  console.log('UnifiedEmail component rendering with original design...');
   return (
-    <div className="h-full flex flex-col">
-      <InboxContainer />
+    <div className="h-full flex flex-col p-6 bg-white">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">📧 Bandeja de Entrada</h1>
+        <p className="text-gray-600">Gestiona tus correos electrónicos de boda</p>
+      </div>
+      <div className="flex-1 bg-gray-50 rounded-lg p-4">
+        <EmailInbox />
+      </div>
     </div>
   );
 };

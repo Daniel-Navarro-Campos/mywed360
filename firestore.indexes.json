@@ -1,0 +1,41 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "mails",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "folder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "to",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "mails",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "folder",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "from",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
