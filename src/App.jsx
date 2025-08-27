@@ -67,8 +67,28 @@ import './utils/consoleCommands';
 function ProtectedRoute() {
   // Combina autenticación nueva y legacy
   const { isAuthenticated: isAuthLegacy, loading: loadingLegacy } = useUserContext();
-  const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Evitar múltiples redirecciones usando ref
+  const hasRedirected = React.useRef(false);
+
+  // Efecto para manejar redirección imperativa y evitar bucles
+  React.useEffect(() => {
+    if (hasRedirected.current) return;
+
+    const effectiveAuth = isAuthenticated || isAuthLegacy;
+    const effectiveLoading = isLoading ?? loadingLegacy;
+
+    if (!effectiveLoading && !effectiveAuth) {
+      // Evitar redirigir si ya estamos en /login o en la landing
+      if (location.pathname !== '/login' && location.pathname !== '/') {
+        hasRedirected.current = true;
+        navigate('/login', { replace: true, state: { from: location } });
+      }
+    }
+  }, [isAuthenticated, isAuthLegacy, isLoading, loadingLegacy, location, navigate]);
 
   const effectiveAuth = isAuthenticated || isAuthLegacy;
   const effectiveLoading = isLoading ?? loadingLegacy;
@@ -78,12 +98,11 @@ function ProtectedRoute() {
   }
 
   if (!effectiveAuth) {
-    // Evitar redirigir si ya estamos en /login o en la landing
-    if (location.pathname === '/login' || location.pathname === '/') {
-      return null;
-    }
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    // La redirección ya se maneja de forma imperativa arriba
+    return null;
   }
+
+
 
   return (
     <>
