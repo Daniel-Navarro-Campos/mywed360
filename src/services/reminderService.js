@@ -55,7 +55,7 @@ async function runReminderJob(days) {
   if (!enabled) return;
   try {
     const sentMails = await getMails('sent');
-    const inboxMails = await getMails('inbox');
+    let inboxMails = await getMails('inbox');
     
     // Validar que sentMails e inboxMails sean arrays
     if (!Array.isArray(sentMails)) {
