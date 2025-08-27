@@ -398,6 +398,10 @@ const sendMessage = async () => {
       }
       
       const data = await response.json();
+      
+      // Debug: Log completo de la respuesta del backend
+      console.log('🤖 Respuesta completa del backend IA:', data);
+      chatDebug('Respuesta del backend:', JSON.stringify(data, null, 2));
 
       // --- Procesar comandos si existen ---
       if (data.extracted?.commands?.length) {
@@ -496,12 +500,18 @@ const sendMessage = async () => {
         toast.success(`${mappedMov.length} movimiento${mappedMov.length>1?'s':''} añadido${mappedMov.length>1?'s':''}`);
       }
       let text;
+      // Manejar respuesta del backend (exitosa o con error)
       if (data.reply) {
         text = data.reply;
+      } else if (data.error && data.reply) {
+        // Backend devolvió error pero con mensaje de respuesta
+        text = data.reply;
+        console.warn('Backend AI error:', data.error, data.details);
       } else if (data.extracted && Object.keys(data.extracted).length) {
         text = 'Datos extraídos:\n' + JSON.stringify(data.extracted, null, 2);
       } else if (data.error) {
         text = 'Error: ' + data.error;
+        console.error('Backend AI error:', data.error, data.details);
       } else {
         text = 'No se detectaron datos para extraer. ¿Puedes darme más detalles?';
       }
