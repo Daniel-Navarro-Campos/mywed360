@@ -50,6 +50,36 @@ try {
   db = admin.apps.length ? admin.firestore() : null;
 } catch {}
 
+// Función de fallback local para cuando OpenAI no está disponible
+function generateLocalResponse(text, history = []) {
+  const lowerText = text.toLowerCase();
+  let reply = '';
+  let extracted = {};
+  
+  // Respuestas contextuales basadas en palabras clave
+  if (lowerText.includes('hola') || lowerText.includes('hi') || lowerText.includes('hello')) {
+    reply = '¡Hola! Soy tu asistente de bodas. Aunque tengo algunos problemas técnicos temporales, puedo ayudarte con información básica sobre tu boda. ¿En qué puedo asistirte?';
+  } else if (lowerText.includes('invitado') || lowerText.includes('guest')) {
+    reply = 'Te puedo ayudar con la gestión de invitados. Puedes añadir invitados manualmente desde la sección de Invitados en el menú principal. ¿Necesitas ayuda con algo específico sobre los invitados?';
+  } else if (lowerText.includes('presupuesto') || lowerText.includes('dinero') || lowerText.includes('coste') || lowerText.includes('precio')) {
+    reply = 'Para gestionar tu presupuesto de boda, ve a la sección de Finanzas donde puedes añadir gastos e ingresos. ¿Quieres que te explique cómo funciona el control de presupuesto?';
+  } else if (lowerText.includes('fecha') || lowerText.includes('cuando') || lowerText.includes('día')) {
+    reply = 'Puedes gestionar las fechas importantes de tu boda en el calendario. ¿Necesitas ayuda para planificar alguna fecha específica?';
+  } else if (lowerText.includes('proveedor') || lowerText.includes('vendor') || lowerText.includes('fotógrafo') || lowerText.includes('catering')) {
+    reply = 'En la sección de Proveedores puedes buscar y gestionar todos los servicios para tu boda. ¿Buscas algún tipo de proveedor en particular?';
+  } else if (lowerText.includes('mesa') || lowerText.includes('seating') || lowerText.includes('asiento')) {
+    reply = 'El plan de mesas te permite organizar dónde se sentarán tus invitados. Puedes acceder desde el menú principal. ¿Necesitas ayuda con la distribución de mesas?';
+  } else if (lowerText.includes('ayuda') || lowerText.includes('help') || lowerText.includes('cómo')) {
+    reply = 'Estoy aquí para ayudarte con tu boda. Aunque tengo limitaciones técnicas temporales, puedo orientarte sobre:\n\n• Gestión de invitados\n• Control de presupuesto\n• Planificación de fechas\n• Búsqueda de proveedores\n• Organización de mesas\n\n¿En qué área necesitas más ayuda?';
+  } else if (lowerText.includes('problema') || lowerText.includes('error') || lowerText.includes('no funciona')) {
+    reply = 'Entiendo que hay algunos problemas técnicos. Estamos trabajando para solucionarlos. Mientras tanto, puedes usar todas las funciones de la aplicación manualmente desde el menú. ¿Hay algo específico que no funcione?';
+  } else {
+    reply = 'Disculpa, tengo algunas limitaciones técnicas temporales y no puedo procesar completamente tu consulta. Sin embargo, puedes:\n\n• Usar el menú principal para navegar\n• Gestionar invitados, presupuesto y fechas manualmente\n• Buscar proveedores en la sección correspondiente\n\n¿Puedes ser más específico sobre lo que necesitas?';
+  }
+  
+  return { reply, extracted };
+}
+
 // GET /api/ai/debug-env - Endpoint temporal para verificar variables de entorno
 router.get('/debug-env', (req, res) => {
   const envVars = {
@@ -235,12 +265,16 @@ router.post('/parse-dialog', async (req, res) => {
     res.json({ extracted, reply });
   } catch (err) {
     logger.error('❌ parse-dialog error', err);
+    
+    // Fallback inteligente local cuando OpenAI no está disponible
+    const localResponse = generateLocalResponse(text, history);
+    
     // Devuelve 200 para que el frontend no lo trate como fallo de red
     res.json({
       error: 'AI parsing failed',
       details: err?.message || 'unknown',
-      extracted: {},
-      reply: 'Lo siento, ocurrió un error al procesar tu mensaje. Inténtalo más tarde.'
+      extracted: localResponse.extracted,
+      reply: localResponse.reply
     });
   }
 });
