@@ -50,6 +50,24 @@ try {
   db = admin.apps.length ? admin.firestore() : null;
 } catch {}
 
+// GET /api/ai/debug-env - Endpoint temporal para verificar variables de entorno
+router.get('/debug-env', (req, res) => {
+  const envVars = {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY ? `${process.env.OPENAI_API_KEY.substring(0, 10)}...` : 'NOT_SET',
+    NODE_ENV: process.env.NODE_ENV || 'NOT_SET',
+    ALLOWED_ORIGIN: process.env.ALLOWED_ORIGIN || 'NOT_SET',
+    MAILGUN_API_KEY: process.env.MAILGUN_API_KEY ? `${process.env.MAILGUN_API_KEY.substring(0, 10)}...` : 'NOT_SET',
+    PORT: process.env.PORT || 'NOT_SET'
+  };
+  
+  logger.info('🔍 Debug env vars:', envVars);
+  res.json({ 
+    status: 'debug', 
+    environment: envVars,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // POST /api/parse-dialog
 // Body: { text: "free form conversation" }
 // Returns: { extracted: {...} }
