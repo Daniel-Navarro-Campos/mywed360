@@ -3,7 +3,7 @@
  * Este hook proporciona funcionalidades de autenticación y gestión de perfil de usuario
  */
 
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { initReminderService, stopReminderService } from '../services/reminderService';
 
 // Crear contexto de autenticación
@@ -156,24 +156,61 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: error.message };
     }
   };
-  
+
+  /**
+   * Obtener token de autenticación
+   * @param {boolean} forceRefresh - Forzar actualización del token
+   * @returns {Promise<string>} Token de autenticación
+   */
+  const getIdToken = useCallback(async (forceRefresh = false) => {
+    try {
+      if (!currentUser) {
+        throw new Error('No hay usuario autenticado');
+      }
+
+      // Para usuarios mock/test, generar token compatible
+      if (currentUser.uid === 'cypress-test' || currentUser.uid.startsWith('mock-')) {
+        const mockToken = `mock-${currentUser.uid}-${currentUser.email}`;
+        console.log(' Token mock generado para:', currentUser.email);
+        return mockToken;
+      }
+
+      // Para usuarios reales de Firebase
+      if (currentUser.getIdToken) {
+        const token = await currentUser.getIdToken(forceRefresh);
+        console.log(' Token Firebase obtenido');
+        return token;
+      }
+
+      // Fallback: generar token mock si no hay método getIdToken
+      const fallbackToken = `mock-${currentUser.uid}-${currentUser.email}`;
+      console.log(' Token fallback generado para:', currentUser.email);
+      return fallbackToken;
+    } catch (error) {
+      console.error('Error obteniendo token:', error);
+      throw error;
+    }
+  }, [currentUser]);
+
   /**
    * Cerrar sesión
    * @returns {Promise<Object>} Resultado del cierre de sesión
    */
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
-      // Limpiar datos de sesión
-      localStorage.removeItem('lovenda_user');
       setCurrentUser(null);
       setUserProfile(null);
-      return { success: true };
+      localStorage.removeItem('lovenda_user');
+      localStorage.removeItem('lovenda_user_profile');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('isLoggedIn');
+      console.log(' Sesión cerrada correctamente');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
-  };
-  
+  }, []);
+
   /**
    * Actualizar el perfil del usuario
    * @param {Object} profileData - Datos del perfil a actualizar
@@ -205,6 +242,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUserProfile,
+    getIdToken,
     // Alias para compatibilidad con código existente
     user: currentUser,
     profile: userProfile

@@ -34,7 +34,7 @@ const guessCategory = (title = '') => {
 };
 
 export default function ChatWidget() {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
   const [open, setOpen] = useState(() => { const saved = localStorage.getItem('chatOpen'); return saved ? JSON.parse(saved) : false; });
   const [messages, setMessages] = useState(() => {
     try {
@@ -364,10 +364,15 @@ const sendMessage = async () => {
         toast.error('La IA está tardando demasiado. Reintentando con respuesta local...');
       }, 30000); // 30 segundos máximo para mejor UX
       
-      // Generar token mock compatible con el bypass del backend
+      // Obtener token de autenticación usando el hook useAuth
       let token = null;
-      if (user) {
-        // Formato: mock-{uid}-{email}
+      if (getIdToken) {
+        token = await getIdToken();
+      } else if (user && user.getIdToken) {
+        // Fallback: Usuario real de Firebase
+        token = await user.getIdToken();
+      } else if (user && user.uid && user.email) {
+        // Fallback: Usuario mock/simulado
         token = `mock-${user.uid}-${user.email}`;
       }
       if (!token) {
