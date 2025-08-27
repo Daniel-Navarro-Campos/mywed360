@@ -92,14 +92,14 @@ app.use(express.json());
 // Rutas públicas (sin autenticación)
 app.use('/api/mailgun/webhook', mailgunWebhookRouter); // Webhooks de Mailgun (verificación interna)
 app.use('/api/inbound/mailgun', mailgunInboundRouter); // Correos entrantes
-app.use('/api/mailgun/events', mailgunEventsRouter); // Eventos de Mailgun (consulta pública)
 
 // Rutas que requieren autenticación específica para correo
 app.use('/api/mail', requireMailAccess, mailRouter);
 app.use('/api/email-templates', optionalAuth, emailTemplatesRouter); // Plantillas de email
-// IMPORTANTE: Las rutas más específicas deben ir DESPUÉS de las generales
-app.use('/api/mailgun', optionalAuth, mailgunTestRouter); // Debe ir ANTES que /api/mailgun/events
-app.use('/api/mailgun/events', requireMailAccess, mailgunEventsRouter);
+
+// IMPORTANTE: Las rutas más específicas (/api/mailgun/events) deben ir ANTES que las generales (/api/mailgun)
+app.use('/api/mailgun/events', requireMailAccess, mailgunEventsRouter); // Eventos de Mailgun
+app.use('/api/mailgun', optionalAuth, mailgunTestRouter); // Rutas generales de Mailgun (incluye /test)
 app.use('/api/mailgun-debug', requireMailAccess, mailgunDebugRoutes);
 app.use('/api/email-insights', requireMailAccess, emailInsightsRouter);
 
