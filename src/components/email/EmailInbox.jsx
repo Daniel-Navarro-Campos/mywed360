@@ -57,14 +57,19 @@ export default function EmailInbox() {
     await loadEmails();
   };
 
-  const displayed = [...emails]
-    .filter((e) => e.subject.toLowerCase().includes(search.toLowerCase()))
+  // Asegurar que emails siempre sea un array antes de procesarlo
+  const safeEmails = Array.isArray(emails) ? emails : [];
+  
+  const displayed = safeEmails
+    .filter((e) => e && e.subject && e.subject.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       if (sortState === 'alpha') {
-        return a.subject.localeCompare(b.subject, 'es');
+        return (a.subject || '').localeCompare(b.subject || '', 'es');
       }
       if (sortState === 'date') {
-        return new Date(a.date) - new Date(b.date);
+        const dateA = a.date ? new Date(a.date) : new Date(0);
+        const dateB = b.date ? new Date(b.date) : new Date(0);
+        return dateA - dateB;
       }
       return 0; // sin ordenar
     });
@@ -177,10 +182,10 @@ export default function EmailInbox() {
                   <input
                     type="checkbox"
                     aria-label="Seleccionar todos"
-                    checked={selectedIds.size === emails.length && emails.length > 0}
+                    checked={selectedIds.size === safeEmails.length && safeEmails.length > 0}
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedIds(new Set(emails.map((m) => m.id)));
+                        setSelectedIds(new Set(safeEmails.map((m) => m.id)));
                       } else {
                         setSelectedIds(new Set());
                       }
@@ -204,7 +209,7 @@ export default function EmailInbox() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {safeMap(displayed).map((email) => (
+              {displayed.map((email) => (
                 <tr 
                   key={safeRender(email.id, '')} 
                   role="row" 
