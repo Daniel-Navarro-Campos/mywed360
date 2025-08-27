@@ -17,10 +17,10 @@ import { useLocation } from 'react-router-dom';
 
 export default function MainLayout() {
   // Sistema legacy (mantener durante migración)
-  const { logoUrl, logout } = useUserContext();
+  const { logoUrl, logout: logoutLegacy } = useUserContext();
   
   // Nuevo sistema unificado
-  const { hasRole, userProfile, isLoading } = useAuth();
+  const { hasRole, userProfile, isLoading, logout: logoutUnified } = useAuth();
   
   // Usar el nuevo sistema para verificaciones de rol
   const role = userProfile?.role || 'particular';
@@ -115,7 +115,7 @@ export default function MainLayout() {
                 </div>
                 <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
                 <button 
-                  onClick={() => { logout(); setOpenMenu(false); }} 
+                  onClick={() => { logoutLegacy(); logoutUnified(); setOpenMenu(false); }} 
                   className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-md transition-colors flex items-center"
                 >
                   🚪 Cerrar sesión
