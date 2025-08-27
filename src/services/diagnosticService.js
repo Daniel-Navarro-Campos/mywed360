@@ -88,13 +88,19 @@ class DiagnosticService {
         };
       }
 
-      // Test a través del backend
+      // Test a través del backend - intentar múltiples rutas
       if (this.backendUrl) {
-        const response = await fetch(`${this.backendUrl}/api/mailgun/test`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ test: true })
+        // Intentar primero la ruta principal
+        let response = await fetch(`${this.backendUrl}/api/mailgun/test`, {
+          method: 'GET'
         });
+
+        // Si falla, intentar ruta de test simple
+        if (!response.ok) {
+          response = await fetch(`${this.backendUrl}/api/test/mailgun`, {
+            method: 'GET'
+          });
+        }
 
         if (response.ok) {
           const data = await response.json();
@@ -107,8 +113,8 @@ class DiagnosticService {
           const error = await response.text();
           return {
             status: 'error',
-            message: `Error en test de Mailgun: ${response.status}`,
-            details: { error, domain }
+            message: `Mailgun test falló con status ${response.status}`,
+            details: { error, domain, hasApiKey: !!apiKey, hasDomain: !!domain }
           };
         }
       }
