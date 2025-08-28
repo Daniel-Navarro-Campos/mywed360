@@ -12,6 +12,7 @@ import EmailList from './EmailList';
 
 import EmailDetail from './EmailDetail';
 import EmailComposer from '../EmailComposer';
+import EmailDebugger, { repairEmailAuthentication } from '../../../utils/emailDebugger';
 
 /**
  * Componente contenedor principal para la bandeja de entrada unificada
@@ -40,6 +41,12 @@ const InboxContainer = () => {
   const [sortField, setSortField] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Estados para diagnóstico y reparación
+  const [debugging, setDebugging] = useState(false);
+  const [debugResults, setDebugResults] = useState(null);
+  const [repairing, setRepairing] = useState(false);
+  const [repairResults, setRepairResults] = useState(null);
   
   // Estadísticas de bandeja
   const [folderStats, setFolderStats] = useState({
@@ -237,6 +244,81 @@ const InboxContainer = () => {
     );
   }, [emails, handleMarkAsRead, logUserInteraction, logEmailRender]);
   
+  // Funciones de diagnóstico y reparación
+  const runDiagnosis = useCallback(async () => {
+    try {
+      setDebugging(true);
+      setDebugResults(null);
+      
+      console.log('=== INICIANDO DIAGNÓSTICO ===');
+      const diagnosis = await EmailDebugger.runFullDiagnosis();
+      
+      setDebugResults({
+        success: true,
+        data: diagnosis,
+        timestamp: new Date().toISOString()
+      });
+      
+      console.log('=== DIAGNÓSTICO COMPLETADO ===');
+      console.log('Resultados:', diagnosis.results);
+      console.log('Reporte:', diagnosis.report);
+      
+      // Mostrar resumen en toast
+      if (diagnosis.report.status === 'critical') {
+        toast.error(`Diagnóstico: ${diagnosis.report.issues.length} problemas críticos detectados`);
+      } else if (diagnosis.report.status === 'warning') {
+        toast.warning(`Diagnóstico: ${diagnosis.report.warnings.length} advertencias detectadas`);
+      } else {
+        toast.success('Diagnóstico: Sistema funcionando correctamente');
+      }
+      
+    } catch (error) {
+      console.error('Error en diagnóstico:', error);
+      setDebugResults({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+      toast.error('Error ejecutando diagnóstico');
+    } finally {
+      setDebugging(false);
+    }
+  }, []);
+  
+  const runRepair = useCallback(async () => {
+    try {
+      setRepairing(true);
+      setRepairResults(null);
+      
+      console.log('=== INICIANDO REPARACIÓN ===');
+      const repair = await repairEmailAuthentication();
+      
+      setRepairResults(repair);
+      
+      if (repair.success) {
+        console.log('=== REPARACIÓN EXITOSA ===');
+        toast.success(`Reparación exitosa: ${repair.userEmail}`);
+        
+        // Recargar emails después de la reparación
+        await loadEmails();
+      } else {
+        console.log('=== REPARACIÓN FALLÓ ===');
+        toast.error(`Reparación falló: ${repair.message}`);
+      }
+      
+    } catch (error) {
+      console.error('Error en reparación:', error);
+      setRepairResults({
+        success: false,
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+      toast.error('Error ejecutando reparación');
+    } finally {
+      setRepairing(false);
+    }
+  }, [loadEmails]);
+  
   // Manejador para cambiar de carpeta
   const handleFolderChange = useCallback((folder) => {
     setCurrentFolder(folder);
@@ -395,12 +477,65 @@ const InboxContainer = () => {
       <div className="bg-white p-4 border-b shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-800" data-testid="email-title">Bandeja de entrada</h1>
-          {userEmail && (
-            <div className="text-sm text-gray-600">
-              Tu dirección: <span className="font-semibold">{userEmail}</span>
+          <div className="flex items-center space-x-4">
+            {userEmail && (
+              <div className="text-sm text-gray-600">
+                Tu dirección: <span className="font-semibold">{userEmail}</span>
+              </div>
+            )}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={runDiagnosis}
+                disabled={debugging}
+                className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 text-sm"
+                title="Diagnosticar problemas de email"
+              >
+                {debugging ? '🔄' : '🔍'} Debug
+              </button>
+              <button
+                onClick={runRepair}
+                disabled={repairing}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm"
+                title="Reparar autenticación de email"
+              >
+                {repairing ? '🔄' : '🔧'} Reparar
+              </button>
             </div>
-          )}
+          </div>
         </div>
+        
+        {/* Panel de resultados de diagnóstico */}
+        {debugResults && (
+          <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+            <h3 className="text-sm font-semibold mb-2">Resultado del Diagnóstico:</h3>
+            {debugResults.success ? (
+              <div className="text-sm">
+                <p className="mb-1">Estado: <span className={`font-semibold ${
+                  debugResults.data.report.status === 'critical' ? 'text-red-600' :
+                  debugResults.data.report.status === 'warning' ? 'text-yellow-600' :
+                  'text-green-600'
+                }`}>{debugResults.data.report.status.toUpperCase()}</span></p>
+                <p className="mb-1">Problemas: {debugResults.data.report.issues.length}</p>
+                <p className="mb-1">Advertencias: {debugResults.data.report.warnings.length}</p>
+                <p className="text-xs text-gray-600">Ver consola para detalles completos</p>
+              </div>
+            ) : (
+              <p className="text-sm text-red-600">Error: {debugResults.error}</p>
+            )}
+          </div>
+        )}
+        
+        {/* Panel de resultados de reparación */}
+        {repairResults && (
+          <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+            <h3 className="text-sm font-semibold mb-2">Resultado de la Reparación:</h3>
+            {repairResults.success ? (
+              <p className="text-sm text-green-600">✅ {repairResults.message} ({repairResults.userEmail})</p>
+            ) : (
+              <p className="text-sm text-red-600">❌ {repairResults.message}</p>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Contenido principal */}

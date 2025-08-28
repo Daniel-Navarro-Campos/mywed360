@@ -1086,7 +1086,67 @@ const EmailService = {
   getEmailTemplateById,
   saveEmailTemplate,
   deleteEmailTemplate,
-  resetPredefinedTemplates
+  resetPredefinedTemplates,
+  // Funciones de debug
+  getEmailServiceDebugInfo,
+  forceReconfigureEmailUser
 };
+
+/**
+ * Función para obtener información de debug del servicio
+ */
+export function getEmailServiceDebugInfo() {
+  return {
+    CURRENT_USER_EMAIL,
+    ORIGINAL_USER_EMAIL,
+    hasCurrentUser: !!CURRENT_USER,
+    authContextExists: !!authContext,
+    authContextUser: authContext?.user?.email || authContext?.currentUser?.email || null,
+    firebaseUser: auth?.currentUser?.email || null,
+    timestamp: new Date().toISOString()
+  };
+}
+
+/**
+ * Función para forzar la reconfiguración del usuario de email
+ */
+export async function forceReconfigureEmailUser() {
+  console.log('=== FORZANDO RECONFIGURACIÓN DE USUARIO ===');
+  
+  try {
+    let userProfile = null;
+    
+    // Intentar obtener usuario de authContext
+    if (authContext?.user?.email) {
+      userProfile = { email: authContext.user.email };
+      console.log('Usuario encontrado en authContext:', userProfile.email);
+    }
+    // Intentar obtener usuario de Firebase
+    else if (auth?.currentUser?.email) {
+      userProfile = { email: auth.currentUser.email };
+      console.log('Usuario encontrado en Firebase:', userProfile.email);
+    }
+    // Intentar obtener usuario de localStorage
+    else {
+      const storedEmail = localStorage.getItem('mywed360_user_email');
+      if (storedEmail) {
+        userProfile = { email: storedEmail };
+        console.log('Usuario encontrado en localStorage:', userProfile.email);
+      }
+    }
+    
+    if (userProfile && userProfile.email) {
+      await initEmailService(userProfile);
+      console.log('Reconfiguración exitosa para:', userProfile.email);
+      return true;
+    } else {
+      console.log('No se encontró usuario válido para reconfigurar');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error en reconfiguración:', error);
+    return false;
+  }
+}
 
 export default EmailService;
