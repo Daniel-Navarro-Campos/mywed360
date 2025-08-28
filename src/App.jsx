@@ -3,8 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigat
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import UserProvider from './context/UserContext'; // Legacy - mantener durante migración
-import { useAuth } from './hooks/useAuthUnified';
-import { AuthProvider } from './hooks/useAuth'; // Importamos el AuthProvider legacy
+import { useAuth, AuthProvider } from './hooks/useAuth'; // Usar el mismo sistema de autenticación
 import AuthMigrationWrapper from './components/auth/AuthMigrationWrapper'; // Nuevo sistema de autenticación
 import MainLayout from './components/MainLayout';
 import EmailNotification from './components/EmailNotification';
