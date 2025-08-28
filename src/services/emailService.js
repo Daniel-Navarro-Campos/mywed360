@@ -277,6 +277,100 @@ function mapMailgunEventsToMails(events, folder) {
   });
 }
 
+// Función específica para obtener correos de la bandeja de entrada
+async function getInboxMails() {
+  // Intentar Mailgun primero
+  if (USE_MAILGUN) {
+    try {
+      const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'delivered');
+      const inboxMails = mapMailgunEventsToMails(events, 'inbox');
+      if (inboxMails.length > 0) {
+        return inboxMails;
+      }
+    } catch (error) {
+      console.error('Error con Mailgun para inbox:', error);
+    }
+  }
+  
+  // Fallback al backend
+  if (USE_BACKEND) {
+    try {
+      const token = await getAuthToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      const res = await fetch(`${BASE}/api/mail?folder=inbox&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+        headers
+      });
+      
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json)) {
+          return json;
+        }
+      } else {
+        console.warn(`Backend inbox devolvió ${res.status}`);
+      }
+    } catch (error) {
+      console.error('Error con backend para inbox:', error);
+    }
+  }
+  
+  // Fallback a localStorage
+  const localMails = loadLocal();
+  return localMails.filter(m => m.folder === 'inbox' && m.to === CURRENT_USER_EMAIL);
+}
+
+// Función específica para obtener correos enviados
+async function getSentMails(collectedSent = []) {
+  // Intentar Mailgun para eventos "accepted" (enviados)
+  if (USE_MAILGUN) {
+    try {
+      const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'accepted');
+      const sentMails = mapMailgunEventsToMails(events, 'sent');
+      collectedSent.push(...sentMails);
+    } catch (error) {
+      console.error('Error con Mailgun para sent:', error);
+    }
+  }
+  
+  // Intentar backend
+  if (USE_BACKEND) {
+    try {
+      const token = await getAuthToken();
+      
+      if (token) {
+        const headers = { 'Authorization': `Bearer ${token}` };
+        
+        const res = await fetch(`${BASE}/api/mail?folder=sent&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
+          headers
+        });
+        
+        if (res.ok) {
+          const backendSent = await res.json();
+          if (Array.isArray(backendSent)) {
+            collectedSent.push(...backendSent);
+          }
+        } else {
+          console.warn(`Backend sent devolvió ${res.status}`);
+        }
+      } else {
+        console.log('Token no disponible para consulta sent');
+      }
+    } catch (error) {
+      console.error('Error con backend para sent:', error);
+    }
+  }
+  
+  // Deduplicar por id
+  const unique = new Map();
+  collectedSent.forEach(m => {
+    if (!unique.has(m.id)) unique.set(m.id, m);
+  });
+  
+  const merged = Array.from(unique.values()).sort((a,b) => new Date(b.date) - new Date(a.date));
+  return merged;
+}
+
 export async function getMails(folder = 'inbox') {
   if (!CURRENT_USER_EMAIL) {
     return { success: false, error: 'Servicio de email no inicializado' };
@@ -307,77 +401,25 @@ export async function getMails(folder = 'inbox') {
     collectedSent.push(...localMails);
   }
   
+  // Manejar inbox y sent por separado para evitar returns tempranos
+  if (folder === 'inbox') {
+    return await getInboxMails();
+  }
+  
+  if (folder === 'sent') {
+    return await getSentMails(collectedSent);
+  }
+  
+  // Para otras carpetas, usar lógica genérica
   if (USE_MAILGUN) {
     try {
-      if (folder === 'sent') {
-        // Eventos "accepted" representan mensajes enviados correctamente
-        const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'accepted');
-        collectedSent.push(...mapMailgunEventsToMails(events, 'sent'));
+      const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'delivered');
+      const mailgunMails = mapMailgunEventsToMails(events, folder);
+      if (mailgunMails.length > 0) {
+        return mailgunMails;
       }
-      // Para bandeja de entrada, obtenemos los correos recibidos
-      if (folder === 'inbox') {
-        const events = await fetchMailgunEvents(CURRENT_USER_EMAIL, 'delivered');
-        const inboxMails = mapMailgunEventsToMails(events, folder);
-        if (inboxMails.length > 0) {
-          return inboxMails; // Mailgun devolvió datos
-        }
-        // Si Mailgun no devuelve nada, intentamos backend/Firestore como fallback
-        console.info('Mailgun no devolvió eventos, usando backend como fallback');
-        
-        // Circuit breaker: evitar spam de requests 401
-        const backendFailureKey = 'emailService_backendFailure';
-        const lastBackendFailure = localStorage.getItem(backendFailureKey);
-        const now = Date.now();
-        
-        // Si falló hace menos de 2 minutos, retornar array vacío
-        if (lastBackendFailure && (now - parseInt(lastBackendFailure)) < 2 * 60 * 1000) {
-          console.log('🔄 emailService: backend no disponible (circuit breaker activo)');
-          return [];
-        }
-        
-        try {
-          const backendUrl = BASE || 'http://localhost:4004';
-          const token = await getAuthToken();
-          
-          // Si aún no tenemos token, esperamos a la autenticación sin activar circuit breaker
-          if (!token) {
-            console.log('⏳ emailService: token no disponible todavía, se omitirá llamada al backend');
-          } else {
-            const headers = {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            };
-            
-            const res = await fetch(`${backendUrl}/api/mail?folder=${encodeURIComponent(folder)}&user=${encodeURIComponent(CURRENT_USER_EMAIL)}`, {
-              headers
-            });
-            
-            if (res.ok) {
-              const json = await res.json();
-              if (Array.isArray(json)) {
-                return json;
-              }
-            } else {
-              // Solo activar circuit breaker para errores de servidor 5xx
-              if (res.status >= 500) {
-                localStorage.setItem(backendFailureKey, now.toString());
-              }
-              console.warn(`⚠️ emailService: backend devolvió ${res.status}`);
-            }
-          }
-        } catch (err) {
-          // Marcar fallo del backend para activar circuit breaker
-          localStorage.setItem(backendFailureKey, now.toString());
-          console.warn('🚫 emailService: backend no disponible:', err.message || err);
-        }
-        return inboxMails;
-      }
-      // Para otras carpetas dentro del dominio Mailgun no se realiza un retorno temprano.
-      // Cualquier dato adicional será procesado en los bloques posteriores (backend o localStorage)
-      // para permitir la combinación con correos locales y evitar pérdida de mensajes recién enviados.
     } catch (error) {
       console.error('Error con Mailgun, usando fallback:', error);
-      // Fallback al método normal si falla Mailgun
     }
   }
   
