@@ -5,6 +5,8 @@
 
 import { useState, useEffect, createContext, useContext } from 'react';
 import { initReminderService, stopReminderService } from '../services/reminderService';
+import { auth, autoAuthenticateUser } from '../firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // Crear contexto de autenticación
 const AuthContext = createContext(null);
@@ -19,36 +21,116 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Simular la carga del usuario al iniciar la aplicación
+  // Integrar Firebase Auth real con localStorage como respaldo
   useEffect(() => {
-    // En una aplicación real, aquí verificaríamos la sesión actual
+    let unsubscribe;
+    
+    const initializeAuth = async () => {
+      try {
+        // Intentar autenticación automática de Firebase
+        const firebaseUser = await autoAuthenticateUser();
+        
+        // Configurar listener de cambios de autenticación de Firebase
+        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          if (firebaseUser) {
+            // Usuario autenticado en Firebase
+            const firebaseUserData = {
+              uid: firebaseUser.uid,
+              email: firebaseUser.email || 'usuario@mywed360.com',
+              displayName: firebaseUser.displayName || 'Usuario MyWed360',
+              isAnonymous: firebaseUser.isAnonymous
+            };
+            
+            setCurrentUser(firebaseUserData);
+            
+            // Cargar o crear perfil desde localStorage
+            loadUserProfile(firebaseUserData);
+          } else {
+            // No hay usuario de Firebase, usar localStorage como fallback
+            loadUserFromStorage();
+          }
+          
+          setLoading(false);
+        });
+        
+      } catch (error) {
+        console.error('Error inicializando autenticación:', error);
+        // Fallback a localStorage si Firebase falla
+        loadUserFromStorage();
+        setLoading(false);
+      }
+    };
+    
+    const loadUserProfile = (firebaseUser) => {
+      try {
+        const savedProfile = localStorage.getItem('lovenda_user_profile');
+        
+        if (savedProfile) {
+          let profileObj = JSON.parse(savedProfile);
+          
+          // Sincronizar con datos de Firebase
+          profileObj.id = firebaseUser.uid;
+          if (!profileObj.email) profileObj.email = firebaseUser.email;
+          
+          // Si falta myWed360Email, generar uno
+          if (!profileObj.myWed360Email && firebaseUser.email) {
+            const loginPrefix = firebaseUser.email.split('@')[0].slice(0,4).toLowerCase();
+            profileObj.myWed360Email = `${loginPrefix}@mywed360.com`;
+            localStorage.setItem('lovenda_user_profile', JSON.stringify(profileObj));
+          }
+          
+          setUserProfile(profileObj);
+        } else {
+          // Crear perfil por defecto
+          const defaultProfile = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Usuario MyWed360',
+            email: firebaseUser.email || 'usuario@mywed360.com',
+            myWed360Email: `${firebaseUser.uid.slice(0,4)}@mywed360.com`,
+            preferences: {
+              emailNotifications: true,
+              emailSignature: 'Enviado desde Lovenda',
+              theme: 'light',
+              remindersEnabled: true,
+              reminderDays: 3
+            }
+          };
+          setUserProfile(defaultProfile);
+          localStorage.setItem('lovenda_user_profile', JSON.stringify(defaultProfile));
+        }
+      } catch (error) {
+        console.error('Error cargando perfil de Firebase:', error);
+      }
+    };
+    
     const loadUserFromStorage = () => {
       try {
-        // Obtener datos de usuario de localStorage (simulación)
+        // Obtener datos de usuario de localStorage (fallback)
         const savedUser = localStorage.getItem('lovenda_user');
         const savedProfile = localStorage.getItem('lovenda_user_profile');
         
         if (savedUser) {
-          setCurrentUser(JSON.parse(savedUser));
+          const savedUserObj = JSON.parse(savedUser);
+          setCurrentUser(savedUserObj);
           
           if (savedProfile) {
-          const savedUserObj = JSON.parse(savedUser);
-          let profileObj = JSON.parse(savedProfile);
-          // Si falta myWed360Email, sincronizar
-           if (!profileObj.myWed360Email && savedUserObj.email) {
-            // Generar alias usando los primeros 4 caracteres del email de login
-            const loginPrefix = savedUserObj.email.split('@')[0].slice(0,4).toLowerCase();
-            profileObj.myWed360Email = `${loginPrefix}@mywed360.com`;
-            localStorage.setItem('lovenda_user_profile', JSON.stringify(profileObj));
-          }
-          setUserProfile(profileObj);
-            setUserProfile(JSON.parse(savedProfile));
+            let profileObj = JSON.parse(savedProfile);
+            
+            // Si falta myWed360Email, sincronizar
+            if (!profileObj.myWed360Email && savedUserObj.email) {
+              const loginPrefix = savedUserObj.email.split('@')[0].slice(0,4).toLowerCase();
+              profileObj.myWed360Email = `${loginPrefix}@mywed360.com`;
+              localStorage.setItem('lovenda_user_profile', JSON.stringify(profileObj));
+            }
+            
+            setUserProfile(profileObj);
           } else {
             // Perfil por defecto si no existe
             const defaultProfile = {
-              id: JSON.parse(savedUser).uid || 'user123',
+              id: savedUserObj.uid || 'user123',
               name: 'Usuario Lovenda',
-              email: 'usuario@lovenda.app',
+              email: savedUserObj.email || 'usuario@lovenda.app',
+              myWed360Email: `${(savedUserObj.email || 'user').split('@')[0].slice(0,4)}@mywed360.com`,
               preferences: {
                 emailNotifications: true,
                 emailSignature: 'Enviado desde Lovenda',
@@ -96,7 +178,15 @@ export const AuthProvider = ({ children }) => {
       }
     };
     
-    loadUserFromStorage();
+    // Inicializar autenticación
+    initializeAuth();
+    
+    // Cleanup function
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // Iniciar o detener el servicio de recordatorios cuando cambie el perfil

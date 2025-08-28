@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { initializeFirestore, getFirestore, connectFirestoreEmulator, doc, setDoc, enableIndexedDbPersistence } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getDatabase, ref, onValue } from 'firebase/database';
@@ -238,12 +238,36 @@ const inicializarFirebase = async () => {
   }
 };
 
+/**
+ * Autenticación automática para solucionar problemas de bandeja de salida
+ * Esta función autentica automáticamente al usuario en Firebase
+ */
+const autoAuthenticateUser = async () => {
+  try {
+    if (!auth.currentUser) {
+      console.log('🔐 Autenticando usuario automáticamente...');
+      const userCredential = await signInAnonymously(auth);
+      console.log('✅ Usuario autenticado automáticamente:', userCredential.user.uid);
+      return userCredential.user;
+    }
+    return auth.currentUser;
+  } catch (error) {
+    console.error('❌ Error en autenticación automática:', error);
+    return null;
+  }
+};
+
 // Al importar este módulo iniciamos Firebase y exportamos la promesa
 const firebaseReady = inicializarFirebase()
+  .then(async () => {
+    // Autenticar automáticamente después de inicializar Firebase
+    await autoAuthenticateUser();
+    return true;
+  })
   .catch(error => {
     console.error('Error crítico al inicializar Firebase:', error);
     // Propagamos error para que otros módulos puedan manejarlo
     throw error;
   });
 
-export { auth, db, analytics, firebaseReady };
+export { auth, db, analytics, firebaseReady, autoAuthenticateUser };

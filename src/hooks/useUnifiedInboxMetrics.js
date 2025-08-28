@@ -16,7 +16,7 @@ import { useEmailMonitoring } from './useEmailMonitoring';
  * @returns {Object} Métodos para monitorear diferentes aspectos de la bandeja
  */
 export function useUnifiedInboxMetrics() {
-  const { trackOperation } = useEmailMonitoring();
+  const { trackEmailOperation } = useEmailMonitoring();
   
   /**
    * Registrar tiempo de carga de la vista principal
@@ -101,6 +101,6 @@ export function useUnifiedInboxMetrics() {
     logEmailRender,
     logUserInteraction,
     logCacheOperation,
-    trackOperation
+    trackEmailOperation
   };
 }

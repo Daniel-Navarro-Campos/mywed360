@@ -4,6 +4,7 @@
  */
 
 import EmailService from '../services/emailService.js';
+import { autoAuthenticateUser } from '../firebaseConfig.js';
 
 class EmailDebugger {
   constructor() {
@@ -241,7 +242,17 @@ export async function repairEmailAuthentication() {
   console.log('=== INICIANDO REPARACIÓN DE AUTENTICACIÓN ===');
   
   try {
-    // Intentar forzar reconfiguración del usuario
+    // 1. Primero, autenticar en Firebase automáticamente
+    console.log('🔐 Paso 1: Autenticando en Firebase...');
+    const firebaseUser = await autoAuthenticateUser();
+    
+    if (firebaseUser) {
+      console.log('✅ Firebase autenticado:', firebaseUser.uid);
+    } else {
+      console.log('⚠️ Firebase no pudo autenticarse, continuando...');
+    }
+    
+    // 2. Intentar forzar reconfiguración del usuario
     if (EmailService.forceReconfigureEmailUser) {
       const success = await EmailService.forceReconfigureEmailUser();
       console.log('Reconfiguración de usuario:', success ? 'ÉXITO' : 'FALLÓ');
@@ -253,8 +264,9 @@ export async function repairEmailAuthentication() {
         
         return {
           success: true,
-          message: 'Autenticación reparada correctamente',
+          message: 'Autenticación reparada correctamente (Firebase + EmailService)',
           userEmail: debugInfo?.CURRENT_USER_EMAIL,
+          firebaseUser: firebaseUser?.uid,
           timestamp: new Date().toISOString()
         };
       }

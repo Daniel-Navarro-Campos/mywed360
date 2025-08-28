@@ -24,7 +24,7 @@ const InboxContainer = () => {
   // Componente contenedor principal para la bandeja de entrada unificada
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const { trackOperation } = useEmailMonitoring();
+  const { trackEmailOperation } = useEmailMonitoring();
   const { logInitialLoad, logSearch, logEmailRender, logUserInteraction } = useUnifiedInboxMetrics();
   
   // Estado principal para la bandeja de entrada
@@ -58,10 +58,20 @@ const InboxContainer = () => {
   
   // Inicializar el servicio de email
   useEffect(() => {
-    if (profile) {
-      const email = EmailService.initEmailService(profile);
-      setUserEmail(email);
-    }
+    const initializeEmailService = async () => {
+      if (profile) {
+        try {
+          const email = await EmailService.initEmailService(profile);
+          setUserEmail(email);
+          console.log('✅ Email service inicializado correctamente:', email);
+        } catch (error) {
+          console.error('❌ Error inicializando email service:', error);
+          setError('Error de autenticación. Por favor, recarga la página.');
+        }
+      }
+    };
+    
+    initializeEmailService();
   }, [profile]);
   
   // Cargar emails al montar el componente o cambiar de carpeta
@@ -131,7 +141,9 @@ const InboxContainer = () => {
         emailCache.setEmails(currentFolder, data);
         
         // Registrar métricas de rendimiento
-        trackOperation('load_emails', {
+        await trackEmailOperation('load_emails', async () => {
+          return data;
+        }, {
           folder: currentFolder,
           count: data?.length || 0,
           duration: loadTime,
@@ -150,7 +162,7 @@ const InboxContainer = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentFolder, profile, trackOperation, logInitialLoad]);
+  }, [currentFolder, profile, trackEmailOperation, logInitialLoad]);
   
   // Función para cargar estadísticas de carpetas
   const loadFolderStats = useCallback(async () => {
